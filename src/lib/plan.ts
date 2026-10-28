@@ -53,9 +53,11 @@ export function normalisePlan(p: Partial<SavedPlan> & { pot?: number; save?: num
   };
 }
 
-export function loadPlan(): SavedPlan | null {
+export function loadPlan(
+  get: (key: string) => string | null = (key) => window.localStorage.getItem(key),
+): SavedPlan | null {
   try {
-    const raw = window.localStorage.getItem(PLAN_KEY);
+    const raw = get(PLAN_KEY);
     if (!raw) return null;
     const p = JSON.parse(raw) as Partial<SavedPlan>;
     if (typeof p.age !== "number" || typeof p.stop !== "number") return null;

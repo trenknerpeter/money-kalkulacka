@@ -11,6 +11,9 @@ export const SNAPSHOT_KEYS = [
   "finbuddy.salary",
 ] as const;
 
+/** How many scenarios can be kept side by side. */
+export const MAX_SNAPSHOTS = 3;
+
 const LIST_KEY = "finbuddy.snapshots.v1";
 const ACTIVE_KEY = "finbuddy.snapshots.active";
 
@@ -81,7 +84,7 @@ export function saveSnapshot(name: string, data = captureData(), id?: string): S
   };
   const idx = list.findIndex((s) => s.id === snap.id);
   if (idx >= 0) list[idx] = snap;
-  else list.unshift(snap);
+  else list.push(snap);
   writeList(list);
   setActiveId(snap.id);
   return snap;

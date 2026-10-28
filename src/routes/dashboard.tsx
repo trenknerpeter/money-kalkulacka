@@ -252,6 +252,183 @@ function RetirementPathChart({ m }: { m: DashboardMetrics }) {
   );
 }
 
+function Stat({ label, value, caption }: { label: string; value: string; caption?: string | undefined }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="tnum mt-1.5 whitespace-nowrap text-[clamp(1.25rem,2vw,1.75rem)] font-semibold leading-tight tracking-tight">
+        {value}
+      </p>
+      {caption && <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{caption}</p>}
+    </div>
+  );
+}
+
+/** The plan's headline: when you can stop, what you need, and where you end up. */
+function Headline({ m, spend }: { m: DashboardMetrics; spend: number }) {
+  const { money } = useFormatters();
+  const { t } = useT();
+  const owes = m.livingAge !== null && m.owedAtLiving > 0.5;
+  const o = m.outlook;
+  const outlookCaption = !o
+    ? undefined
+    : o.debt > 0.5
+      ? o.clearable
+        ? o.home > 0
+          ? t("Clear the mortgage and the home is fully yours.")
+          : t("Enough to clear the mortgage too.")
+        : t("With {d} still owed on the mortgage.", { d: money(o.debt) })
+      : m.mortgageBalance > 0
+        ? o.home > 0
+          ? t("Home fully yours.")
+          : t("Mortgage paid off.")
+        : undefined;
+
+  return (
+    <section className="break-inside-avoid rounded-lg border border-border bg-card p-6 print:p-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {t("Where you're headed")}
+      </p>
+      <h2
+        className={cn(
+          "mt-2 max-w-3xl text-[clamp(1.4rem,3vw,2rem)] font-semibold leading-tight tracking-tight",
+          m.livingAge !== null && "text-primary",
+        )}
+      >
+        {m.livingAge === null
+          ? t("On this path your pot doesn't reach your number before 90.")
+          : t("From {a} you could live on {v} a month.", { a: m.livingAge, v: money(spend) })}
+      </h2>
+      {owes && (
+        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+          {m.debtFreeAge !== null
+            ? t("You'd still owe {d} on the mortgage at {age}. Keep going until {age2} to clear it.", {
+                d: money(m.owedAtLiving),
+                age: m.livingAge!,
+                age2: m.debtFreeAge,
+              })
+            : t("You'd still owe {d} on the mortgage at {age}.", {
+                d: money(m.owedAtLiving),
+                age: m.livingAge!,
+              })}
+        </p>
+      )}
+      <div className="mt-6 grid gap-6 border-t border-border pt-5 sm:grid-cols-3 print:mt-3 print:grid-cols-3 print:pt-3">
+        {m.target !== null && (
+          <Stat
+            label={t("Your number")}
+            value={money(m.target)}
+            caption={t("The pot that pays {v} a month", { v: money(spend) })}
+          />
+        )}
+        {m.target !== null && owes && (
+          <Stat
+            label={t("Your number + mortgage left")}
+            value={money(m.target + m.owedAtLiving)}
+            caption={t("What you'd need at {a} to stop work and clear the mortgage", {
+              a: m.livingAge!,
+            })}
+          />
+        )}
+        {o && (
+          <Stat
+            label={t("Net worth at {age}", { age: o.age })}
+            value={money(o.netWorth)}
+            caption={outlookCaption}
+          />
+        )}
+      </div>
+    </section>
+  );
+}
+
+/** Home, investments and savings, minus the mortgage: today and at the outlook age. */
+function WhatYouOwn({ m }: { m: DashboardMetrics }) {
+  const { money, percent } = useFormatters();
+  const { t } = useT();
+  const o = m.outlook;
+  const gross = m.homeValue + m.invested + m.cash;
+  const rows = [
+    { key: "home", label: t("Your home"), color: "bg-foreground", now: m.homeValue, later: o?.home ?? 0 },
+    { key: "invest", label: t("Investments"), color: "bg-primary", now: m.invested, later: o?.invested ?? 0 },
+    { key: "cash", label: t("Savings account"), color: "bg-primary/40", now: m.cash, later: o?.cash ?? 0 },
+  ].filter((r) => r.now > 0 || r.later > 0.5);
+  const showDebt = m.mortgageBalance > 0 || (o?.debt ?? 0) > 0.5;
+
+  return (
+    <Panel title={t("What you own")} className="break-inside-avoid">
+      {gross > 0 && (
+        <div className="flex h-4 w-full overflow-hidden rounded-full">
+          {rows.map((r) => (
+            <div key={r.key} className={r.color} style={{ width: `${(r.now / gross) * 100}%` }} />
+          ))}
+        </div>
+      )}
+      <table className="tnum mt-4 w-full text-sm">
+        <thead>
+          <tr className="text-xs text-muted-foreground">
+            <th className="pb-2 text-left font-medium" />
+            <th className="pb-2 text-right font-medium">{t("Today")}</th>
+            {o && <th className="pb-2 pl-4 text-right font-medium">{t("At {age}", { age: o.age })}</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.key}>
+              <td className="py-1.5">
+                <span className="flex items-center gap-2 text-muted-foreground">
+                  <span className={cn("size-2.5 shrink-0 rounded-sm", r.color)} />
+                  {r.label}
+                  {gross > 0 && r.now > 0 && (
+                    <span className="text-xs">{percent((r.now / gross) * 100)}</span>
+                  )}
+                </span>
+              </td>
+              <td className="py-1.5 text-right font-medium">{money(r.now)}</td>
+              {o && <td className="py-1.5 pl-4 text-right text-muted-foreground">{money(r.later)}</td>}
+            </tr>
+          ))}
+          {showDebt && (
+            <tr>
+              <td className="py-1.5">
+                <span className="flex items-center gap-2 text-muted-foreground">
+                  <span className="size-2.5 shrink-0 rounded-sm border border-border" />
+                  {t("Mortgage")}
+                </span>
+              </td>
+              <td className="py-1.5 text-right font-medium">−{money(m.mortgageBalance)}</td>
+              {o && (
+                <td className="py-1.5 pl-4 text-right text-muted-foreground">
+                  {o.debt > 0.5 ? `−${money(o.debt)}` : money(0)}
+                </td>
+              )}
+            </tr>
+          )}
+          <tr className="border-t border-border font-semibold">
+            <td className="pt-2.5">{t("Net worth")}</td>
+            <td className="pt-2.5 text-right">{money(m.netWorth)}</td>
+            {o && <td className="pt-2.5 pl-4 text-right">{money(o.netWorth)}</td>}
+          </tr>
+        </tbody>
+      </table>
+      {m.homeValue === 0 && m.mortgageBalance > 0 ? (
+        <Link
+          to="/mortgage"
+          className="mt-3 inline-block text-sm font-medium text-primary hover:underline print:hidden"
+        >
+          {t("Add your home's value →")}
+        </Link>
+      ) : (
+        o && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            {t("Future values in today's money.")}
+          </p>
+        )
+      )}
+    </Panel>
+  );
+}
+
 function Dashboard() {
   const { t, count, locale } = useT();
   const { money, percent } = useFormatters();
@@ -350,6 +527,9 @@ function Dashboard() {
         </Panel>
       ) : (
         <>
+          {/* Where you're headed: the headline numbers */}
+          {m.path.length > 0 && <Headline m={m} spend={plan?.spend ?? 0} />}
+
           {/* Where you stand */}
           <section>
             <h2 className="mb-3 text-sm font-semibold tracking-tight">{t("Where you stand")}</h2>
@@ -430,6 +610,8 @@ function Dashboard() {
           </section>
 
           <div className="grid gap-6 lg:grid-cols-2 print:grid-cols-2 print:gap-3">
+            <WhatYouOwn m={m} />
+
             {/* Where your money goes */}
             <Panel title={t("Where your money goes")} className="break-inside-avoid">
               <div className="mb-5">
@@ -527,38 +709,12 @@ function Dashboard() {
                 <p className="text-sm text-muted-foreground">{t("Add your income below")}</p>
               )}
             </Panel>
+          </div>
 
-            {/* Where you're headed */}
-            <Panel title={t("Where you're headed")} className="break-inside-avoid">
+          {/* The path to your number */}
+          <Panel title={t("Your path to your number")} className="break-inside-avoid">
               {m.path.length > 0 ? (
                 <>
-                  <p className="mb-4 text-xs leading-relaxed text-muted-foreground">
-                    {m.livingAge === null
-                      ? t("On this path your pot doesn't reach your number before 90.")
-                      : m.owedAtLiving > 0.5
-                        ? m.debtFreeAge !== null
-                          ? t(
-                              "From {a} you could live on {v} a month, with {d} still owed on the mortgage. Keep going until {b} to clear it.",
-                              {
-                                a: m.livingAge,
-                                v: money(plan?.spend ?? 0),
-                                d: money(m.owedAtLiving),
-                                b: m.debtFreeAge,
-                              },
-                            )
-                          : t(
-                              "From {a} you could live on {v} a month, with {d} still owed on the mortgage.",
-                              {
-                                a: m.livingAge,
-                                v: money(plan?.spend ?? 0),
-                                d: money(m.owedAtLiving),
-                              },
-                            )
-                        : t("From {a} you could live on {v} a month.", {
-                            a: m.livingAge,
-                            v: money(plan?.spend ?? 0),
-                          })}
-                  </p>
                   <RetirementPathChart m={m} />
                   <div className="mt-4 flex flex-wrap items-center gap-5 text-xs text-muted-foreground">
                     <span className="flex items-center gap-2">
@@ -578,43 +734,6 @@ function Dashboard() {
                       </span>
                     )}
                   </div>
-                  {m.outlook && (
-                    <p className="tnum mt-3 text-xs text-muted-foreground">
-                      {m.outlook.debt > 0.5 && m.outlook.clearable
-                        ? m.homeValue > 0
-                          ? t(
-                              "At {age}: net worth {v}. Clear the mortgage and the home is fully yours.",
-                              {
-                                age: m.outlook.age,
-                                v: money(m.outlook.netWorth),
-                              },
-                            )
-                          : t("At {age}: net worth {v}, enough to clear the mortgage too.", {
-                              age: m.outlook.age,
-                              v: money(m.outlook.netWorth),
-                            })
-                        : m.outlook.debt > 0.5
-                          ? t("At {age}: net worth {v}, with {d} still owed on the mortgage.", {
-                              age: m.outlook.age,
-                              v: money(m.outlook.netWorth),
-                              d: money(m.outlook.debt),
-                            })
-                          : m.mortgageBalance > 0
-                            ? m.homeValue > 0
-                              ? t("At {age}: net worth {v}, home fully yours.", {
-                                  age: m.outlook.age,
-                                  v: money(m.outlook.netWorth),
-                                })
-                              : t("At {age}: net worth {v}, mortgage paid off.", {
-                                  age: m.outlook.age,
-                                  v: money(m.outlook.netWorth),
-                                })
-                            : t("At {age}: net worth {v}.", {
-                                age: m.outlook.age,
-                                v: money(m.outlook.netWorth),
-                              })}
-                    </p>
-                  )}
                 </>
               ) : (
                 <div className="py-10 text-center">
@@ -631,8 +750,7 @@ function Dashboard() {
                   </Link>
                 </div>
               )}
-            </Panel>
-          </div>
+          </Panel>
 
           {/* Print-only page 2: the details behind the overview. */}
           <div className="hidden print:block">

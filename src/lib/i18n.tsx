@@ -440,6 +440,43 @@ const CS: Record<string, string> = {
     "Doplatek zdravotního pojištění je vyšší než mzda. Nic se nevyplatí a {v} ještě doplácíte, vyrovnáte se se zaměstnavatelem.",
   "Valid for {year} · an educational estimate, not payroll advice.":
     "Platí pro rok {year} · orientační výpočet, nikoli mzdové poradenství.",
+  // Plan questionnaire: one step per pot
+  "Your investments": "Vaše investice",
+  "Your savings accounts": "Vaše spořicí účty",
+  "Cash in savings accounts or term deposits rather than the market.":
+    "Hotovost na spořicích účtech nebo termínovaných vkladech, ne na trhu.",
+  "Use today's value, and only monthly amounts that will continue until your target age. Avoid counting your home unless you plan to sell it.":
+    "Použijte dnešní hodnotu a jen měsíční částky, které budou pokračovat až do cílového věku. Nepočítejte bydlení, pokud ho neplánujete prodat.",
+  "Invest tab: {a} today, {b} a month at {p}": "Záložka Investice: {a} dnes, {b} měsíčně při {p}",
+  "Use these": "Použít",
+  "Using these": "Použito",
+  // Dashboard headline + what you own
+  "Clear the mortgage and the home is fully yours.": "Splaťte hypotéku a bydlení je celé vaše.",
+  "Enough to clear the mortgage too.": "Dost i na splacení hypotéky.",
+  "With {d} still owed on the mortgage.": "Na hypotéce zbývá {d}.",
+  "Home fully yours.": "Bydlení je celé vaše.",
+  "Mortgage paid off.": "Hypotéka splacena.",
+  "The pot that pays {v} a month": "Částka, která vám vyplácí {v} měsíčně",
+  "What you'd need at {a} to stop work and clear the mortgage":
+    "Kolik byste v {a} letech potřebovali, abyste přestali pracovat a splatili hypotéku",
+  "Net worth at {age}": "Čisté jmění v {age} letech",
+  "What you own": "Co vlastníte",
+  "Your home": "Bydlení",
+  Today: "Dnes",
+  "At {age}": "V {age} letech",
+  "Future values in today's money.": "Budoucí hodnoty v dnešních cenách.",
+  "Your path to your number": "Cesta k cílové částce",
+  // Scenarios
+  Scenarios: "Scénáře",
+  "{n} of {max} saved. Pick one to load it into every tab.":
+    "Uloženo {n} z {max}. Vyberte jeden a načte se do všech záložek.",
+  "Net worth · stop work at {age}": "Čisté jmění · konec práce v {age}",
+  "Save current as a scenario": "Uložit aktuální stav jako scénář",
+  "Save current as new": "Uložit aktuální stav jako nový",
+  "You've changed numbers since saving “{name}”.": "Od uložení „{name}“ jste změnili čísla.",
+  "Update “{name}”": "Aktualizovat „{name}“",
+  "All {max} slots are used. Update one, or delete one to save another.":
+    "Všechny {max} pozice jsou obsazené. Jeden scénář aktualizujte, nebo smažte, abyste mohli uložit další.",
 };
 
 type Vars = Record<string, string | number>;

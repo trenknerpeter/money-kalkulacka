@@ -43,9 +43,13 @@ export type DashboardStore = {
 
 export const DASH_KEY = "finbuddy.dashboard.v1";
 
-function readJson<T>(key: string): Partial<T> | null {
+/** Reads a stored value; defaults to localStorage, or pass a saved snapshot's data. */
+export type Source = (key: string) => string | null;
+const local: Source = (key) => window.localStorage.getItem(key);
+
+function readJson<T>(key: string, get: Source = local): Partial<T> | null {
   try {
-    const raw = window.localStorage.getItem(key);
+    const raw = get(key);
     if (!raw) return null;
     return JSON.parse(raw) as Partial<T>;
   } catch {
@@ -53,8 +57,8 @@ function readJson<T>(key: string): Partial<T> | null {
   }
 }
 
-export function loadInvest(): InvestScenario | null {
-  const p = readJson<InvestScenario>("finbuddy.invest");
+export function loadInvest(get?: Source): InvestScenario | null {
+  const p = readJson<InvestScenario>("finbuddy.invest", get);
   if (!p || typeof p.initial !== "number") return null;
   return {
     initial: num(p.initial),
@@ -71,8 +75,8 @@ export function loadInvest(): InvestScenario | null {
   };
 }
 
-export function loadMortgage(): MortgageScenario | null {
-  const p = readJson<MortgageScenario>("finbuddy.mortgage");
+export function loadMortgage(get?: Source): MortgageScenario | null {
+  const p = readJson<MortgageScenario>("finbuddy.mortgage", get);
   if (!p || typeof p.principal !== "number") return null;
   return {
     principal: num(p.principal),
@@ -90,8 +94,8 @@ export function loadMortgage(): MortgageScenario | null {
   };
 }
 
-export function loadDashboard(): DashboardStore {
-  const p = readJson<DashboardStore>(DASH_KEY);
+export function loadDashboard(get?: Source): DashboardStore {
+  const p = readJson<DashboardStore>(DASH_KEY, get);
   return { income: num(p?.income) };
 }
 
@@ -139,9 +143,17 @@ export type DashboardMetrics = {
   income: number;
   /** Retirement path rows (plan only). */
   path: PathRow[];
-  /** Net worth at the debt-free age (or living age / target age). */
+  /** Net worth at the debt-free age (or living age / target age), with its parts. */
   /** `clearable`: the pot also covers the debt then, so it can be paid off in one go. */
-  outlook: { age: number; netWorth: number; debt: number; clearable: boolean } | null;
+  outlook: {
+    age: number;
+    netWorth: number;
+    home: number;
+    invested: number;
+    cash: number;
+    debt: number;
+    clearable: boolean;
+  } | null;
 };
 
 export function deriveMetrics(input: {
@@ -204,12 +216,14 @@ export function deriveMetrics(input: {
     const outlookMonths =
       ms.debtFreeMonths ?? ms.livingMonths ?? Math.max(0, (num(plan.stop) - num(plan.age)) * 12);
     const debt = debtAt(outlookMonths);
+    const home = mortgage ? homeValueAt(mortgage, outlookMonths) : 0;
+    const pots = potsAfterMonths(plan, plan, outlookMonths);
     outlook = {
       age: ageAt(plan, outlookMonths),
-      netWorth:
-        (mortgage ? homeValueAt(mortgage, outlookMonths) : 0) +
-        potsAfterMonths(plan, plan, outlookMonths).total -
-        debt,
+      netWorth: home + pots.total - debt,
+      home,
+      invested: pots.invest,
+      cash: pots.savings,
       debt,
       clearable: ms.debtFreeMonths !== null,
     };
@@ -240,4 +254,15 @@ export function deriveMetrics(input: {
     path,
     outlook,
   };
+}
+
+/** Headline metrics for a saved snapshot, without loading it. */
+export function snapshotMetrics(data: Record<string, string>): DashboardMetrics {
+  const get: Source = (key) => data[key] ?? null;
+  return deriveMetrics({
+    invest: loadInvest(get),
+    mortgage: loadMortgage(get),
+    plan: loadPlan(get),
+    income: loadDashboard(get).income,
+  });
 }

@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, Download, Link2, Pencil, Trash2, Upload } from "lucide-react";
+import { Check, Download, Link2, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { Panel } from "@/components/Panel";
+import { useFormatters } from "@/lib/currency";
+import { snapshotMetrics } from "@/lib/dashboard";
 import { useT } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 import {
+  MAX_SNAPSHOTS,
   applyData,
   captureData,
   decodeSnapshot,
@@ -26,10 +30,10 @@ const btn =
 
 export function SnapshotBar() {
   const { t, locale } = useT();
+  const { money } = useFormatters();
   const [list, setList] = useState<Snapshot[]>([]);
   const [activeId, setActive] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
-  const [open, setOpen] = useState(false);
   const [naming, setNaming] = useState<null | { mode: "new" | "rename"; value: string }>(null);
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState<Snapshot | null>(null);
@@ -52,11 +56,11 @@ export function SnapshotBar() {
   }, []);
 
   const active = list.find((s) => s.id === activeId) ?? null;
+  const full = list.length >= MAX_SNAPSHOTS;
   const fmtDate = (iso: string) =>
     new Date(iso).toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" });
 
   const switchTo = (s: Snapshot) => {
-    setOpen(false);
     if (s.id === activeId && !dirty) return;
     if ((dirty || !active) && !window.confirm(t("Switching replaces the numbers in every tab with this snapshot. Unsaved changes will be lost. Continue?"))) return;
     applyData(s.data);
@@ -66,7 +70,7 @@ export function SnapshotBar() {
 
   const submitName = () => {
     if (!naming) return;
-    if (naming.mode === "new") saveSnapshot(naming.value);
+    if (naming.mode === "new" && !full) saveSnapshot(naming.value);
     else if (active) renameSnapshot(active.id, naming.value);
     setNaming(null);
     refresh();
@@ -108,7 +112,9 @@ export function SnapshotBar() {
   const loadShared = () => {
     if (!shared) return;
     applyData(shared.data);
-    saveSnapshot(shared.name, shared.data);
+    // With every slot taken it loads as the unsaved current situation.
+    if (full) setActiveId(null);
+    else saveSnapshot(shared.name, shared.data);
     reloadDashboard();
   };
 
@@ -144,72 +150,92 @@ export function SnapshotBar() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {t("Financial snapshot")}
+              {t("Scenarios")}
             </p>
-            <div className="relative mt-1">
-              <button
-                type="button"
-                onClick={() => setOpen((o) => !o)}
-                aria-label={t("Switch snapshot")}
-                className="flex items-center gap-1.5 text-lg font-semibold tracking-tight hover:text-primary"
-              >
-                <span className="truncate">{active?.name ?? t("Unsaved current situation")}</span>
-                {list.length > 0 && <ChevronDown className="size-4 shrink-0" />}
-              </button>
-              {open && list.length > 0 && (
-                <div className="absolute left-0 z-20 mt-2 w-72 rounded-lg border border-border bg-card p-1">
-                  {list.map((s) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => switchTo(s)}
-                      className="flex w-full items-start gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-muted"
-                    >
-                      <Check className={`mt-0.5 size-4 shrink-0 ${s.id === activeId ? "text-primary" : "invisible"}`} />
-                      <span className="min-w-0">
-                        <span className="block truncate font-medium">{s.name}</span>
-                        <span className="block text-xs text-muted-foreground">{fmtDate(s.savedAt)}</span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {active
-                ? dirty
-                  ? t("Edited since saved")
-                  : t("Saved {date}", { date: fmtDate(active.savedAt) })
-                : t("Save your whole situation — every tab at once — and come back to it, compare, or share it.")}
+            <p className="mt-1 text-sm text-muted-foreground">
+              {list.length === 0
+                ? t("Save your whole situation — every tab at once — and come back to it, compare, or share it.")
+                : t("{n} of {max} saved. Pick one to load it into every tab.", {
+                    n: list.length,
+                    max: MAX_SNAPSHOTS,
+                  })}
             </p>
           </div>
+          <button type="button" className={btn} onClick={copyLink}>
+            <Link2 className="size-4" />
+            {copied ? t("Link copied") : t("Copy share link")}
+          </button>
+        </div>
 
-          <div className="flex flex-wrap gap-2">
-            {active && dirty && (
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          {list.map((s) => {
+            const isActive = s.id === activeId;
+            const m = snapshotMetrics(s.data);
+            return (
               <button
+                key={s.id}
                 type="button"
-                className={btn}
-                onClick={() => {
-                  saveSnapshot(active.name, captureData(), active.id);
-                  refresh();
-                }}
+                onClick={() => switchTo(s)}
+                aria-pressed={isActive}
+                className={cn(
+                  "min-w-0 rounded-lg border p-4 text-left transition-colors",
+                  isActive ? "border-primary bg-primary/5" : "border-border hover:bg-muted",
+                )}
               >
-                {t("Update")}
+                <span className="flex items-center gap-1.5">
+                  {isActive && <Check className="size-4 shrink-0 text-primary" />}
+                  <span className="truncate text-sm font-semibold">{s.name}</span>
+                </span>
+                <span className="tnum mt-2 block text-lg font-semibold tracking-tight">
+                  {money(m.netWorth)}
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  {m.livingAge !== null
+                    ? t("Net worth · stop work at {age}", { age: m.livingAge })
+                    : t("Net worth")}
+                </span>
+                <span className="mt-2 block text-xs text-muted-foreground">
+                  {isActive && dirty ? t("Edited since saved") : fmtDate(s.savedAt)}
+                </span>
               </button>
-            )}
+            );
+          })}
+          {!full && (
             <button
               type="button"
               onClick={() => setNaming({ mode: "new", value: "" })}
-              className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground"
+              className="flex min-h-[7.5rem] flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border p-4 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
             >
-              {t("Save as new")}
+              <Plus className="size-5" />
+              {list.length === 0 ? t("Save current as a scenario") : t("Save current as new")}
             </button>
-            <button type="button" className={btn} onClick={copyLink}>
-              <Link2 className="size-4" />
-              {copied ? t("Link copied") : t("Copy share link")}
+          )}
+        </div>
+
+        {active && dirty && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-muted-foreground">
+              {t("You've changed numbers since saving “{name}”.", { name: active.name })}
+            </span>
+            <button
+              type="button"
+              className={btn}
+              onClick={() => {
+                saveSnapshot(active.name, captureData(), active.id);
+                refresh();
+              }}
+            >
+              {t("Update “{name}”", { name: active.name })}
             </button>
           </div>
-        </div>
+        )}
+        {full && (dirty || !active) && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            {t("All {max} slots are used. Update one, or delete one to save another.", {
+              max: MAX_SNAPSHOTS,
+            })}
+          </p>
+        )}
 
         {naming && (
           <form

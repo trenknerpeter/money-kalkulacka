@@ -25,7 +25,7 @@ import {
   type PlanProfile,
   type SavedPlan,
 } from "@/lib/plan";
-import { loadMortgage } from "@/lib/dashboard";
+import { loadInvest, loadMortgage, type InvestScenario } from "@/lib/dashboard";
 import { ageAt, mortgageSchedule, realBalanceAt, retirementMilestones } from "@/lib/retirement";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
@@ -37,7 +37,7 @@ export const Route = createFileRoute("/plan")({
       {
         name: "description",
         content:
-          "Odpovězte na sedm rychlých otázek a zjistěte, kdy můžete reálně přestat pracovat — a co změnit, pokud nestíháte.",
+          "Odpovězte na pět rychlých otázek a zjistěte, kdy můžete reálně přestat pracovat — a co změnit, pokud nestíháte.",
       },
       { property: "og:title", content: "Kdy můžete přestat pracovat — Money Kalkulačka" },
       {
@@ -57,75 +57,57 @@ type Answers = PlanProfile & Pick<PlanAssumptions, "ret" | "cashRet">;
 type QuestionKey = keyof PlanProfile;
 type RateKey = "ret" | "cashRet";
 
-const QUESTIONS: {
+type Field = {
   key: QuestionKey;
-  title: string;
-  helper?: string;
-  detail: string;
+  /** Shown above the input when a step asks for more than one number. */
+  label?: string;
   def: number;
   min: number;
   max: number;
   money?: boolean;
-  /** A rate slider paired directly under the amount. */
+};
+
+const STEPS: {
+  id: string;
+  title: string;
+  helper?: string;
+  detail: string;
+  fields: Field[];
+  /** A rate slider paired directly under the amounts. */
   rate?: { key: RateKey; label: string; min: number; max: number; step: number; note: string };
+  /** Which part of the Invest tab can fill this step in. */
+  fromInvest?: "invest" | "savings";
 }[] = [
   {
-    key: "age",
+    id: "age",
     title: "How old are you?",
     helper: "Your current age sets how long your money has to grow.",
     detail: "Use your age today, rounded to the nearest whole year.",
-    def: 35,
-    min: 18,
-    max: 75,
+    fields: [{ key: "age", def: 35, min: 18, max: 75 }],
   },
   {
-    key: "stop",
+    id: "stop",
     title: "At what age would you like to stop working?",
     helper: "Aiming early is fine — that's the point of working it out.",
     detail: "This is your target, not a commitment. You can test other ages in your results.",
-    def: 60,
-    min: 19,
-    max: 85,
+    fields: [{ key: "stop", def: 60, min: 19, max: 85 }],
   },
   {
-    key: "spend",
+    id: "spend",
     title: "How much would you need each month to live on?",
     helper: "In today's money — what your life costs now is usually a good guide.",
     detail: "Include regular living costs and room for the lifestyle you want. Leave out savings contributions.",
-    def: 2500,
-    min: 0,
-    max: 1000000,
-    money: true,
+    fields: [{ key: "spend", def: 2500, min: 0, max: 1000000, money: true }],
   },
   {
-    key: "invested",
-    title: "How much do you have invested today?",
+    id: "invest",
+    title: "Your investments",
     helper: "Funds, shares, ETFs, pension pots — money that's in the market.",
-    detail: "Use today's value. Avoid counting your home unless you plan to sell it.",
-    def: 20000,
-    min: 0,
-    max: 100000000,
-    money: true,
-  },
-  {
-    key: "cash",
-    title: "How much do you have in savings accounts today?",
-    helper: "Cash in savings or term deposits that counts towards your future.",
-    detail: "Leave out your everyday current account. Together with your investments this is your starting pot.",
-    def: 5000,
-    min: 0,
-    max: 100000000,
-    money: true,
-  },
-  {
-    key: "saveInvest",
-    title: "How much do you invest each month?",
-    helper: "Regular contributions to funds, ETFs or a pension — whatever you're actually managing now.",
-    detail: "Only count what will continue until your target age.",
-    def: 500,
-    min: 0,
-    max: 1000000,
-    money: true,
+    detail: "Use today's value, and only monthly amounts that will continue until your target age. Avoid counting your home unless you plan to sell it.",
+    fields: [
+      { key: "invested", label: "Invested today", def: 20000, min: 0, max: 100000000, money: true },
+      { key: "saveInvest", label: "Invested monthly", def: 500, min: 0, max: 1000000, money: true },
+    ],
     rate: {
       key: "ret",
       label: "Expected annual return",
@@ -134,16 +116,17 @@ const QUESTIONS: {
       step: 0.5,
       note: "Global index funds have historically returned around 7–8% a year before inflation.",
     },
+    fromInvest: "invest",
   },
   {
-    key: "saveCash",
-    title: "How much do you put into savings accounts each month?",
-    helper: "Money that goes into a savings account or term deposit rather than the market.",
-    detail: "Leave out what stays in your everyday current account.",
-    def: 200,
-    min: 0,
-    max: 1000000,
-    money: true,
+    id: "savings",
+    title: "Your savings accounts",
+    helper: "Cash in savings accounts or term deposits rather than the market.",
+    detail: "Leave out your everyday current account. Together with your investments this is your starting pot.",
+    fields: [
+      { key: "cash", label: "In savings today", def: 5000, min: 0, max: 100000000, money: true },
+      { key: "saveCash", label: "Saved monthly", def: 200, min: 0, max: 1000000, money: true },
+    ],
     rate: {
       key: "cashRet",
       label: "Expected interest rate",
@@ -152,8 +135,24 @@ const QUESTIONS: {
       step: 0.1,
       note: "Savings accounts usually pay close to the central bank rate — often around 2–4%.",
     },
+    fromInvest: "savings",
   },
 ];
+
+const FIELDS = STEPS.flatMap((s) => s.fields);
+
+/** The Invest tab's numbers for one step, if it has them. */
+function investValuesFor(
+  invest: InvestScenario | null,
+  which: "invest" | "savings" | undefined,
+): Partial<Answers> | null {
+  if (!invest || !which) return null;
+  if (which === "invest") {
+    return { invested: invest.initial, saveInvest: invest.monthly, ret: Math.min(15, invest.rate) };
+  }
+  if (!invest.savings) return null;
+  return { cash: invest.sInitial, saveCash: invest.sMonthly, cashRet: Math.min(10, invest.sRate) };
+}
 
 function Questionnaire({
   initial,
@@ -163,9 +162,10 @@ function Questionnaire({
   onDone: (p: Answers) => void;
 }) {
   const navigate = useNavigate();
-  const { symbol } = useFormatters();
+  const { symbol, money, percent } = useFormatters();
   const scale = useCurrencyScale();
   const { t } = useT();
+  const [invest] = useState(() => loadInvest());
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Answers>(() => {
     if (initial) {
@@ -173,48 +173,83 @@ function Questionnaire({
       return rest;
     }
     const a = Object.fromEntries(
-      QUESTIONS.map((q) => [q.key, q.money ? q.def * scale : q.def]),
+      FIELDS.map((f) => [f.key, f.money ? f.def * scale : f.def]),
     ) as PlanProfile;
-    return { ...a, ret: DEFAULT_ASSUMPTIONS.ret, cashRet: DEFAULT_ASSUMPTIONS.cashRet };
+    // A first visit starts from the Invest tab's numbers where there are any.
+    return {
+      ...a,
+      ret: DEFAULT_ASSUMPTIONS.ret,
+      cashRet: DEFAULT_ASSUMPTIONS.cashRet,
+      ...investValuesFor(invest, "invest"),
+      ...investValuesFor(invest, "savings"),
+    };
   });
-  const [text, setText] = useState(String(initial?.age ?? QUESTIONS[0]!.def));
+  const [texts, setTexts] = useState<Record<string, string>>(() =>
+    Object.fromEntries(FIELDS.map((f) => [f.key, String(answers[f.key])])),
+  );
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const q = QUESTIONS[step]!;
+  const q = STEPS[step]!;
+  const multi = q.fields.length > 1;
+  const fromInvest = investValuesFor(invest, q.fromInvest);
+  const usingInvest =
+    fromInvest !== null &&
+    Object.entries(fromInvest).every(([k, v]) =>
+      k in texts ? parseFloat(texts[k]!) === v : answers[k as RateKey] === v,
+    );
 
   useEffect(() => {
     inputRef.current?.focus();
     inputRef.current?.select();
   }, [step]);
 
-  const goTo = (next: number, currentAnswers: Answers) => {
+  const goTo = (next: number) => {
     setStep(next);
-    setText(String(currentAnswers[QUESTIONS[next]!.key]));
     setError(null);
   };
 
+  const useInvest = () => {
+    if (!fromInvest) return;
+    setAnswers((a) => ({ ...a, ...fromInvest }));
+    setTexts((tx) => {
+      const next = { ...tx };
+      for (const f of q.fields) {
+        const v = fromInvest[f.key];
+        if (v !== undefined) next[f.key] = String(v);
+      }
+      return next;
+    });
+    setError(null);
+    // The button turns into a label, so keep Enter working from the inputs.
+    inputRef.current?.focus();
+  };
+
   const advance = () => {
-    const n = parseFloat(text.replace(/[^0-9.,-]/g, "").replace(",", "."));
-    if (!isFinite(n) || isNaN(n)) {
-      setError(t("Enter a number to continue."));
-      return;
+    const next = { ...answers };
+    for (const f of q.fields) {
+      const raw = texts[f.key] ?? "";
+      const n = parseFloat(raw.replace(/[^0-9.,-]/g, "").replace(",", "."));
+      if (!isFinite(n) || isNaN(n)) {
+        setError(t("Enter a number to continue."));
+        return;
+      }
+      const value = Math.round(n);
+      if (value < f.min || value > f.max) {
+        setError(t("Between {min} and {max}, please.", { min: f.min, max: f.max }));
+        return;
+      }
+      if (f.key === "stop" && value <= answers.age) {
+        setError(t("It has to be above your current age — otherwise you'd already be there."));
+        return;
+      }
+      next[f.key] = value;
     }
-    const value = Math.round(n);
-    if (value < q.min || value > q.max) {
-      setError(t("Between {min} and {max}, please.", { min: q.min, max: q.max }));
-      return;
-    }
-    if (q.key === "stop" && value <= answers.age) {
-      setError(t("It has to be above your current age — otherwise you'd already be there."));
-      return;
-    }
-    const next = { ...answers, [q.key]: value };
     setAnswers(next);
-    if (step === QUESTIONS.length - 1) {
+    if (step === STEPS.length - 1) {
       onDone(next);
     } else {
-      goTo(step + 1, next);
+      goTo(step + 1);
     }
   };
 
@@ -223,7 +258,7 @@ function Questionnaire({
       <div className="mb-10 flex items-center justify-between">
         <button
           type="button"
-          onClick={() => step > 0 && goTo(step - 1, answers)}
+          onClick={() => step > 0 && goTo(step - 1)}
           aria-label={t("Back")}
           className={cn(
             "flex size-11 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:text-foreground",
@@ -233,9 +268,9 @@ function Questionnaire({
           <ArrowLeft className="size-4" />
         </button>
         <div className="flex items-center gap-2">
-          {QUESTIONS.map((qq, i) => (
+          {STEPS.map((qq, i) => (
             <span
-              key={qq.key}
+              key={qq.id}
               className={cn(
                 "size-2 rounded-full transition-colors",
                 i <= step ? "bg-primary" : "bg-neutral-fill",
@@ -255,25 +290,84 @@ function Questionnaire({
         <h1 className="text-3xl font-semibold tracking-tight">{t(q.title)}</h1>
         {q.helper && <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{t(q.helper)}</p>}
 
-        <div className="mt-10 flex items-baseline gap-3 border-b-2 border-border pb-3 focus-within:border-primary">
-          {q.money && <span className="text-2xl text-muted-foreground">{symbol}</span>}
-          <input
-            ref={inputRef}
-            inputMode="decimal"
-            value={text}
-            onChange={(e) => {
-              setText(e.target.value);
-              setError(null);
-            }}
-            aria-label={t(q.title)}
-            className="tnum w-full bg-transparent text-4xl font-semibold tracking-tight outline-none"
-          />
+        {fromInvest && (
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/5 px-4 py-3 text-sm">
+            <span>
+              {q.fromInvest === "invest"
+                ? t("Invest tab: {a} today, {b} a month at {p}", {
+                    a: money(fromInvest.invested ?? 0),
+                    b: money(fromInvest.saveInvest ?? 0),
+                    p: percent(fromInvest.ret ?? 0),
+                  })
+                : t("Invest tab: {a} today, {b} a month at {p}", {
+                    a: money(fromInvest.cash ?? 0),
+                    b: money(fromInvest.saveCash ?? 0),
+                    p: percent(fromInvest.cashRet ?? 0),
+                  })}
+            </span>
+            {usingInvest ? (
+              <span className="flex items-center gap-1 font-medium text-primary">
+                <Check className="size-4" /> {t("Using these")}
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={useInvest}
+                className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground"
+              >
+                {t("Use these")}
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className={cn(multi ? "mt-8 grid gap-6 sm:grid-cols-2" : "mt-10")}>
+          {q.fields.map((f, i) => (
+            <div key={f.key} className="min-w-0">
+              {f.label && (
+                <label
+                  htmlFor={`plan-${f.key}`}
+                  className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                >
+                  {t(f.label)}
+                </label>
+              )}
+              <div
+                className={cn(
+                  "flex items-baseline gap-3 border-b-2 border-border pb-3 focus-within:border-primary",
+                  f.label && "mt-2",
+                )}
+              >
+                {f.money && (
+                  <span className={cn("text-muted-foreground", multi ? "text-xl" : "text-2xl")}>
+                    {symbol}
+                  </span>
+                )}
+                <input
+                  id={`plan-${f.key}`}
+                  ref={i === 0 ? inputRef : undefined}
+                  inputMode="decimal"
+                  value={texts[f.key] ?? ""}
+                  onChange={(e) => {
+                    setTexts((tx) => ({ ...tx, [f.key]: e.target.value }));
+                    setError(null);
+                  }}
+                  aria-label={t(f.label ?? q.title)}
+                  className={cn(
+                    "tnum w-full min-w-0 bg-transparent font-semibold tracking-tight outline-none",
+                    multi ? "text-3xl" : "text-4xl",
+                  )}
+                />
+              </div>
+            </div>
+          ))}
         </div>
         <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{t(q.detail)}</p>
         {error && <p className="mt-3 text-sm text-muted-foreground">{error}</p>}
 
         {q.rate && (
-          <div className="mt-8 rounded-lg border border-border p-5">
+          // Keyed per step: the slider keeps its own text, which must not carry over.
+          <div key={q.id} className="mt-8 rounded-lg border border-border p-5">
             <NumberSlider
               label={t(q.rate.label)}
               value={answers[q.rate.key]}
@@ -291,7 +385,7 @@ function Questionnaire({
           type="submit"
           className="mt-10 inline-flex h-11 items-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          {step === QUESTIONS.length - 1 ? t("See my plan") : t("Continue")}
+          {step === STEPS.length - 1 ? t("See my plan") : t("Continue")}
         </button>
       </form>
 
