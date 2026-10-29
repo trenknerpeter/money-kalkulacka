@@ -171,7 +171,7 @@ function Invest() {
 
   return (
     <div className="grid gap-10 lg:grid-cols-[380px_1fr]">
-      <div className="space-y-6 lg:sticky lg:top-32 lg:self-start">
+      <div className="space-y-6 lg:sticky lg:top-32 lg:-mx-1 lg:max-h-[calc(100dvh-9.5rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:px-1 lg:pb-1">
         <Panel title={t("Investments")} className="space-y-6">
           <NumberSlider
             label={t("Initial amount")}
