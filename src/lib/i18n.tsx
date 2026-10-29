@@ -465,6 +465,10 @@ const CS: Record<string, string> = {
   Today: "Dnes",
   "At {age}": "V {age} letech",
   "Future values in today's money.": "Budoucí hodnoty v dnešních cenách.",
+  "Total assets": "Majetek celkem",
+  Liabilities: "Závazky",
+  "No debt": "Bez dluhů",
+  "Percentages are shares of total assets.": "Procenta jsou podílem na celkovém majetku.",
   "Your path to your number": "Cesta k cílové částce",
   // Scenarios
   Scenarios: "Scénáře",

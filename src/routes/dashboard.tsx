@@ -342,72 +342,190 @@ function Headline({ m, spend }: { m: DashboardMetrics; spend: number }) {
   );
 }
 
-/** Home, investments and savings, minus the mortgage: today and at the outlook age. */
+/** One period's assets (stacked by kind) above its debt, on a scale shared across periods. */
+function BalanceBars({
+  label,
+  rows,
+  assets,
+  debt,
+  scale,
+}: {
+  label: string;
+  rows: { key: string; color: string; value: number }[];
+  assets: number;
+  debt: number;
+  scale: number;
+}) {
+  const { compact } = useFormatters();
+  const { t } = useT();
+  const pct = (v: number) => `${(scale > 0 ? (v / scale) * 100 : 0).toFixed(2)}%`;
+  return (
+    <div className="grid grid-cols-[5.5rem_1fr_auto] items-center gap-x-3 gap-y-1.5 text-xs">
+      <span className="row-span-2 font-medium text-muted-foreground">{label}</span>
+      <div className="flex h-3.5 w-full overflow-hidden rounded-full bg-muted">
+        <div className="flex h-full" style={{ width: pct(assets) }}>
+          {rows.map((r) => (
+            <div key={r.key} className={r.color} style={{ width: `${assets > 0 ? (r.value / assets) * 100 : 0}%` }} />
+          ))}
+        </div>
+      </div>
+      <span className="tnum text-right font-medium">{compact(assets)}</span>
+      <div className="h-3.5 w-full overflow-hidden rounded-full bg-muted">
+        {debt > 0.5 && <div className="h-full rounded-full bg-destructive/70" style={{ width: pct(debt) }} />}
+      </div>
+      <span className="tnum text-right text-muted-foreground">
+        {debt > 0.5 ? `−${compact(debt)}` : t("No debt")}
+      </span>
+    </div>
+  );
+}
+
+/** Amount with its share of total assets beside it (stacked on narrow screens). */
+function AmountShare({ value, share, strong }: { value: string; share?: string | undefined; strong?: boolean }) {
+  return (
+    <span className="flex flex-col items-end sm:flex-row sm:items-baseline sm:justify-end sm:gap-2">
+      <span className={strong ? "font-medium" : "text-muted-foreground"}>{value}</span>
+      <span className="text-xs text-muted-foreground sm:w-12 sm:text-right">{share ?? ""}</span>
+    </span>
+  );
+}
+
+/** Assets vs. the mortgage, today and at the outlook age, with each line's share of assets. */
 function WhatYouOwn({ m }: { m: DashboardMetrics }) {
   const { money, percent } = useFormatters();
   const { t } = useT();
   const o = m.outlook;
-  const gross = m.homeValue + m.invested + m.cash;
   const rows = [
     { key: "home", label: t("Your home"), color: "bg-foreground", now: m.homeValue, later: o?.home ?? 0 },
     { key: "invest", label: t("Investments"), color: "bg-primary", now: m.invested, later: o?.invested ?? 0 },
     { key: "cash", label: t("Savings account"), color: "bg-primary/40", now: m.cash, later: o?.cash ?? 0 },
   ].filter((r) => r.now > 0 || r.later > 0.5);
-  const showDebt = m.mortgageBalance > 0 || (o?.debt ?? 0) > 0.5;
+  const assetsNow = rows.reduce((s, r) => s + r.now, 0);
+  const assetsLater = rows.reduce((s, r) => s + r.later, 0);
+  const debtNow = m.mortgageBalance;
+  const debtLater = o?.debt ?? 0;
+  const showDebt = debtNow > 0 || debtLater > 0.5;
+  const scale = Math.max(assetsNow, debtNow, o ? assetsLater : 0, o ? debtLater : 0);
+  const share = (v: number, total: number) => (total > 0 && v > 0.5 ? percent((v / total) * 100) : undefined);
+  const laterLabel = o ? t("At {age}", { age: o.age }) : "";
 
   return (
     <Panel title={t("What you own")} className="break-inside-avoid">
-      {gross > 0 && (
-        <div className="flex h-4 w-full overflow-hidden rounded-full">
-          {rows.map((r) => (
-            <div key={r.key} className={r.color} style={{ width: `${(r.now / gross) * 100}%` }} />
-          ))}
+      {scale > 0 && (
+        <div className="space-y-4">
+          <BalanceBars
+            label={t("Today")}
+            rows={rows.map((r) => ({ key: r.key, color: r.color, value: r.now }))}
+            assets={assetsNow}
+            debt={debtNow}
+            scale={scale}
+          />
+          {o && (
+            <BalanceBars
+              label={laterLabel}
+              rows={rows.map((r) => ({ key: r.key, color: r.color, value: r.later }))}
+              assets={assetsLater}
+              debt={debtLater}
+              scale={scale}
+            />
+          )}
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            {rows.map((r) => (
+              <span key={r.key} className="flex items-center gap-1.5">
+                <span className={cn("size-2.5 rounded-sm", r.color)} />
+                {r.label}
+              </span>
+            ))}
+            {showDebt && (
+              <span className="flex items-center gap-1.5">
+                <span className="size-2.5 rounded-sm bg-destructive/70" />
+                {t("Mortgage")}
+              </span>
+            )}
+          </div>
         </div>
       )}
-      <table className="tnum mt-4 w-full text-sm">
+      <table className="tnum mt-5 w-full text-sm">
         <thead>
           <tr className="text-xs text-muted-foreground">
             <th className="pb-2 text-left font-medium" />
             <th className="pb-2 text-right font-medium">{t("Today")}</th>
-            {o && <th className="pb-2 pl-4 text-right font-medium">{t("At {age}", { age: o.age })}</th>}
+            {o && <th className="pb-2 pl-4 text-right font-medium">{laterLabel}</th>}
           </tr>
         </thead>
         <tbody>
+          <tr>
+            <td colSpan={o ? 3 : 2} className="pb-1 pt-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {t("Assets")}
+            </td>
+          </tr>
           {rows.map((r) => (
             <tr key={r.key}>
               <td className="py-1.5">
                 <span className="flex items-center gap-2 text-muted-foreground">
                   <span className={cn("size-2.5 shrink-0 rounded-sm", r.color)} />
                   {r.label}
-                  {gross > 0 && r.now > 0 && (
-                    <span className="text-xs">{percent((r.now / gross) * 100)}</span>
-                  )}
                 </span>
               </td>
-              <td className="py-1.5 text-right font-medium">{money(r.now)}</td>
-              {o && <td className="py-1.5 pl-4 text-right text-muted-foreground">{money(r.later)}</td>}
-            </tr>
-          ))}
-          {showDebt && (
-            <tr>
-              <td className="py-1.5">
-                <span className="flex items-center gap-2 text-muted-foreground">
-                  <span className="size-2.5 shrink-0 rounded-sm border border-border" />
-                  {t("Mortgage")}
-                </span>
+              <td className="py-1.5 text-right">
+                <AmountShare value={money(r.now)} share={share(r.now, assetsNow)} strong />
               </td>
-              <td className="py-1.5 text-right font-medium">−{money(m.mortgageBalance)}</td>
               {o && (
-                <td className="py-1.5 pl-4 text-right text-muted-foreground">
-                  {o.debt > 0.5 ? `−${money(o.debt)}` : money(0)}
+                <td className="py-1.5 pl-4 text-right">
+                  <AmountShare value={money(r.later)} share={share(r.later, assetsLater)} />
                 </td>
               )}
             </tr>
+          ))}
+          <tr className="border-t border-border/60">
+            <td className="py-1.5 font-medium">{t("Total assets")}</td>
+            <td className="py-1.5 text-right">
+              <AmountShare value={money(assetsNow)} strong />
+            </td>
+            {o && (
+              <td className="py-1.5 pl-4 text-right">
+                <AmountShare value={money(assetsLater)} strong />
+              </td>
+            )}
+          </tr>
+          {showDebt && (
+            <>
+              <tr>
+                <td colSpan={o ? 3 : 2} className="pb-1 pt-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  {t("Liabilities")}
+                </td>
+              </tr>
+              <tr>
+                <td className="py-1.5">
+                  <span className="flex items-center gap-2 text-muted-foreground">
+                    <span className="size-2.5 shrink-0 rounded-sm bg-destructive/70" />
+                    {t("Mortgage")}
+                  </span>
+                </td>
+                <td className="py-1.5 text-right">
+                  <AmountShare value={`−${money(debtNow)}`} share={share(debtNow, assetsNow)} strong />
+                </td>
+                {o && (
+                  <td className="py-1.5 pl-4 text-right">
+                    <AmountShare
+                      value={debtLater > 0.5 ? `−${money(debtLater)}` : money(0)}
+                      share={share(debtLater, assetsLater)}
+                    />
+                  </td>
+                )}
+              </tr>
+            </>
           )}
           <tr className="border-t border-border font-semibold">
             <td className="pt-2.5">{t("Net worth")}</td>
-            <td className="pt-2.5 text-right">{money(m.netWorth)}</td>
-            {o && <td className="pt-2.5 pl-4 text-right">{money(o.netWorth)}</td>}
+            <td className="pt-2.5 text-right">
+              <AmountShare value={money(m.netWorth)} share={share(m.netWorth, assetsNow)} strong />
+            </td>
+            {o && (
+              <td className="pt-2.5 pl-4 text-right">
+                <AmountShare value={money(o.netWorth)} share={share(o.netWorth, assetsLater)} strong />
+              </td>
+            )}
           </tr>
         </tbody>
       </table>
@@ -419,11 +537,11 @@ function WhatYouOwn({ m }: { m: DashboardMetrics }) {
           {t("Add your home's value →")}
         </Link>
       ) : (
-        o && (
-          <p className="mt-3 text-xs text-muted-foreground">
-            {t("Future values in today's money.")}
-          </p>
-        )
+        <p className="mt-3 text-xs text-muted-foreground">
+          {showDebt ? t("Percentages are shares of total assets.") : null}
+          {showDebt && o ? " " : null}
+          {o ? t("Future values in today's money.") : null}
+        </p>
       )}
     </Panel>
   );
