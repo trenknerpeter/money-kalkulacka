@@ -55,7 +55,7 @@ const btn =
 
 /**
  * The Dashboard header: title, the active scenario, and an Options menu holding
- * the saved scenarios, sharing, backups and Save as PDF.
+ * the saved scenarios, sharing, saving to a file and Save as PDF.
  */
 export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
   const { t } = useT();
@@ -132,7 +132,7 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
       if (!snap) throw new Error();
       setShared(snap);
     } catch {
-      setError(t("That file isn't a Money Kalkulačka backup."));
+      setError(t("That file isn't from Money Kalkulačka."));
     }
   };
 
@@ -254,11 +254,11 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
             </DropdownMenuItem>
             <DropdownMenuItem className={item} onSelect={download}>
               <Download className="size-4" />
-              {t("Download backup")}
+              {t("Save to file")}
             </DropdownMenuItem>
             <DropdownMenuItem className={item} onSelect={() => fileRef.current?.click()}>
               <Upload className="size-4" />
-              {t("Import backup")}
+              {t("Load from file")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
