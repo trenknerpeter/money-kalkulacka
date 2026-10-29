@@ -480,27 +480,7 @@ function Dashboard() {
 
   return (
     <div className="space-y-6 print:space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">{t("Dashboard")}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("Based on what you've saved in the other tabs. Everything stays in your browser.")}
-          </p>
-        </div>
-        {hasAnyData && (
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="rounded-md border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground print:hidden"
-          >
-            {t("Save as PDF")}
-          </button>
-        )}
-      </div>
-
-      <div className="print:hidden">
-        <SnapshotBar />
-      </div>
+      <SnapshotBar canPrint={hasAnyData} />
 
       {showEmpty ? (
         <Panel className="py-14 text-center">

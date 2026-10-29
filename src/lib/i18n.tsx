@@ -477,6 +477,16 @@ const CS: Record<string, string> = {
   "Update “{name}”": "Aktualizovat „{name}“",
   "All {max} slots are used. Update one, or delete one to save another.":
     "Všechny {max} pozice jsou obsazené. Jeden scénář aktualizujte, nebo smažte, abyste mohli uložit další.",
+  // Dashboard options menu
+  Options: "Možnosti",
+  "Scenario: {name}": "Scénář: {name}",
+  "{v} · stop work at {age}": "{v} · konec práce v {age}",
+  "Save as new scenario…": "Uložit jako nový scénář…",
+  "Save as new scenario": "Uložit jako nový scénář",
+  "All {max} slots used": "Všechny {max} pozice obsazené",
+  "Rename “{name}”": "Přejmenovat „{name}“",
+  "Delete “{name}”": "Smazat „{name}“",
+  "Rename scenario": "Přejmenovat scénář",
 };
 
 type Vars = Record<string, string | number>;

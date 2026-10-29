@@ -1,6 +1,31 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Download, Link2, Pencil, Plus, Trash2, Upload } from "lucide-react";
-import { Panel } from "@/components/Panel";
+import {
+  Check,
+  ChevronDown,
+  Download,
+  FileText,
+  Link2,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Trash2,
+  Upload,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useFormatters } from "@/lib/currency";
 import { snapshotMetrics } from "@/lib/dashboard";
 import { useT } from "@/lib/i18n";
@@ -28,8 +53,12 @@ function reloadDashboard() {
 const btn =
   "inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-sm font-medium hover:bg-muted";
 
-export function SnapshotBar() {
-  const { t, locale } = useT();
+/**
+ * The Dashboard header: title, the active scenario, and an Options menu holding
+ * the saved scenarios, sharing, backups and Save as PDF.
+ */
+export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
+  const { t } = useT();
   const { money } = useFormatters();
   const [list, setList] = useState<Snapshot[]>([]);
   const [activeId, setActive] = useState<string | null>(null);
@@ -57,8 +86,6 @@ export function SnapshotBar() {
 
   const active = list.find((s) => s.id === activeId) ?? null;
   const full = list.length >= MAX_SNAPSHOTS;
-  const fmtDate = (iso: string) =>
-    new Date(iso).toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" });
 
   const switchTo = (s: Snapshot) => {
     if (s.id === activeId && !dirty) return;
@@ -118,10 +145,138 @@ export function SnapshotBar() {
     reloadDashboard();
   };
 
+  const item = "gap-2 text-sm";
+
   return (
     <div className="space-y-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl font-semibold tracking-tight">{t("Dashboard")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t("Based on what you've saved in the other tabs. Everything stays in your browser.")}
+          </p>
+          {active && (
+            <p className="mt-1 text-xs text-muted-foreground print:hidden">
+              {t("Scenario: {name}", { name: active.name })}
+              {dirty && <> · {t("Edited since saved")}</>}
+            </p>
+          )}
+          {error && <p className="mt-1 text-xs text-negative">{error}</p>}
+        </div>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button type="button" className={cn(btn, "print:hidden")}>
+              {copied ? t("Link copied") : t("Options")}
+              <ChevronDown className="size-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-72">
+            <DropdownMenuLabel className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {t("Scenarios")} · {list.length}/{MAX_SNAPSHOTS}
+            </DropdownMenuLabel>
+            {list.length === 0 && (
+              <p className="px-2 pb-1.5 text-xs text-muted-foreground">
+                {t("Save your whole situation — every tab at once — and come back to it, compare, or share it.")}
+              </p>
+            )}
+            {list.map((s) => {
+              const m = snapshotMetrics(s.data);
+              return (
+                <DropdownMenuItem key={s.id} onSelect={() => switchTo(s)} className="items-start gap-2">
+                  <Check
+                    className={cn("mt-0.5 size-4 shrink-0 text-primary", s.id !== activeId && "invisible")}
+                  />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">{s.name}</span>
+                    <span className="tnum block text-xs text-muted-foreground">
+                      {m.livingAge !== null
+                        ? t("{v} · stop work at {age}", { v: money(m.netWorth), age: m.livingAge })
+                        : money(m.netWorth)}
+                    </span>
+                  </span>
+                </DropdownMenuItem>
+              );
+            })}
+            {active && dirty && (
+              <DropdownMenuItem
+                className={item}
+                onSelect={() => {
+                  saveSnapshot(active.name, captureData(), active.id);
+                  refresh();
+                }}
+              >
+                <RefreshCw className="size-4" />
+                {t("Update “{name}”", { name: active.name })}
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem
+              className={item}
+              disabled={full}
+              onSelect={() => setNaming({ mode: "new", value: "" })}
+            >
+              <Plus className="size-4" />
+              {full ? t("All {max} slots used", { max: MAX_SNAPSHOTS }) : t("Save as new scenario…")}
+            </DropdownMenuItem>
+            {active && (
+              <>
+                <DropdownMenuItem
+                  className={item}
+                  onSelect={() => setNaming({ mode: "rename", value: active.name })}
+                >
+                  <Pencil className="size-4" />
+                  {t("Rename “{name}”", { name: active.name })}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className={item}
+                  onSelect={() => {
+                    if (window.confirm(t("Delete “{name}”?", { name: active.name }))) {
+                      deleteSnapshot(active.id);
+                      refresh();
+                    }
+                  }}
+                >
+                  <Trash2 className="size-4" />
+                  {t("Delete “{name}”", { name: active.name })}
+                </DropdownMenuItem>
+              </>
+            )}
+            <DropdownMenuSeparator />
+            {canPrint && (
+              <DropdownMenuItem className={item} onSelect={() => window.print()}>
+                <FileText className="size-4" />
+                {t("Save as PDF")}
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem className={item} onSelect={() => void copyLink()}>
+              <Link2 className="size-4" />
+              {t("Copy share link")}
+            </DropdownMenuItem>
+            <DropdownMenuItem className={item} onSelect={download}>
+              <Download className="size-4" />
+              {t("Download backup")}
+            </DropdownMenuItem>
+            <DropdownMenuItem className={item} onSelect={() => fileRef.current?.click()}>
+              <Upload className="size-4" />
+              {t("Import backup")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void importFile(f);
+            e.target.value = "";
+          }}
+        />
+      </div>
+
       {shared && (
-        <div className="rounded-lg border border-primary/40 bg-primary/5 p-4 text-sm">
+        <div className="rounded-lg border border-primary/40 bg-primary/5 p-4 text-sm print:hidden">
           <p className="font-semibold">
             {t("Someone shared a financial snapshot with you: {name}", { name: shared.name })}
           </p>
@@ -146,100 +301,14 @@ export function SnapshotBar() {
         </div>
       )}
 
-      <Panel>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {t("Scenarios")}
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {list.length === 0
-                ? t("Save your whole situation — every tab at once — and come back to it, compare, or share it.")
-                : t("{n} of {max} saved. Pick one to load it into every tab.", {
-                    n: list.length,
-                    max: MAX_SNAPSHOTS,
-                  })}
-            </p>
-          </div>
-          <button type="button" className={btn} onClick={copyLink}>
-            <Link2 className="size-4" />
-            {copied ? t("Link copied") : t("Copy share link")}
-          </button>
-        </div>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          {list.map((s) => {
-            const isActive = s.id === activeId;
-            const m = snapshotMetrics(s.data);
-            return (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => switchTo(s)}
-                aria-pressed={isActive}
-                className={cn(
-                  "min-w-0 rounded-lg border p-4 text-left transition-colors",
-                  isActive ? "border-primary bg-primary/5" : "border-border hover:bg-muted",
-                )}
-              >
-                <span className="flex items-center gap-1.5">
-                  {isActive && <Check className="size-4 shrink-0 text-primary" />}
-                  <span className="truncate text-sm font-semibold">{s.name}</span>
-                </span>
-                <span className="tnum mt-2 block text-lg font-semibold tracking-tight">
-                  {money(m.netWorth)}
-                </span>
-                <span className="block text-xs text-muted-foreground">
-                  {m.livingAge !== null
-                    ? t("Net worth · stop work at {age}", { age: m.livingAge })
-                    : t("Net worth")}
-                </span>
-                <span className="mt-2 block text-xs text-muted-foreground">
-                  {isActive && dirty ? t("Edited since saved") : fmtDate(s.savedAt)}
-                </span>
-              </button>
-            );
-          })}
-          {!full && (
-            <button
-              type="button"
-              onClick={() => setNaming({ mode: "new", value: "" })}
-              className="flex min-h-[7.5rem] flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border p-4 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-            >
-              <Plus className="size-5" />
-              {list.length === 0 ? t("Save current as a scenario") : t("Save current as new")}
-            </button>
-          )}
-        </div>
-
-        {active && dirty && (
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-            <span className="text-muted-foreground">
-              {t("You've changed numbers since saving “{name}”.", { name: active.name })}
-            </span>
-            <button
-              type="button"
-              className={btn}
-              onClick={() => {
-                saveSnapshot(active.name, captureData(), active.id);
-                refresh();
-              }}
-            >
-              {t("Update “{name}”", { name: active.name })}
-            </button>
-          </div>
-        )}
-        {full && (dirty || !active) && (
-          <p className="mt-3 text-xs text-muted-foreground">
-            {t("All {max} slots are used. Update one, or delete one to save another.", {
-              max: MAX_SNAPSHOTS,
-            })}
-          </p>
-        )}
-
-        {naming && (
+      <Dialog open={naming !== null} onOpenChange={(o) => !o && setNaming(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {naming?.mode === "rename" ? t("Rename scenario") : t("Save as new scenario")}
+            </DialogTitle>
+          </DialogHeader>
           <form
-            className="mt-4 flex flex-wrap items-center gap-2"
             onSubmit={(e) => {
               e.preventDefault();
               submitName();
@@ -248,64 +317,26 @@ export function SnapshotBar() {
             <input
               autoFocus
               aria-label={t("Snapshot name")}
-              value={naming.value}
+              value={naming?.value ?? ""}
               placeholder={t("e.g. Baseline Oct 2026")}
-              onChange={(e) => setNaming({ ...naming, value: e.target.value })}
-              className="h-9 min-w-[220px] flex-1 rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+              onChange={(e) => naming && setNaming({ ...naming, value: e.target.value })}
+              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
             />
-            <button type="submit" disabled={!naming.value.trim()} className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground disabled:opacity-50">
-              {t("Save")}
-            </button>
-            <button type="button" className={btn} onClick={() => setNaming(null)}>
-              {t("Cancel")}
-            </button>
-          </form>
-        )}
-
-        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 border-t border-border pt-3 text-xs font-medium text-muted-foreground">
-          {active && (
-            <>
-              <button type="button" className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => setNaming({ mode: "rename", value: active.name })}>
-                <Pencil className="size-3.5" />
-                {t("Rename")}
+            <DialogFooter className="mt-4 gap-2">
+              <button type="button" className={btn} onClick={() => setNaming(null)}>
+                {t("Cancel")}
               </button>
               <button
-                type="button"
-                className="inline-flex items-center gap-1 hover:text-negative"
-                onClick={() => {
-                  if (window.confirm(t("Delete “{name}”?", { name: active.name }))) {
-                    deleteSnapshot(active.id);
-                    refresh();
-                  }
-                }}
+                type="submit"
+                disabled={!naming?.value.trim()}
+                className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground disabled:opacity-50"
               >
-                <Trash2 className="size-3.5" />
-                {t("Delete")}
+                {t("Save")}
               </button>
-            </>
-          )}
-          <button type="button" className="inline-flex items-center gap-1 hover:text-foreground" onClick={download}>
-            <Download className="size-3.5" />
-            {t("Download backup")}
-          </button>
-          <button type="button" className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => fileRef.current?.click()}>
-            <Upload className="size-3.5" />
-            {t("Import backup")}
-          </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="application/json,.json"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void importFile(f);
-              e.target.value = "";
-            }}
-          />
-          {error && <span className="text-negative">{error}</span>}
-        </div>
-      </Panel>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
