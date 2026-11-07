@@ -11,6 +11,9 @@ import { computeInvest } from "@/lib/finance";
 import { byCurrency } from "@/lib/scenarioDefaults";
 import { useScenario } from "@/lib/useScenario";
 import { useT } from "@/lib/i18n";
+import { canonical, faqLd, webAppLd } from "@/lib/seo";
+import { SEO_CONTENT } from "@/lib/seoContent";
+import { SeoArticle } from "@/components/SeoArticle";
 
 export const Route = createFileRoute("/invest")({
   head: () => ({
@@ -28,10 +31,29 @@ export const Route = createFileRoute("/invest")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      canonical("/invest").meta,
     ],
+    scripts: [
+      webAppLd(
+        "/invest",
+        "Investiční kalkulačka",
+        "Podívejte se, jak měsíční vklady v čase rostou díky složenému úročení, kolik z toho je výnos — a kolik to bude mít hodnotu v dnešních cenách.",
+      ),
+      faqLd(SEO_CONTENT.invest.cs.faq),
+    ],
+    links: [canonical("/invest").link],
   }),
-  component: Invest,
+  component: InvestWithArticle,
 });
+
+function InvestWithArticle() {
+  return (
+    <>
+      <Invest />
+      <SeoArticle page="invest" />
+    </>
+  );
+}
 
 const DEFAULTS = {
   initial: 10000,

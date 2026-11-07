@@ -8,6 +8,7 @@ import {
   SalaryVisual,
 } from "@/components/home/Illustrations";
 import { useT } from "@/lib/i18n";
+import { canonical, webSiteLd } from "@/lib/seo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -29,7 +30,14 @@ export const Route = createFileRoute("/")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      canonical("/").meta,
     ],
+    scripts: [
+      webSiteLd(
+        "Money Kalkulačka vám ukáže, kam vaše peníze směřují: spočítejte si čistou mzdu, růst investic, dopad sazby hypotéky a kdy můžete přestat pracovat.",
+      ),
+    ],
+    links: [canonical("/").link],
   }),
   component: Home,
 });

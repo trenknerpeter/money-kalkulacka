@@ -29,6 +29,9 @@ import { loadInvest, loadMortgage, type InvestScenario } from "@/lib/dashboard";
 import { ageAt, mortgageSchedule, realBalanceAt, retirementMilestones } from "@/lib/retirement";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
+import { canonical, faqLd, webAppLd } from "@/lib/seo";
+import { SEO_CONTENT } from "@/lib/seoContent";
+import { SeoArticle } from "@/components/SeoArticle";
 
 export const Route = createFileRoute("/plan")({
   head: () => ({
@@ -46,10 +49,29 @@ export const Route = createFileRoute("/plan")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      canonical("/plan").meta,
     ],
+    scripts: [
+      webAppLd(
+        "/plan",
+        "Kalkulačka finanční nezávislosti",
+        "Odpovězte na pět rychlých otázek a zjistěte, kdy můžete reálně přestat pracovat — a co změnit, pokud nestíháte.",
+      ),
+      faqLd(SEO_CONTENT.plan.cs.faq),
+    ],
+    links: [canonical("/plan").link],
   }),
-  component: PlanPage,
+  component: PlanPageWithArticle,
 });
+
+function PlanPageWithArticle() {
+  return (
+    <>
+      <PlanPage />
+      <SeoArticle page="plan" />
+    </>
+  );
+}
 
 /* ------------------------------ Questionnaire ----------------------------- */
 

@@ -19,6 +19,9 @@ import { byCurrency } from "@/lib/scenarioDefaults";
 import { useScenario } from "@/lib/useScenario";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
+import { canonical, faqLd, webAppLd } from "@/lib/seo";
+import { SEO_CONTENT } from "@/lib/seoContent";
+import { SeoArticle } from "@/components/SeoArticle";
 
 export const Route = createFileRoute("/mortgage")({
   head: () => ({
@@ -36,10 +39,29 @@ export const Route = createFileRoute("/mortgage")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      canonical("/mortgage").meta,
     ],
+    scripts: [
+      webAppLd(
+        "/mortgage",
+        "Hypoteční kalkulačka",
+        "Zadejte zbývající jistinu hypotéky a uvidíte, co změna sazby udělá se splátkou a celkovými úroky.",
+      ),
+      faqLd(SEO_CONTENT.mortgage.cs.faq),
+    ],
+    links: [canonical("/mortgage").link],
   }),
-  component: Mortgage,
+  component: MortgageWithArticle,
 });
+
+function MortgageWithArticle() {
+  return (
+    <>
+      <Mortgage />
+      <SeoArticle page="mortgage" />
+    </>
+  );
+}
 
 const DEFAULTS = {
   principal: 250000,

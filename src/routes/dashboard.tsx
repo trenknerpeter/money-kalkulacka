@@ -29,6 +29,7 @@ import { useT } from "@/lib/i18n";
 import { loadPlan } from "@/lib/plan";
 import { SALARY_KEY, calcSalary, formatCzk, parseSalaryStore } from "@/lib/salary";
 import { cn } from "@/lib/utils";
+import { canonical } from "@/lib/seo";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -46,7 +47,9 @@ export const Route = createFileRoute("/dashboard")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      canonical("/dashboard").meta,
     ],
+    links: [canonical("/dashboard").link],
   }),
   component: Dashboard,
 });

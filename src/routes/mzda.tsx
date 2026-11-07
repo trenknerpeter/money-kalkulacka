@@ -23,6 +23,9 @@ import {
 } from "@/lib/salary";
 import { useScenario } from "@/lib/useScenario";
 import { cn } from "@/lib/utils";
+import { canonical, faqLd, webAppLd } from "@/lib/seo";
+import { SEO_CONTENT } from "@/lib/seoContent";
+import { SeoArticle } from "@/components/SeoArticle";
 
 export const Route = createFileRoute("/mzda")({
   head: () => ({
@@ -40,10 +43,29 @@ export const Route = createFileRoute("/mzda")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      canonical("/mzda").meta,
     ],
+    scripts: [
+      webAppLd(
+        "/mzda",
+        "Kalkulačka čisté mzdy 2026",
+        "Spočítejte si čistou mzdu z hrubé pro rok 2026: daň, sociální a zdravotní pojištění, slevy a zvýhodnění na děti. Zdarma, bez registrace.",
+      ),
+      faqLd(SEO_CONTENT.mzda.cs.faq),
+    ],
+    links: [canonical("/mzda").link],
   }),
-  component: Mzda,
+  component: MzdaWithArticle,
 });
+
+function MzdaWithArticle() {
+  return (
+    <>
+      <Mzda />
+      <SeoArticle page="mzda" />
+    </>
+  );
+}
 
 const DISABILITY_OPTIONS = [
   { label: "None", value: 0 },
