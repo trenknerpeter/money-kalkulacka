@@ -96,6 +96,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Čistá mzda, investice a hypotéka během pár vteřin. Vše se počítá ve vašem prohlížeči.",
       },
+      { name: "google-site-verification", content: "bDcknKlHIr0BbChNa-CRyvhWXIY15-I37vNKR1ZiCC4" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],

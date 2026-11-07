@@ -12,3 +12,5 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+Sitemap: https://moneykalkulacka.lovable.app/sitemap.xml
