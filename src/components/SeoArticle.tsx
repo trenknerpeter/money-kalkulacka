@@ -6,7 +6,7 @@ export function SeoArticle({ page }: { page: SeoPage }) {
   const { lang } = useLang();
   const c = SEO_CONTENT[page][lang];
   return (
-    <article className="mt-16 max-w-2xl border-t border-border pt-10 text-sm leading-relaxed text-muted-foreground">
+    <article className="mx-auto mt-16 max-w-2xl border-t border-border pt-10 text-sm leading-relaxed text-muted-foreground">
       <h2 className="text-lg font-semibold tracking-tight text-foreground">{c.heading}</h2>
       {c.paragraphs.map((p) => (
         <p key={p} className="mt-3">
