@@ -539,6 +539,7 @@ function Duchod() {
               min={0}
               max={Math.max(1, earlyMax)}
               step={1}
+              disabled={earlyMax === 0}
             />
             {earlyMax === 0 ? (
               <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
