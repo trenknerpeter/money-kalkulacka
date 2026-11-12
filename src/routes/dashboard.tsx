@@ -608,7 +608,7 @@ function Dashboard() {
           <p className="text-base font-semibold">{t("Nothing here yet")}</p>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
             {t(
-              "Fill in your numbers in Mzda, Invest, Mortgage and Plan — the dashboard brings them together here.",
+              "Fill in your numbers in Mzda, Invest, Mortgage and Independence — the dashboard brings them together here.",
             )}
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3 text-sm font-medium">
@@ -622,7 +622,7 @@ function Dashboard() {
               {t("Set up your mortgage →")}
             </Link>
             <Link to="/plan" className="text-primary hover:underline">
-              {t("Answer the plan questions →")}
+              {t("Start your independence plan →")}
             </Link>
           </div>
         </Panel>
@@ -704,7 +704,7 @@ function Dashboard() {
                       : t("Stop work at {age}", { age: m.livingAge })
                     : m.readiness !== null
                       ? t("of your number")
-                      : t("Answer the plan questions →")
+                      : t("Start your independence plan →")
                 }
               />
             </div>
@@ -840,14 +840,14 @@ function Dashboard() {
                 <div className="py-10 text-center">
                   <p className="mx-auto max-w-sm text-sm leading-relaxed text-muted-foreground">
                     {t(
-                      "Answer the plan questions to see when you can stop working — and when the mortgage is cleared too.",
+                      "Start your independence plan to see when you can stop working — and when the mortgage is cleared too.",
                     )}
                   </p>
                   <Link
                     to="/plan"
                     className="mt-4 inline-block text-sm font-medium text-primary hover:underline"
                   >
-                    {t("Answer the plan questions →")}
+                    {t("Start your independence plan →")}
                   </Link>
                 </div>
               )}
@@ -906,7 +906,7 @@ function Dashboard() {
                     : null,
                 },
                 {
-                  title: t("Plan"),
+                  title: t("Independence"),
                   rows: plan
                     ? [
                         [t("Age"), String(plan.age)],
@@ -918,7 +918,7 @@ function Dashboard() {
                     : null,
                 },
                 {
-                  title: t("Plan — investments"),
+                  title: t("Independence — investments"),
                   rows: plan
                     ? [
                         [t("Invested today"), money(plan.invested)],
@@ -928,7 +928,7 @@ function Dashboard() {
                     : null,
                 },
                 {
-                  title: t("Plan — savings"),
+                  title: t("Independence — savings"),
                   rows: plan
                     ? [
                         [t("In savings today"), money(plan.cash)],
@@ -988,7 +988,7 @@ function Dashboard() {
               )}
               {!saved.plan && (
                 <Link to="/plan" className="text-primary hover:underline">
-                  {t("Answer the plan questions →")}
+                  {t("Start your independence plan →")}
                 </Link>
               )}
             </div>

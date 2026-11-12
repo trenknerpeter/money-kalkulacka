@@ -5,6 +5,7 @@ import {
   InvestVisual,
   MortgageVisual,
   PlanVisual,
+  RetirementVisual,
   SalaryVisual,
 } from "@/components/home/Illustrations";
 import { useT } from "@/lib/i18n";
@@ -26,7 +27,7 @@ export const Route = createFileRoute("/")({
       {
         property: "og:description",
         content:
-          "Čtyři rychlé kalkulačky, které dohromady dají obraz vašich financí. Bez registrace.",
+          "Pět rychlých kalkulaček, které dohromady dají obraz vašich financí. Bez registrace.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -44,7 +45,7 @@ export const Route = createFileRoute("/")({
 
 const CARDS: {
   step: number;
-  to: "/mzda" | "/invest" | "/mortgage" | "/plan";
+  to: "/mzda" | "/duchod" | "/invest" | "/mortgage" | "/plan";
   title: string;
   subtitle: string;
   Visual: ComponentType;
@@ -58,6 +59,13 @@ const CARDS: {
   },
   {
     step: 2,
+    to: "/duchod",
+    title: "Retirement",
+    subtitle: "When you'll retire, your state pension and what DPS and DIP add.",
+    Visual: RetirementVisual,
+  },
+  {
+    step: 3,
     to: "/invest",
     title: "Invest",
     subtitle:
@@ -65,22 +73,22 @@ const CARDS: {
     Visual: InvestVisual,
   },
   {
-    step: 3,
+    step: 4,
     to: "/mortgage",
     title: "Mortgage",
     subtitle: "Compare your current rate against a what-if rate and see what it really costs.",
     Visual: MortgageVisual,
   },
   {
-    step: 4,
+    step: 5,
     to: "/plan",
-    title: "Plan",
+    title: "Independence",
     subtitle: "Answer a few quick questions and find out when you can realistically stop working.",
     Visual: PlanVisual,
   },
 ];
 
-const JOURNEY = ["Salary", "Invest", "Mortgage", "Plan", "Dashboard"] as const;
+const JOURNEY = ["Salary", "Retirement", "Invest", "Mortgage", "Independence", "Dashboard"] as const;
 
 function Home() {
   const { t } = useT();
@@ -133,7 +141,7 @@ function Home() {
           ))}
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-5">
           {CARDS.map(({ step, to, title, subtitle, Visual }) => (
             <Link
               key={to}

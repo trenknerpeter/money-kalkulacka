@@ -53,8 +53,8 @@ const CS: Record<string, string> = {
   "Monthly investing": "Měsíční investice",
   "Monthly savings": "Měsíční spoření",
   Savings: "Spoření",
-  "Plan — investments": "Plán — investice",
-  "Plan — savings": "Plán — spoření",
+  "Independence — investments": "Nezávislost — investice",
+  "Independence — savings": "Nezávislost — spoření",
   // Retirement milestones + home
   "{n} — mortgage cleared too": "{n} — splacená i hypotéka",
   "Mortgage left": "Zbývá na hypotéce",
@@ -99,12 +99,11 @@ const CS: Record<string, string> = {
   "At {age}: net worth {v}, home fully yours.": "V {age} letech: čisté jmění {v}, bydlení je celé vaše.",
   "At {age}: net worth {v}, mortgage paid off.": "V {age} letech: čisté jmění {v}, hypotéka splacena.",
   "At {age}: net worth {v}.": "V {age} letech: čisté jmění {v}.",
-  "Answer the plan questions to see when you can stop working — and when the mortgage is cleared too.":
-    "Zodpovězte otázky plánu a uvidíte, kdy můžete přestat pracovat — a kdy budete mít splacenou i hypotéku.",
+  "Start your independence plan to see when you can stop working — and when the mortgage is cleared too.":
+    "Začněte plán nezávislosti a uvidíte, kdy můžete přestat pracovat — a kdy budete mít splacenou i hypotéku.",
   "Property value": "Hodnota nemovitosti",
   "Price growth above inflation": "Růst cen nad inflaci",
   Off: "Vypnuto",
-  "Answer the plan questions →": "Zodpovědět otázky plánu →",
   "Made with Money Kalkulačka · {date}": "Vytvořeno v Money Kalkulačka · {date}",
   "Term": "Doba splácení",
   "Loan amount": "Výše úvěru",
@@ -129,7 +128,8 @@ const CS: Record<string, string> = {
   Language: "Jazyk",
   Invest: "Investice",
   Mortgage: "Hypotéka",
-  Plan: "Plán",
+  Independence: "Nezávislost",
+  "Start your independence plan →": "Začít plán nezávislosti →",
   Dashboard: "Přehled",
   Soon: "Brzy",
   "Copy link": "Kopírovat odkaz",
@@ -390,8 +390,8 @@ const CS: Record<string, string> = {
   Use: "Použít",
   "Calculate from gross salary →": "Spočítat z hrubé mzdy →",
   "Calculate your net salary →": "Spočítat čistou mzdu →",
-  "Fill in your numbers in Mzda, Invest, Mortgage and Plan — the dashboard brings them together here.":
-    "Vyplňte svá čísla v záložkách Mzda, Investice, Hypotéka a Plán — přehled je tu spojí dohromady.",
+  "Fill in your numbers in Mzda, Invest, Mortgage and Independence — the dashboard brings them together here.":
+    "Vyplňte svá čísla v záložkách Mzda, Investice, Hypotéka a Nezávislost — přehled je tu spojí dohromady.",
   "Net salary": "Čistá mzda",
   "Gross to net for Czech employees, 2026 rules.":
     "Z hrubé na čistou pro zaměstnance v ČR, pravidla pro rok 2026.",
@@ -526,6 +526,7 @@ const CS: Record<string, string> = {
   "DPS: supplementary pension savings": "DPS: doplňkové penzijní spoření",
   "DIP: long-term investment product": "DIP: dlouhodobý investiční produkt",
   "Retirement": "Důchod",
+  "When you'll retire, your state pension and what DPS and DIP add.": "Kdy půjdete do důchodu, jaký bude státní důchod a co přidá DPS a DIP.",
   "Your state pension and pension savings. Everything is in today's money.": "Váš státní důchod a penzijní spoření. Vše v dnešních cenách.",
   "Pensions are calculated in Czech crowns (Kč) under Czech rules. Your other tabs stay in {currency}.": "Důchody se počítají v českých korunách (Kč) podle českých pravidel. Ostatní záložky zůstávají v {currency}.",
   "Retirement age": "Důchodový věk",

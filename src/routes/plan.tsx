@@ -36,13 +36,13 @@ import { SeoArticle } from "@/components/SeoArticle";
 export const Route = createFileRoute("/plan")({
   head: () => ({
     meta: [
-      { title: "Kdy můžete přestat pracovat — Money Kalkulačka" },
+      { title: "Cesta k finanční nezávislosti — Money Kalkulačka" },
       {
         name: "description",
         content:
           "Odpovězte na pět rychlých otázek a zjistěte, kdy můžete reálně přestat pracovat — a co změnit, pokud nestíháte.",
       },
-      { property: "og:title", content: "Kdy můžete přestat pracovat — Money Kalkulačka" },
+      { property: "og:title", content: "Cesta k finanční nezávislosti — Money Kalkulačka" },
       {
         property: "og:description",
         content: "Zjistěte, kdy můžete přestat pracovat, v dnešních cenách. Bez registrace.",
@@ -54,7 +54,7 @@ export const Route = createFileRoute("/plan")({
     scripts: [
       webAppLd(
         "/plan",
-        "Kalkulačka finanční nezávislosti",
+        "Cesta k finanční nezávislosti",
         "Odpovězte na pět rychlých otázek a zjistěte, kdy můžete reálně přestat pracovat — a co změnit, pokud nestíháte.",
       ),
       faqLd(SEO_CONTENT.plan.cs.faq),

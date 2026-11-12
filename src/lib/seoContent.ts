@@ -193,7 +193,7 @@ export const SEO_CONTENT: Record<SeoPage, Record<Lang, SeoArticleContent>> = {
         },
         {
           q: "Počítá plán se státním důchodem?",
-          a: "Ne. Výsledek ukazuje, kdy byste vystačili jen z vlastních peněz, takže je spíše opatrný.",
+          a: "Volitelně. Pokud vyplníte záložku Důchod, plán započítá váš státní důchod a DPS/DIP od věku, kdy začnou. Jinak ukáže, kdy vám stačí jen vlastní peníze.",
         },
         {
           q: "Proč je vše v dnešních cenách?",
@@ -220,7 +220,7 @@ export const SEO_CONTENT: Record<SeoPage, Record<Lang, SeoArticleContent>> = {
         },
         {
           q: "Does the plan include the state pension?",
-          a: "No. The result shows when you could live on your own money alone, so it errs on the careful side.",
+          a: "Optionally. If you fill in the Retirement tab, the plan counts your state pension and DPS/DIP from the age they start. Otherwise it shows when your own money alone is enough.",
         },
         {
           q: "Why is everything in today's money?",

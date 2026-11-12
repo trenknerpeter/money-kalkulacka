@@ -1,6 +1,6 @@
 /**
  * Master snapshots: one named bundle of every tab's saved state
- * (Mzda, Invest, Mortgage, Plan, Dashboard income, currency). Stored locally.
+ * (Mzda, Invest, Mortgage, Independence, Dashboard income, currency). Stored locally.
  */
 export const SNAPSHOT_KEYS = [
   "finbuddy.invest",
