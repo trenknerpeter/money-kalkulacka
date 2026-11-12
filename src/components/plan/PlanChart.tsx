@@ -23,15 +23,24 @@ type Props = {
   debtFreeAge?: number | null;
   /** Dashed vertical lines with a small label, e.g. when DPS/DIP open or the state pension starts. */
   markers?: { age: number; label: string }[];
+  /** The number needed at each age, when it changes with the age you stop (pension on). Drawn as a line instead of a flat one. */
+  needAt?: ((age: number) => number) | undefined;
 };
 
-export function PlanChart({ rows, target, stopAge, reachedAge, debtFreeAge = null, markers = [] }: Props) {
+export function PlanChart({ rows, target, stopAge, reachedAge, debtFreeAge = null, markers = [], needAt }: Props) {
   const { money, compact } = useFormatters();
   const { t } = useT();
   const showTarget = isFinite(target);
   const showDebt = showTarget && rows.some((r) => r.debt > 0.5);
-  const data: (PlanYearRow & { need?: number })[] = showDebt ? rows.map((r) => ({ ...r, need: target + r.debt })) : rows;
+  const data: (PlanYearRow & { need?: number; number?: number })[] =
+    showDebt || needAt
+      ? rows.map((r) => {
+          const n = needAt ? needAt(r.age) : target;
+          return { ...r, ...(needAt ? { number: n } : {}), ...(showDebt ? { need: n + r.debt } : {}) };
+        })
+      : rows;
   const reachedRow = reachedAge !== null ? rows.find((r) => r.age === reachedAge) : undefined;
+  const reachedY = needAt && reachedRow ? needAt(reachedRow.age) : target;
   const debtFreeRow =
     showDebt && debtFreeAge !== null && debtFreeAge !== reachedAge
       ? data.find((r) => r.age === debtFreeAge)
@@ -60,7 +69,7 @@ export function PlanChart({ rows, target, stopAge, reachedAge, debtFreeAge = nul
             tickFormatter={(v: number) => compact(v)}
             domain={[
               0,
-              (dataMax: number) => Math.max(dataMax, showTarget ? target + (showDebt ? (rows[0]?.debt ?? 0) : 0) : 0) * 1.05,
+              (dataMax: number) => Math.max(dataMax, showTarget && !needAt ? target + (showDebt ? (rows[0]?.debt ?? 0) : 0) : 0) * 1.05,
             ]}
           />
           <Tooltip
@@ -147,7 +156,19 @@ export function PlanChart({ rows, target, stopAge, reachedAge, debtFreeAge = nul
               animationDuration={200}
             />
           )}
-          {showTarget && (
+          {showTarget && needAt && (
+            <Line
+              type="monotone"
+              dataKey="number"
+              stroke="var(--muted-foreground)"
+              strokeWidth={1.5}
+              strokeDasharray="6 4"
+              dot={false}
+              activeDot={false}
+              animationDuration={200}
+            />
+          )}
+          {showTarget && !needAt && (
             <ReferenceLine
               y={target}
               stroke="var(--muted-foreground)"
@@ -188,7 +209,7 @@ export function PlanChart({ rows, target, stopAge, reachedAge, debtFreeAge = nul
           {showTarget && reachedRow && (
             <ReferenceDot
               x={reachedRow.age}
-              y={target}
+              y={reachedY}
               r={5}
               fill="var(--accent)"
               stroke="var(--background)"

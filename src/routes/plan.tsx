@@ -1061,10 +1061,14 @@ function Results({
               {isFinite(target) ? money(target) : "—"}
             </p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              {t("{p} a year of it covers your yearly spending of {v} without touching the pot", {
-                p: percent(assumptions.wd),
-                v: money(levers.spend * 12),
-              })}
+              {link
+                ? t("Covers your {v} a year of spending until your pensions start, then what they leave uncovered — in today's money.", {
+                    v: money(levers.spend * 12),
+                  })
+                : t("{p} a year of it covers your yearly spending of {v} without touching the pot", {
+                    p: percent(assumptions.wd),
+                    v: money(levers.spend * 12),
+                  })}
             </p>
           </div>
           <div className="min-w-0">
@@ -1108,6 +1112,7 @@ function Results({
           reachedAge={reachedAge}
           debtFreeAge={owesAtReached ? debtFreeAge : null}
           markers={chartMarkers}
+          needAt={targetAt ? (age: number) => targetAt((age - plan.age) * 12) : undefined}
         />
         <div className="mt-4 flex flex-wrap items-center gap-5 text-xs text-muted-foreground">
           <span className="flex items-center gap-2">
@@ -1116,6 +1121,12 @@ function Results({
           <span className="flex items-center gap-2">
             <span className="size-2.5 rounded-sm bg-primary/30 ring-1 ring-primary" /> {t("Growth")}
           </span>
+          {link && (
+            <span className="flex items-center gap-2">
+              <span className="h-0 w-3 border-t-2 border-dashed border-muted-foreground" />{" "}
+              {t("Your number at each age")}
+            </span>
+          )}
           {rows.some((r) => r.debt > 0.5) && (
             <span className="flex items-center gap-2">
               <span className="h-0 w-3 border-t-2 border-dotted border-muted-foreground" />{" "}

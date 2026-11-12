@@ -347,6 +347,8 @@ const CS: Record<string, string> = {
   "Age {n}": "Věk {n}",
   "Target age": "Cílový věk",
   "Target age {n}": "Cílový věk {n}",
+  "Covers your {v} a year of spending until your pensions start, then what they leave uncovered — in today's money.": "Pokryje vaše výdaje {v} ročně do začátku důchodů a poté to, co důchody nepokryjí — v dnešních cenách.",
+  "Your number at each age": "Vaše číslo v každém věku",
   "DPS/DIP opens at {age}": "DPS/DIP se otevře v {age}",
   "State pension starts at {age}": "Státní důchod začíná v {age}",
   "{range}: your savings pay everything": "{range}: vše platí vaše úspory",
