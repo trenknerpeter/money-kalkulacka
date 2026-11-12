@@ -9,6 +9,7 @@ import {
   pensionToParams,
   potOpenMonths,
   projectPot,
+  resolvePlanPension,
   resolveGross,
   retirementSummary,
   statePension,
@@ -158,4 +159,19 @@ describe("DPS / DIP, tax line, scenario, summary", () => {
     expect(b.savingsAtOpen).toBeLessThan(a.savingsAtOpen);
     expect(b.pension.monthly).toBeLessThan(a.pension.monthly);
   });
+});
+
+describe("resolvePlanPension", () => {
+  const stored = pensionDefaults(2026);
+  const fromUrl = { ...pensionDefaults(2026), birthYear: 1990 };
+  it("off when usePension is false", () =>
+    expect(resolvePlanPension({ usePension: false, fromUrl, stored, currency: "CZK" })).toBeNull());
+  it("off for non-CZK currency", () =>
+    expect(resolvePlanPension({ usePension: true, fromUrl, stored, currency: "EUR" })).toBeNull());
+  it("null with nothing from URL or storage", () =>
+    expect(resolvePlanPension({ usePension: true, fromUrl: null, stored: null, currency: "CZK" })).toBeNull());
+  it("URL wins over stored", () =>
+    expect(resolvePlanPension({ usePension: true, fromUrl, stored, currency: "CZK" })).toBe(fromUrl));
+  it("stored used without URL params", () =>
+    expect(resolvePlanPension({ usePension: true, fromUrl: null, stored, currency: "CZK" })).toBe(stored));
 });

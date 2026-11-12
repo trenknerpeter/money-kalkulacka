@@ -454,3 +454,18 @@ export function retirementSummary(
     taxSaving: taxSaving(s.dpsOwn, s.dipOwn),
   };
 }
+
+/**
+ * The pension a plan may use, or null whenever it must not be: switched off,
+ * a non-CZK currency (Czech rules only), or no data from the link or the Retirement tab.
+ * A shared link's data wins over what is stored in this browser.
+ */
+export function resolvePlanPension(o: {
+  usePension: boolean;
+  fromUrl: PensionScenario | null;
+  stored: PensionScenario | null;
+  currency: string;
+}): PensionScenario | null {
+  if (!o.usePension || o.currency !== "CZK") return null;
+  return o.fromUrl ?? o.stored ?? null;
+}

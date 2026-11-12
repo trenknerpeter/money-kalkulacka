@@ -122,6 +122,25 @@ const CS: Record<string, string> = {
   "How much do you have in savings accounts today?": "Kolik máte dnes na spořicích účtech?",
   "Use today's value. Avoid counting your home unless you plan to sell it.": "Použijte dnešní hodnotu. Nepočítejte bydlení, pokud ho neplánujete prodat.",
   "Funds, shares, ETFs, pension pots — money that's in the market.": "Fondy, akcie, ETF, penzijní spoření — peníze na trhu.",
+  "Funds, shares, ETFs — money that's in the market.": "Fondy, akcie, ETF — peníze na trhu.",
+  "Funds, shares, ETFs — money that's in the market. Leave out DPS and DIP — they're counted from your Retirement tab.":
+    "Fondy, akcie, ETF — peníze na trhu. DPS a DIP vynechte — počítají se ze záložky Důchod.",
+  "Pension & retirement savings": "Důchod a spoření na penzi",
+  Pension: "Důchod",
+  "Count your state pension and DPS/DIP towards your plan, or leave them out.":
+    "Započítejte státní důchod a DPS/DIP do plánu, nebo je vynechte.",
+  "Only what you'll receive in retirement is counted, in today's money. Czech pension rules apply, so this step is for CZK only.":
+    "Počítá se jen to, co dostanete v penzi, v dnešních cenách. Platí česká pravidla, proto je tento krok jen pro CZK.",
+  "Retirement tab: state pension ~{p} from {age}; DPS + DIP ~{pot} from {openAge}":
+    "Záložka Důchod: státní důchod ~{p} od {age} let; DPS + DIP ~{pot} od {openAge} let",
+  "Retirement tab: state pension ~{p} from {age}": "Záložka Důchod: státní důchod ~{p} od {age} let",
+  "Add your state pension and DPS/DIP to lower what you need to save.":
+    "Přidejte státní důchod a DPS/DIP a snižte, kolik musíte spořit.",
+  "Open the Retirement tab": "Otevřít záložku Důchod",
+  "Skip — count on my own money only": "Přeskočit — počítat jen s vlastními penězi",
+  "Make sure DPS and DIP aren't in your investments above.":
+    "Dbejte na to, aby DPS a DIP nebyly v investicích výše.",
+  "Check my investments": "Zkontrolovat investice",
   "How much do you have invested today?": "Kolik máte dnes investováno?",
   // Shell
   Currency: "Měna",

@@ -5,7 +5,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { NumberSlider } from "@/components/NumberSlider";
 import { Panel } from "@/components/Panel";
 import { PlanChart } from "@/components/plan/PlanChart";
-import { useCurrencyScale, useFormatters } from "@/lib/currency";
+import { useCurrency, useCurrencyScale, useFormatters } from "@/lib/currency";
 import {
   DEFAULT_ASSUMPTIONS,
   affordableSpend,
@@ -25,7 +25,15 @@ import {
   type PlanProfile,
   type SavedPlan,
 } from "@/lib/plan";
-import { loadPension } from "@/lib/pension";
+import {
+  loadPension,
+  pensionFromParams,
+  pensionToParams,
+  resolvePlanPension,
+  retirementSummary,
+  type PensionScenario,
+} from "@/lib/pension";
+import { SALARY_KEY, parseSalaryStore } from "@/lib/salary";
 import { loadInvest, loadMortgage, type InvestScenario } from "@/lib/dashboard";
 import { ageAt, mortgageSchedule, realBalanceAt, retirementMilestones } from "@/lib/retirement";
 import { cn } from "@/lib/utils";
@@ -131,7 +139,7 @@ const STEPS: {
     id: "invest",
     label: "Investments",
     title: "Your investments",
-    helper: "Funds, shares, ETFs, pension pots — money that's in the market.",
+    helper: "Funds, shares, ETFs — money that's in the market.",
     detail: "Use today's value, and only monthly amounts that will continue until your target age. Avoid counting your home unless you plan to sell it.",
     fields: [
       { key: "invested", label: "Invested today", def: 20000, min: 0, max: 100000000, money: true },
@@ -167,7 +175,20 @@ const STEPS: {
     },
     fromInvest: "savings",
   },
+  {
+    id: "pension",
+    label: "Pension",
+    title: "Pension & retirement savings",
+    helper: "Count your state pension and DPS/DIP towards your plan, or leave them out.",
+    detail: "Only what you'll receive in retirement is counted, in today's money. Czech pension rules apply, so this step is for CZK only.",
+    fields: [],
+  },
 ];
+
+/** The one list of steps this visitor sees: the pension step is Czech-only. */
+function visibleSteps(currency: string) {
+  return currency === "CZK" ? STEPS : STEPS.filter((s) => s.id !== "pension");
+}
 
 const FIELDS = STEPS.flatMap((s) => s.fields);
 
@@ -189,13 +210,23 @@ function Questionnaire({
   onDone,
 }: {
   initial: SavedPlan | null;
-  onDone: (p: Answers) => void;
+  onDone: (p: Answers, usePension: boolean) => void;
 }) {
   const navigate = useNavigate();
   const { symbol, money, percent } = useFormatters();
   const scale = useCurrencyScale();
   const { t } = useT();
+  const { currency } = useCurrency();
   const [invest] = useState(() => loadInvest());
+  const [pension] = useState(() => loadPension());
+  const [salaryGross] = useState<number | null>(() => {
+    try {
+      return parseSalaryStore(window.localStorage.getItem(SALARY_KEY))?.gross ?? null;
+    } catch {
+      return null;
+    }
+  });
+  const [usePension, setUsePension] = useState(initial?.usePension ?? false);
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Answers>(() => {
     if (initial) {
@@ -206,8 +237,13 @@ function Questionnaire({
       FIELDS.map((f) => [f.key, f.money ? f.def * scale : f.def]),
     ) as PlanProfile;
     // A first visit starts from the Invest tab's numbers where there are any.
+    const ageField = FIELDS.find((f) => f.key === "age")!;
+    const fromPension = pension
+      ? { age: Math.min(ageField.max, Math.max(ageField.min, new Date().getFullYear() - pension.birthYear)) }
+      : {};
     return {
       ...a,
+      ...fromPension,
       ret: DEFAULT_ASSUMPTIONS.ret,
       cashRet: DEFAULT_ASSUMPTIONS.cashRet,
       ...investValuesFor(invest, "invest"),
@@ -221,8 +257,21 @@ function Questionnaire({
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Steps shown to this visitor; the step count and labels derive from this list.
-  const steps = STEPS;
-  const q = steps[step]!;
+  const steps = visibleSteps(currency);
+  // The list can shrink mid-session (currency switch), so never index past its end.
+  const stepIdx = Math.min(step, steps.length - 1);
+  const q = steps[stepIdx]!;
+  const pensionOn = currency === "CZK" && pension !== null;
+  const pensionSummary = useMemo(
+    () =>
+      pensionOn && pension
+        ? retirementSummary(pension, { currentYear: new Date().getFullYear(), salaryGross, stopAge: answers.stop })
+        : null,
+    [pensionOn, pension, salaryGross, answers.stop],
+  );
+  const helper = q.id === "invest" && pensionOn
+    ? "Funds, shares, ETFs — money that's in the market. Leave out DPS and DIP — they're counted from your Retirement tab."
+    : q.helper;
   const multi = q.fields.length > 1;
   const fromInvest = investValuesFor(invest, q.fromInvest);
   const usingInvest =
@@ -234,7 +283,7 @@ function Questionnaire({
   useEffect(() => {
     inputRef.current?.focus();
     inputRef.current?.select();
-  }, [step]);
+  }, [stepIdx]);
 
   const goTo = (next: number) => {
     setStep(next);
@@ -278,10 +327,10 @@ function Questionnaire({
       next[f.key] = value;
     }
     setAnswers(next);
-    if (step === steps.length - 1) {
-      onDone(next);
+    if (stepIdx === steps.length - 1) {
+      onDone(next, usePension && currency === "CZK");
     } else {
-      goTo(step + 1);
+      goTo(stepIdx + 1);
     }
   };
 
@@ -290,18 +339,18 @@ function Questionnaire({
       <div className="mb-10 flex items-center justify-between">
         <button
           type="button"
-          onClick={() => step > 0 && goTo(step - 1)}
+          onClick={() => stepIdx > 0 && goTo(stepIdx - 1)}
           aria-label={t("Back")}
           className={cn(
             "flex size-11 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:text-foreground",
-            step === 0 && "pointer-events-none opacity-0",
+            stepIdx === 0 && "pointer-events-none opacity-0",
           )}
         >
           <ArrowLeft className="size-4" />
         </button>
         <div className="flex flex-col items-center gap-2">
           <p className="text-xs font-medium text-muted-foreground">
-            {t("Step {i} of {n}", { i: step + 1, n: steps.length })} · {t(q.label)}
+            {t("Step {i} of {n}", { i: stepIdx + 1, n: steps.length })} · {t(q.label)}
           </p>
           <div className="flex items-center gap-2" aria-hidden>
             {steps.map((qq, i) => (
@@ -309,7 +358,7 @@ function Questionnaire({
                 key={qq.id}
                 className={cn(
                   "size-2 rounded-full transition-colors",
-                  i <= step ? "bg-primary" : "bg-neutral-fill",
+                  i <= stepIdx ? "bg-primary" : "bg-neutral-fill",
                 )}
               />
             ))}
@@ -325,7 +374,7 @@ function Questionnaire({
         }}
       >
         <h1 className="text-3xl font-semibold tracking-tight">{t(q.title)}</h1>
-        {q.helper && <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{t(q.helper)}</p>}
+        {helper && <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{t(helper)}</p>}
 
         {fromInvest && (
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/5 px-4 py-3 text-sm">
@@ -358,6 +407,71 @@ function Questionnaire({
           </div>
         )}
 
+        {q.id === "pension" && (
+          <div className="mt-6 space-y-4">
+            {pensionOn && pensionSummary ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/5 px-4 py-3 text-sm">
+                <span>
+                  {pensionSummary.savingsAtOpen > 0
+                    ? t("Retirement tab: state pension ~{p} from {age}; DPS + DIP ~{pot} from {openAge}", {
+                        p: money(pensionSummary.pension.monthly),
+                        age: Math.floor(pensionSummary.pension.startMonths / 12),
+                        pot: money(pensionSummary.savingsAtOpen),
+                        openAge: Math.floor(pensionSummary.savingsOpenMonths / 12),
+                      })
+                    : t("Retirement tab: state pension ~{p} from {age}", {
+                        p: money(pensionSummary.pension.monthly),
+                        age: Math.floor(pensionSummary.pension.startMonths / 12),
+                      })}
+                </span>
+                {usePension ? (
+                  <span className="flex items-center gap-1 font-medium text-primary">
+                    <Check className="size-4" /> {t("Using these")}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setUsePension(true)}
+                    className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground"
+                  >
+                    {t("Use these")}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-border px-4 py-4 text-sm">
+                <p>{t("Add your state pension and DPS/DIP to lower what you need to save.")}</p>
+                <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+                  <Link
+                    to="/duchod"
+                    className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground"
+                  >
+                    {t("Open the Retirement tab")}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => onDone(answers, false)}
+                    className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+                  >
+                    {t("Skip — count on my own money only")}
+                  </button>
+                </div>
+              </div>
+            )}
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              {t("Make sure DPS and DIP aren't in your investments above.")}{" "}
+              <button
+                type="button"
+                onClick={() => goTo(steps.findIndex((x) => x.id === "invest"))}
+                className="underline underline-offset-4 hover:text-foreground"
+              >
+                {t("Check my investments")}
+              </button>
+            </p>
+          </div>
+        )}
+
+        {q.fields.length > 0 && (
         <div className={cn(multi ? "mt-8 grid gap-6 sm:grid-cols-2" : "mt-10")}>
           {q.fields.map((f, i) => (
             <div key={f.key} className="min-w-0">
@@ -399,6 +513,7 @@ function Questionnaire({
             </div>
           ))}
         </div>
+        )}
         <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{t(q.detail)}</p>
         {error && <p className="mt-3 text-sm text-muted-foreground">{error}</p>}
 
@@ -422,7 +537,7 @@ function Questionnaire({
           type="submit"
           className="mt-10 inline-flex h-11 items-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          {step === steps.length - 1 ? t("See my plan") : t("Continue")}
+          {stepIdx === steps.length - 1 ? t("See my plan") : t("Continue")}
         </button>
       </form>
 
@@ -441,6 +556,7 @@ function Questionnaire({
 
 function Intro({ onStart }: { onStart: () => void }) {
   const { t } = useT();
+  const { currency } = useCurrency();
   const [hasInvest, setHasInvest] = useState(false);
   const [hasPension, setHasPension] = useState(false);
   useEffect(() => {
@@ -520,7 +636,7 @@ function Intro({ onStart }: { onStart: () => void }) {
 
       <p className="mt-6 text-sm text-muted-foreground">
         {t("{n} questions · about 2 minutes · everything in today's money · stays in your browser", {
-          n: STEPS.length,
+          n: visibleSteps(currency).length,
         })}
       </p>
       {prefill && <p className="mt-2 text-sm text-muted-foreground">{prefill}</p>}
@@ -627,7 +743,16 @@ function LeverCard({
 
 /* --------------------------------- Results -------------------------------- */
 
-function Results({ plan, onEdit }: { plan: SavedPlan; onEdit: () => void }) {
+function Results({
+  plan,
+  pension,
+  onEdit,
+}: {
+  plan: SavedPlan;
+  /** Already null whenever it must not be used (off, non-CZK, no data). */
+  pension: PensionScenario | null;
+  onEdit: () => void;
+}) {
   const router = useRouter();
   const { money, percent, symbol } = useFormatters();
   const { t, count, locale } = useT();
@@ -677,13 +802,17 @@ function Results({ plan, onEdit }: { plan: SavedPlan; onEdit: () => void }) {
       wd: String(assumptions.wd),
       infl: String(assumptions.infl),
     });
+    if (pension) {
+      params.set("usePension", "1");
+      for (const [k, v] of Object.entries(pensionToParams(pension))) params.set(k, v);
+    }
     const href = `${window.location.pathname}?${params.toString()}`;
     if (`${window.location.pathname}${window.location.search}` !== href) {
       void router.navigate({ href, replace: true, resetScroll: false });
     }
     savePlan({ ...plan, ...profile, ...assumptions });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plan.age, plan.stop, plan.spend, plan.invested, plan.cash, plan.saveInvest, plan.saveCash, assumptions]);
+  }, [plan.age, plan.stop, plan.spend, plan.invested, plan.cash, plan.saveInvest, plan.saveCash, assumptions, pension]);
 
   // Effective (lever-adjusted) scenario drives the hero and the chart.
   // The "save more" lever moves the total; the extra goes into investments.
@@ -1096,9 +1225,15 @@ function PlanPage() {
   const [hydrated, setHydrated] = useState(false);
   // First visit (no saved plan, no plan in the URL) starts on the intro.
   const [intro, setIntro] = useState(false);
+  const { currency } = useCurrency();
+  // A shared link's pension is used as-is and never written to this browser's storage.
+  const [urlPension, setUrlPension] = useState<PensionScenario | null>(null);
+  const [storedPension, setStoredPension] = useState<PensionScenario | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    setUrlPension(pensionFromParams(params, new Date().getFullYear()));
+    setStoredPension(loadPension());
     if (params.has("age") && params.has("stop")) {
       const raw: Record<string, number> = {};
       params.forEach((v, k) => {
@@ -1122,14 +1257,21 @@ function PlanPage() {
     return (
       <Questionnaire
         initial={plan}
-        onDone={(p) => {
+        onDone={(p, usePension) => {
           const { wd, infl } = plan ?? DEFAULT_ASSUMPTIONS;
-          setPlan({ ...p, wd, infl, usePension: plan?.usePension ?? false });
+          setPlan({ ...p, wd, infl, usePension });
+          setStoredPension(loadPension());
           setEditing(false);
         }}
       />
     );
   }
 
-  return <Results plan={plan} onEdit={() => setEditing(true)} />;
+  const pension = resolvePlanPension({
+    usePension: plan.usePension,
+    fromUrl: urlPension,
+    stored: storedPension,
+    currency,
+  });
+  return <Results plan={plan} pension={pension} onEdit={() => setEditing(true)} />;
 }
