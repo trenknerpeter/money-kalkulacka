@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { monthsToTarget, targetPotFor } from "./plan";
-import { monthsToPhasedTarget, phasedTarget } from "./phased";
+import { monthsToPhasedTarget, phaseSegments, phasedTarget, type PhaseValues } from "./phased";
 import { retirementMilestones } from "./retirement";
 
 const a = { ret: 7, cashRet: 3, wd: 4, infl: 2 };
@@ -45,5 +45,58 @@ describe("monthsToPhasedTarget / milestones", () => {
   });
   it("retirementMilestones with a constant targetAt matches the default", () => {
     expect(retirementMilestones(prof, a, null, () => T)).toEqual(retirementMilestones(prof, a, null));
+  });
+});
+
+describe("phaseSegments", () => {
+  const v = (o: Partial<PhaseValues> = {}): PhaseValues => ({
+    pensionMonthly: 15000,
+    pensionAge: 67,
+    savingsAge: 60,
+    savingsPot: 1e6,
+    ...o,
+  });
+  it("stop before both ages → three phases", () => {
+    expect(phaseSegments(48, v())).toEqual([
+      { from: 48, to: 60, kind: "savings" },
+      { from: 60, to: 67, kind: "dps" },
+      { from: 67, to: null, kind: "pension" },
+    ]);
+  });
+  it("stop between the ages → two phases", () => {
+    expect(phaseSegments(63, v())).toEqual([
+      { from: 63, to: 67, kind: "dps" },
+      { from: 67, to: null, kind: "pension" },
+    ]);
+  });
+  it("stop after both → pension only", () => {
+    expect(phaseSegments(70, v())).toEqual([{ from: 70, to: null, kind: "pension" }]);
+  });
+  it("savings opening after the pension starts", () => {
+    expect(phaseSegments(50, v({ pensionAge: 62, savingsAge: 65 }))).toEqual([
+      { from: 50, to: 62, kind: "savings" },
+      { from: 62, to: 65, kind: "pension" },
+      { from: 65, to: null, kind: "dps" },
+    ]);
+  });
+  it("zero-length phases collapse (both open at the same age, stop exactly at an age)", () => {
+    expect(phaseSegments(48, v({ savingsAge: 67 }))).toEqual([
+      { from: 48, to: 67, kind: "savings" },
+      { from: 67, to: null, kind: "pension" },
+    ]);
+    expect(phaseSegments(60, v())).toEqual([
+      { from: 60, to: 67, kind: "dps" },
+      { from: 67, to: null, kind: "pension" },
+    ]);
+  });
+  it("no savings pot or no pension → those phases are left out", () => {
+    expect(phaseSegments(48, v({ savingsPot: 0 }))).toEqual([
+      { from: 48, to: 67, kind: "savings" },
+      { from: 67, to: null, kind: "pension" },
+    ]);
+    expect(phaseSegments(48, v({ pensionMonthly: 0 }))).toEqual([
+      { from: 48, to: 60, kind: "savings" },
+      { from: 60, to: null, kind: "dps" },
+    ]);
   });
 });

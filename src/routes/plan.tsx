@@ -35,6 +35,13 @@ import {
 } from "@/lib/pension";
 import { SALARY_KEY, parseSalaryStore } from "@/lib/salary";
 import { loadInvest, loadMortgage, type InvestScenario } from "@/lib/dashboard";
+import {
+  affordableSpendPhased,
+  monthsToPhasedTarget,
+  pensionLinkFrom,
+  phaseSegments,
+  phasedTarget,
+} from "@/lib/phased";
 import { ageAt, mortgageSchedule, realBalanceAt, retirementMilestones } from "@/lib/retirement";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
@@ -825,17 +832,81 @@ function Results({
   );
   const effAssumptions: PlanAssumptions = { ...assumptions, ret: levers.ret };
 
-  const target = targetPotFor(levers.spend, assumptions.wd);
-  const months = monthsToTarget(effProfile, effAssumptions, target);
+  // With the pension on, the number you need depends on the age you stop (it is lower the later you stop).
+  const [salaryGross] = useState<number | null>(() => {
+    try {
+      return parseSalaryStore(window.localStorage.getItem(SALARY_KEY))?.gross ?? null;
+    } catch {
+      return null;
+    }
+  });
+  const link = useMemo(
+    () => (pension ? pensionLinkFrom(pension, { currentYear: new Date().getFullYear(), salaryGross }) : null),
+    [pension, salaryGross],
+  );
+  const fullPension = useMemo(
+    () =>
+      pension
+        ? retirementSummary({ ...pension, earlyMonths: 0 }, { currentYear: new Date().getFullYear(), salaryGross })
+        : null,
+    [pension, salaryGross],
+  );
+  const targetAt = link
+    ? (m: number) => {
+        const age = plan.age + m / 12;
+        return phasedTarget(levers.spend, age, effAssumptions, link.at(age));
+      }
+    : undefined;
+
+  const target = targetAt
+    ? targetAt((levers.stop - plan.age) * 12)
+    : targetPotFor(levers.spend, assumptions.wd);
+  const months = targetAt
+    ? monthsToPhasedTarget(effProfile, effAssumptions, targetAt)
+    : monthsToTarget(effProfile, effAssumptions, target);
   const reachedAge = months === null ? null : months === 0 ? plan.age : Math.round(plan.age + months / 12);
   const potAtStop = projectPotAtStop(effProfile, effAssumptions);
   const gap = isFinite(target) ? target - potAtStop : Infinity;
 
   // Milestone 2: when the pot also covers what's left on the mortgage (Mortgage tab, if filled in).
-  const milestones = retirementMilestones(effProfile, effAssumptions, schedule);
+  const milestones = retirementMilestones(effProfile, effAssumptions, schedule, targetAt);
   const debtFreeAge = milestones.debtFreeMonths === null ? null : ageAt(plan, milestones.debtFreeMonths);
   const owesAtReached = reachedAge !== null && milestones.owedAtLiving > 0.5;
-  const chartEndAge = Math.max(reachedAge ?? 0, owesAtReached ? (debtFreeAge ?? 0) : 0);
+  const phaseAt = link ? link.at(levers.stop) : null;
+  const pensionStartAge = phaseAt && phaseAt.pensionMonthly > 0 ? Math.round(phaseAt.pensionAge) : null;
+  const savingsOpenAge = phaseAt && phaseAt.savingsPot > 0 ? Math.round(phaseAt.savingsAge) : null;
+  // Show the pension start (plus a few years) on the chart.
+  const chartEndAge = Math.max(
+    reachedAge ?? 0,
+    owesAtReached ? (debtFreeAge ?? 0) : 0,
+    pensionStartAge ?? 0,
+  );
+  const chartMarkers = [
+    savingsOpenAge !== null ? { age: savingsOpenAge, label: t("DPS/DIP opens at {age}", { age: savingsOpenAge }) } : null,
+    pensionStartAge !== null
+      ? { age: pensionStartAge, label: t("State pension starts at {age}", { age: pensionStartAge }) }
+      : null,
+  ].filter((m): m is { age: number; label: string } => m !== null);
+  const phaseParts = phaseAt
+    ? phaseSegments(levers.stop, phaseAt)
+        .filter((s) => s.to === null || Math.round(s.from) < Math.round(s.to))
+        .map((s) => {
+          const range = s.to === null ? `${Math.round(s.from)}+` : `${Math.round(s.from)}–${Math.round(s.to)}`;
+          return s.kind === "savings"
+            ? t("{range}: your savings pay everything", { range })
+            : s.kind === "dps"
+              ? t("{range}: + DPS/DIP", { range })
+              : t("{range}: + state pension {p}", {
+                  range,
+                  p: t("{v}/mo", { v: money(phaseAt.pensionMonthly) }),
+                });
+        })
+    : [];
+  const earlyStopCut =
+    phaseAt && fullPension && levers.stop < fullPension.pension.statutoryMonths / 12 &&
+    phaseAt.pensionMonthly < fullPension.pension.monthly
+      ? { full: fullPension.pension.monthly, reduced: phaseAt.pensionMonthly }
+      : null;
 
   const rows = useMemo(
     () =>
@@ -850,15 +921,23 @@ function Results({
   );
 
   // Solve points are computed from the saved plan, not the dragged levers.
-  const baseTarget = targetPotFor(plan.spend, assumptions.wd);
+  const baseTarget = link
+    ? phasedTarget(plan.spend, plan.stop, assumptions, link.at(plan.stop))
+    : targetPotFor(plan.spend, assumptions.wd);
   const solveSave = requiredMonthly(profile, assumptions, baseTarget);
-  const baseMonths = monthsToTarget(profile, assumptions, baseTarget);
+  const baseMonths = link
+    ? monthsToPhasedTarget(profile, assumptions, (m) => {
+        const age = plan.age + m / 12;
+        return phasedTarget(plan.spend, age, assumptions, link.at(age));
+      })
+    : monthsToTarget(profile, assumptions, baseTarget);
   const solveStop = baseMonths === null ? null : Math.round(plan.age + baseMonths / 12);
-  const solveSpendRaw = affordableSpend(profile, assumptions);
+  const solveSpendRaw = link ? affordableSpendPhased(profile, assumptions, link) : affordableSpend(profile, assumptions);
   const solveSpend = baseMonths === 0 || solveSpendRaw < plan.spend ? solveSpendRaw : null;
   const solveRet = requiredReturn(profile, assumptions, baseTarget);
 
-  const alreadyFunded = isFinite(target) && pot >= target;
+  // With the pension on, "now" is judged against the number needed to stop today, not at the stop age.
+  const alreadyFunded = targetAt ? months === 0 : isFinite(target) && pot >= target;
   const early = !alreadyFunded && reachedAge !== null && reachedAge < levers.stop;
   const onTrack = !alreadyFunded && reachedAge !== null && reachedAge === levers.stop;
   const unreachable = !alreadyFunded && reachedAge === null;
@@ -950,6 +1029,30 @@ function Results({
         </div>
       </div>
 
+      {(phaseParts.length > 0 || earlyStopCut) && (
+        <div className="-mt-3 space-y-1.5">
+          {phaseParts.length > 0 && (
+            <p className="flex max-w-2xl flex-wrap items-center gap-x-2 gap-y-1 text-sm leading-relaxed text-muted-foreground">
+              {phaseParts.map((part, i) => (
+                <span key={i} className="flex items-center gap-2">
+                  {i > 0 && <span aria-hidden="true">→</span>}
+                  <span>{part}</span>
+                </span>
+              ))}
+            </p>
+          )}
+          {earlyStopCut && (
+            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+              {t("Stopping at {stop} lowers your state pension from {full} to {reduced} (fewer insured years).", {
+                stop: levers.stop,
+                full: money(earlyStopCut.full),
+                reduced: money(earlyStopCut.reduced),
+              })}
+            </p>
+          )}
+        </div>
+      )}
+
       <Panel>
         <div className="grid gap-6 sm:grid-cols-3">
           <div className="min-w-0">
@@ -1004,6 +1107,7 @@ function Results({
           stopAge={levers.stop}
           reachedAge={reachedAge}
           debtFreeAge={owesAtReached ? debtFreeAge : null}
+          markers={chartMarkers}
         />
         <div className="mt-4 flex flex-wrap items-center gap-5 text-xs text-muted-foreground">
           <span className="flex items-center gap-2">

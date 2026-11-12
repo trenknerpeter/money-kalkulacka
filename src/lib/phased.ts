@@ -117,3 +117,34 @@ export function affordableSpendPhased(
   }
   return lo;
 }
+
+export type PhaseSegment = { from: number; to: number | null; kind: "savings" | "dps" | "pension" };
+
+/**
+ * Who pays for what, from the stop age on. "savings" = your own money pays everything,
+ * "dps" = DPS/DIP have opened too, "pension" = the state pension has started.
+ * Zero-length phases are left out; the last phase is open-ended (`to` null).
+ * A phase whose source does not exist (no DPS/DIP pot, no state pension) is left out.
+ */
+export function phaseSegments(stopAge: number, v: PhaseValues): PhaseSegment[] {
+  const A = v.savingsPot > 0 ? Math.max(stopAge, v.savingsAge) : Infinity;
+  const P = v.pensionMonthly > 0 ? Math.max(stopAge, v.pensionAge) : Infinity;
+  const events: { at: number; kind: "dps" | "pension" }[] = [];
+  if (isFinite(A)) events.push({ at: A, kind: "dps" });
+  if (isFinite(P)) events.push({ at: P, kind: "pension" });
+  events.sort((x, y) => x.at - y.at);
+
+  const out: PhaseSegment[] = [];
+  let from = stopAge;
+  let kind: PhaseSegment["kind"] = "savings";
+  const push = (to: number | null) => {
+    if (to === null || to - from > 1e-9) out.push({ from, to, kind });
+  };
+  for (const e of events) {
+    push(e.at);
+    from = e.at;
+    kind = e.kind;
+  }
+  push(null);
+  return out;
+}

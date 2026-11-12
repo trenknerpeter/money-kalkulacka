@@ -21,9 +21,11 @@ type Props = {
   reachedAge: number | null;
   /** Age the pot also covers the remaining mortgage, when there is one. */
   debtFreeAge?: number | null;
+  /** Dashed vertical lines with a small label, e.g. when DPS/DIP open or the state pension starts. */
+  markers?: { age: number; label: string }[];
 };
 
-export function PlanChart({ rows, target, stopAge, reachedAge, debtFreeAge = null }: Props) {
+export function PlanChart({ rows, target, stopAge, reachedAge, debtFreeAge = null, markers = [] }: Props) {
   const { money, compact } = useFormatters();
   const { t } = useT();
   const showTarget = isFinite(target);
@@ -169,6 +171,20 @@ export function PlanChart({ rows, target, stopAge, reachedAge, debtFreeAge = nul
               fontSize: 12,
             }}
           />
+          {markers.map((m) => (
+            <ReferenceLine
+              key={`${m.age}-${m.label}`}
+              x={m.age}
+              stroke="var(--muted-foreground)"
+              strokeDasharray="2 4"
+              label={{
+                value: m.label,
+                position: "insideBottomRight",
+                fill: "var(--muted-foreground)",
+                fontSize: 11,
+              }}
+            />
+          ))}
           {showTarget && reachedRow && (
             <ReferenceDot
               x={reachedRow.age}
