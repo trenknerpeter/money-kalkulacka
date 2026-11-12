@@ -80,3 +80,85 @@ export function statutoryAgeMonths(birthYear: number, female: boolean, children:
   if (children <= 4) return row[3];
   return row[4];
 }
+
+export type StatePensionInput = {
+  birthYear: number;
+  female: boolean;
+  children: number;
+  /** Today's monthly gross, CZK. */
+  gross: number;
+  /** Insured years so far. */
+  yearsWorked: number;
+  /** Age (years) earnings and insurance stop; at or above the statutory age → work to statutory. */
+  workUntilAge: number;
+  /** Early pension, 0–36 months; 0 = none. */
+  earlyMonths: number;
+  currentYear: number;
+};
+
+export type StatePensionResult = {
+  /** At least 20 insured years. */
+  eligible: boolean;
+  /** 20–34 insured years → pension starts 60 months after the statutory age. */
+  delayed: boolean;
+  statutoryMonths: number;
+  /** Age in months at which the pension actually starts. */
+  startMonths: number;
+  startYear: number;
+  /** Whole insured years. */
+  insuredYears: number;
+  /** Diluted gross. */
+  base: number;
+  /** Výpočtový základ, rounded up. */
+  calcBase: number;
+  /** Základní výměra (0 if not eligible). */
+  basic: number;
+  /** Procentní výměra incl. výchovné, after the floor and the early cut. */
+  percent: number;
+  /** Insured years at the early start are at least 40. */
+  earlyAllowed: boolean;
+  /** Kč a month removed by the early pension. */
+  earlyCut: number;
+  /** basic + percent; 0 if not eligible. */
+  monthly: number;
+};
+
+export function statePension(i: StatePensionInput, rules: PensionRules = CZ_PENSION_2026): StatePensionResult {
+  const statutoryMonths = statutoryAgeMonths(i.birthYear, i.female, i.children);
+  const statY = statutoryMonths / 12;
+  const currentAge = i.currentYear - i.birthYear;
+  const firstJobAge = currentAge - i.yearsWorked;
+  const earlyYears = Math.max(0, i.earlyMonths) / 12;
+
+  const insuredTo = (stopY: number) => Math.floor(i.yearsWorked + Math.max(0, stopY - currentAge));
+  const insuredNormal = insuredTo(Math.min(i.workUntilAge, statY));
+  const insuredEarly = insuredTo(Math.min(i.workUntilAge, statY - earlyYears));
+
+  const eligible = insuredNormal >= 20;
+  const delayed = eligible && insuredNormal < 35;
+  const earlyAllowed = i.earlyMonths > 0 && !delayed && eligible && insuredEarly >= 40;
+  const insuredYears = earlyAllowed ? insuredEarly : insuredNormal;
+  const earlyMonths = earlyAllowed ? i.earlyMonths : 0;
+
+  const startMonths = delayed ? statutoryMonths + 60 : statutoryMonths - earlyMonths;
+  const startYear = i.birthYear + Math.floor(startMonths / 12);
+
+  const ratio = Math.min(1, insuredYears / Math.max(1, statY - firstJobAge));
+  const base = i.gross * ratio;
+
+  const empty = { eligible, delayed, statutoryMonths, startMonths, startYear, insuredYears, base, calcBase: 0, basic: 0, percent: 0, earlyAllowed, earlyCut: 0, monthly: 0 };
+  if (!eligible) return empty;
+
+  const calcBase = Math.ceil(
+    firstBandRate(startYear) * Math.min(base, rules.rh1) +
+      rules.upperRate * Math.min(Math.max(base - rules.rh1, 0), rules.rh2 - rules.rh1),
+  );
+  const raw = calcBase * yearRate(startYear) * insuredYears;
+  const blocks = Math.ceil((earlyMonths * 30.4167) / 90);
+  const cut = calcBase * blocks * (insuredYears >= 45 ? 0.0075 : 0.015);
+  const children = rules.perChild * Math.max(0, i.children);
+  const percent = Math.ceil(Math.max(rules.minPercent, raw - cut)) + children;
+  const earlyCut = Math.max(0, Math.ceil(raw) - (percent - children));
+
+  return { ...empty, calcBase, basic: rules.basic, percent, earlyCut, monthly: rules.basic + percent };
+}
