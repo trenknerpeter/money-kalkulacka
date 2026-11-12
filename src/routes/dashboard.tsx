@@ -980,13 +980,13 @@ function Dashboard() {
                   rows: retirement
                     ? [
                         [t("Birth year"), String(retirement.s.birthYear)],
-                        [t("Gross monthly salary"), money(retirement.gross)],
+                        [t("Gross monthly salary"), formatCzk(retirement.gross)],
                         [t("Years worked so far"), count(Math.round(retirement.s.yearsWorked), "year")],
-                        [t("DPS, your contribution a month"), money(retirement.s.dpsOwn)],
-                        [t("DPS, employer a month"), money(retirement.s.dpsEmployer)],
-                        [t("DIP, your contribution a month"), money(retirement.s.dipOwn)],
-                        [t("DIP, employer a month"), money(retirement.s.dipEmployer)],
-                        [t("Estimated state pension a month"), money(retirement.sum.pension.monthly)],
+                        [t("DPS, your contribution a month"), formatCzk(retirement.s.dpsOwn)],
+                        [t("DPS, employer a month"), formatCzk(retirement.s.dpsEmployer)],
+                        [t("DIP, your contribution a month"), formatCzk(retirement.s.dipOwn)],
+                        [t("DIP, employer a month"), formatCzk(retirement.s.dipEmployer)],
+                        [t("Estimated state pension a month"), formatCzk(retirement.sum.pension.monthly)],
                         [t("Statutory retirement age"), monthsLabel(retirement.sum.pension.statutoryMonths)],
                       ]
                     : null,
