@@ -175,3 +175,70 @@ describe("resolvePlanPension", () => {
   it("stored used without URL params", () =>
     expect(resolvePlanPension({ usePension: true, fromUrl: null, stored, currency: "CZK" })).toBe(stored));
 });
+
+describe("insured years in whole months (M1)", () => {
+  const base = { female: false, children: 0, gross: 48967, workUntilAge: 99, earlyMonths: 0, currentYear: 2026 };
+  it("exactly 40 years at the early start allows the early pension (1964, 38 years, 10 months early)", () => {
+    const r = statePension({ ...base, birthYear: 1964, yearsWorked: 38, earlyMonths: 10 });
+    expect(r.earlyAllowed).toBe(true);
+    expect(r.insuredYears).toBe(40);
+    expect(r.startMonths).toBe(64 * 12 + 10 - 10);
+  });
+  it("exactly 45 years at the early start halves the cut (1964, 43 years, 10 months early)", () => {
+    const r = statePension({ ...base, birthYear: 1964, yearsWorked: 43, earlyMonths: 10 });
+    expect(r.insuredYears).toBe(45);
+    const blocks = Math.ceil((10 * 30.4167) / 90);
+    expect(Math.abs(r.earlyCut - r.calcBase * blocks * 0.0075)).toBeLessThanOrEqual(1);
+  });
+  it("exactly 35 years at the statutory age is not delayed; 34 is", () => {
+    // 1980: statutory 66y 3m; age 46 today. 35 years = 420 months = yearsWorked × 12 + (795 − 552).
+    const at = (months: number) => statePension({ ...base, birthYear: 1980, yearsWorked: months / 12 });
+    expect(at(420 - 243)).toMatchObject({ insuredYears: 35, delayed: false });
+    expect(at(419 - 243)).toMatchObject({ insuredYears: 34, delayed: true });
+  });
+  it("exactly 20 years at the statutory age is eligible; 19 is not", () => {
+    // Stop work so that exactly 240 / 239 insured months accrue.
+    const stop = (months: number) =>
+      statePension({ ...base, birthYear: 1980, yearsWorked: 0, workUntilAge: 46 + months / 12 });
+    expect(stop(240)).toMatchObject({ insuredYears: 20, eligible: true });
+    expect(stop(239)).toMatchObject({ insuredYears: 19, eligible: false });
+  });
+  it("a continuous career to a statutory age with extra months has dilution ratio exactly 1", () => {
+    for (const by of [1973, 1975, 1980, 1985, 1988]) {
+      const r = statePension({ ...base, birthYear: by, yearsWorked: 2026 - by - 22, earlyMonths: 0 });
+      expect(r.base).toBe(48967);
+    }
+  });
+});
+
+describe("early months clamp lives in the summary (I2)", () => {
+  it("stored 36 months with only 5 allowed → the summary uses 5", () => {
+    const s = normalisePension({ birthYear: 1970, yearsWorked: 31, earlyMonths: 36 }, 2026);
+    const r = retirementSummary(s, { currentYear: 2026, salaryGross: null });
+    expect(r.earlyMax).toBe(5);
+    expect(r.earlyMonths).toBe(5);
+    expect(r.pension.earlyAllowed).toBe(true);
+    expect(r.pension.startMonths).toBe(65 * 12 + 5 - 5);
+  });
+  it("no early pension allowed → 0 months, regular start", () => {
+    const s = normalisePension({ birthYear: 1991, yearsWorked: 5, earlyMonths: 36 }, 2026);
+    const r = retirementSummary(s, { currentYear: 2026, salaryGross: null });
+    expect(r.earlyMax).toBe(0);
+    expect(r.earlyMonths).toBe(0);
+    expect(r.pension.startMonths).toBe(804);
+  });
+});
+
+describe("resolvePlanPension: stored wins unless the plan is a shared link (I4)", () => {
+  const stored = pensionDefaults(2026);
+  const fromUrl = { ...pensionDefaults(2026), birthYear: 1990 };
+  const o = { usePension: true, fromUrl, stored, currency: "CZK" };
+  it("own plan URL (not a shared link) → stored wins", () =>
+    expect(resolvePlanPension({ ...o, planFromUrl: false })).toBe(stored));
+  it("shared link, edited this session → stored wins", () =>
+    expect(resolvePlanPension({ ...o, planFromUrl: true, edited: true })).toBe(stored));
+  it("shared link, not edited → URL wins", () =>
+    expect(resolvePlanPension({ ...o, planFromUrl: true, edited: false })).toBe(fromUrl));
+  it("nothing stored → URL pension is used", () =>
+    expect(resolvePlanPension({ ...o, stored: null, planFromUrl: false })).toBe(fromUrl));
+});

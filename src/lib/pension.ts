@@ -129,25 +129,32 @@ export type StatePensionResult = {
 
 export function statePension(i: StatePensionInput, rules: PensionRules = CZ_PENSION_2026): StatePensionResult {
   const statutoryMonths = statutoryAgeMonths(i.birthYear, i.female, i.children);
-  const statY = statutoryMonths / 12;
-  const currentAge = i.currentYear - i.birthYear;
-  const firstJobAge = currentAge - i.yearsWorked;
-  const earlyYears = Math.max(0, i.earlyMonths) / 12;
+  // Count in whole months so year boundaries (20 / 35 / 40 / 45 insured years) are exact.
+  const currentAgeMonths = (i.currentYear - i.birthYear) * 12;
+  const workedMonths = Math.max(0, Math.round(num(i.yearsWorked) * 12));
+  const firstJobMonths = currentAgeMonths - workedMonths;
+  const workUntilMonths = Math.round(num(i.workUntilAge) * 12);
+  const requestedEarly = Math.max(0, Math.round(num(i.earlyMonths)));
 
-  const insuredTo = (stopY: number) => Math.floor(i.yearsWorked + Math.max(0, stopY - currentAge));
-  const insuredNormal = insuredTo(Math.min(i.workUntilAge, statY));
-  const insuredEarly = insuredTo(Math.min(i.workUntilAge, statY - earlyYears));
+  const insuredMonthsTo = (stopMonths: number) => workedMonths + Math.max(0, stopMonths - currentAgeMonths);
+  const normalMonths = insuredMonthsTo(Math.min(workUntilMonths, statutoryMonths));
+  const earlyMonthsInsured = insuredMonthsTo(Math.min(workUntilMonths, statutoryMonths - requestedEarly));
+  const insuredNormal = Math.floor(normalMonths / 12);
+  const insuredEarly = Math.floor(earlyMonthsInsured / 12);
 
   const eligible = insuredNormal >= 20;
   const delayed = eligible && insuredNormal < 35;
-  const earlyAllowed = i.earlyMonths > 0 && !delayed && eligible && insuredEarly >= 40;
+  const earlyAllowed = requestedEarly > 0 && !delayed && eligible && insuredEarly >= 40;
   const insuredYears = earlyAllowed ? insuredEarly : insuredNormal;
-  const earlyMonths = earlyAllowed ? i.earlyMonths : 0;
+  const earlyMonths = earlyAllowed ? requestedEarly : 0;
 
   const startMonths = delayed ? statutoryMonths + 60 : statutoryMonths - earlyMonths;
   const startYear = i.birthYear + Math.floor(startMonths / 12);
 
-  const ratio = Math.min(1, insuredYears / Math.max(1, statY - firstJobAge));
+  // Dilution: months with earnings over the months from the first job to the statutory age.
+  // A continuous career to the statutory age gives exactly 1.
+  const usedMonths = earlyAllowed ? earlyMonthsInsured : normalMonths;
+  const ratio = Math.min(1, usedMonths / Math.max(12, statutoryMonths - firstJobMonths));
   const base = i.gross * ratio;
 
   const empty = { eligible, delayed, statutoryMonths, startMonths, startYear, insuredYears, base, calcBase: 0, basic: 0, percent: 0, earlyAllowed, earlyCut: 0, monthly: 0 };
@@ -165,6 +172,14 @@ export function statePension(i: StatePensionInput, rules: PensionRules = CZ_PENS
   const earlyCut = Math.max(0, Math.ceil(raw) - (percent - children));
 
   return { ...empty, calcBase, basic: rules.basic, percent, earlyCut, monthly: rules.basic + percent };
+}
+
+/** Largest number of months (1–36) the state pension can start early with these inputs; 0 if none. */
+export function maxEarlyMonths(i: StatePensionInput, rules: PensionRules = CZ_PENSION_2026): number {
+  for (let m = 36; m >= 1; m--) {
+    if (statePension({ ...i, earlyMonths: m }, rules).earlyAllowed) return m;
+  }
+  return 0;
 }
 
 /* ------------------------------ DPS / DIP pots ------------------------------ */
@@ -389,6 +404,10 @@ export type RetirementSummary = {
   savingsOpenMonths: number;
   savingsAtOpen: number;
   savingsAtPension: number;
+  /** Largest early-pension months allowed with these inputs (0 = not available). */
+  earlyMax: number;
+  /** Early-pension months actually applied: the stored value, clamped to `earlyMax`. */
+  earlyMonths: number;
   drawdown: number;
   totalMonthly: number;
   taxSaving: number;
@@ -403,16 +422,20 @@ export function retirementSummary(
   const stopping = stopAge !== undefined;
   const workUntilAge = stopping ? stopAge : s.workUntil || statutory / 12;
 
-  const pension = statePension({
+  const input: StatePensionInput = {
     birthYear: s.birthYear,
     female: s.female,
     children: s.children,
     gross: resolveGross(s, opts.salaryGross),
     yearsWorked: s.yearsWorked,
     workUntilAge,
-    earlyMonths: stopping ? 0 : s.earlyMonths,
+    earlyMonths: 0,
     currentYear,
-  });
+  };
+  // One rule for every page: a stored early-pension request is clamped to the largest allowed.
+  const earlyMax = stopping ? 0 : maxEarlyMonths(input);
+  const earlyMonths = Math.min(Math.max(0, Math.round(s.earlyMonths)), earlyMax);
+  const pension = statePension({ ...input, earlyMonths });
 
   // Contributions stop when work stops, and never run past the start of the state pension.
   const contributeUntilMonths = Math.min(
@@ -449,6 +472,8 @@ export function retirementSummary(
     savingsOpenMonths,
     savingsAtOpen,
     savingsAtPension,
+    earlyMax,
+    earlyMonths,
     drawdown,
     totalMonthly: pension.monthly + drawdown,
     taxSaving: taxSaving(s.dpsOwn, s.dipOwn),
@@ -458,14 +483,21 @@ export function retirementSummary(
 /**
  * The pension a plan may use, or null whenever it must not be: switched off,
  * a non-CZK currency (Czech rules only), or no data from the link or the Retirement tab.
- * A shared link's data wins over what is stored in this browser.
+ * The Retirement tab's stored data wins, except for a shared link (the plan itself came
+ * from someone else's URL on this load) that hasn't been edited here yet. A URL pension
+ * is also used when nothing is stored.
  */
 export function resolvePlanPension(o: {
   usePension: boolean;
   fromUrl: PensionScenario | null;
   stored: PensionScenario | null;
   currency: string;
+  /** The plan came from a shared link on this load (not this browser's own URL). */
+  planFromUrl?: boolean;
+  /** The user edited the answers this session. */
+  edited?: boolean;
 }): PensionScenario | null {
   if (!o.usePension || o.currency !== "CZK") return null;
-  return o.fromUrl ?? o.stored ?? null;
+  const urlWins = (o.planFromUrl ?? true) && !o.edited;
+  return urlWins ? (o.fromUrl ?? o.stored ?? null) : (o.stored ?? o.fromUrl ?? null);
 }
