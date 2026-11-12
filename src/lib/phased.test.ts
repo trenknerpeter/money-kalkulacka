@@ -1,0 +1,49 @@
+import { describe, expect, it } from "vitest";
+import { monthsToTarget, targetPotFor } from "./plan";
+import { monthsToPhasedTarget, phasedTarget } from "./phased";
+import { retirementMilestones } from "./retirement";
+
+const a = { ret: 7, cashRet: 3, wd: 4, infl: 2 };
+
+describe("phasedTarget", () => {
+  it("no pension → today's formula", () => {
+    expect(phasedTarget(30000, 50, a, null)).toBe(targetPotFor(30000, 4));
+  });
+  it("pension covering spending at stop = pension age → 0", () => {
+    expect(phasedTarget(30000, 67, a, { pensionMonthly: 30000, pensionAge: 67, savingsAge: 60, savingsPot: 0 })).toBe(0);
+  });
+  it("never negative when savings exceed need", () => {
+    expect(phasedTarget(20000, 67, a, { pensionMonthly: 25000, pensionAge: 67, savingsAge: 60, savingsPot: 5e6 })).toBe(0);
+  });
+  it("a pension lowers the target; a bigger pension lowers it more", () => {
+    const v = (p: number) => ({ pensionMonthly: p, pensionAge: 67, savingsAge: 60, savingsPot: 0 });
+    const none = phasedTarget(30000, 50, a, null);
+    expect(phasedTarget(30000, 50, a, v(15000))).toBeLessThan(none);
+    expect(phasedTarget(30000, 50, a, v(20000))).toBeLessThan(phasedTarget(30000, 50, a, v(15000)));
+  });
+  it("savings pot lowers the target", () => {
+    const v = (pot: number) => ({ pensionMonthly: 15000, pensionAge: 67, savingsAge: 60, savingsPot: pot });
+    expect(phasedTarget(30000, 50, a, v(1e6))).toBeLessThan(phasedTarget(30000, 50, a, v(0)));
+  });
+  it("stop after both ages collapses to perpetuity minus savings", () => {
+    const t = phasedTarget(30000, 70, a, { pensionMonthly: 10000, pensionAge: 67, savingsAge: 60, savingsPot: 1e6 });
+    expect(t).toBeCloseTo(targetPotFor(20000, 4) - 1e6, 0);
+  });
+  it("pension before savings opens uses the second branch", () => {
+    const v = { pensionMonthly: 15000, pensionAge: 62, savingsAge: 65, savingsPot: 1e6 };
+    const t = phasedTarget(30000, 50, a, v);
+    expect(t).toBeGreaterThan(0);
+    expect(t).toBeLessThan(phasedTarget(30000, 50, a, null));
+  });
+});
+
+describe("monthsToPhasedTarget / milestones", () => {
+  const prof = { age: 35, stop: 60, spend: 30000, invested: 500000, cash: 0, saveInvest: 10000, saveCash: 0 };
+  const T = targetPotFor(30000, 4);
+  it("constant target matches monthsToTarget", () => {
+    expect(monthsToPhasedTarget(prof, a, () => T)).toBe(monthsToTarget(prof, a, T));
+  });
+  it("retirementMilestones with a constant targetAt matches the default", () => {
+    expect(retirementMilestones(prof, a, null, () => T)).toEqual(retirementMilestones(prof, a, null));
+  });
+});

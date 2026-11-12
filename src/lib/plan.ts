@@ -19,7 +19,7 @@ export type PlanAssumptions = {
   infl: number;
 };
 
-export type SavedPlan = PlanProfile & PlanAssumptions;
+export type SavedPlan = PlanProfile & PlanAssumptions & { usePension: boolean };
 
 export const PLAN_KEY = "finbuddy.profile.v1";
 
@@ -50,6 +50,7 @@ export function normalisePlan(p: Partial<SavedPlan> & { pot?: number; save?: num
     cashRet: num(p.cashRet, DEFAULT_ASSUMPTIONS.cashRet),
     wd: num(p.wd, DEFAULT_ASSUMPTIONS.wd),
     infl: num(p.infl, DEFAULT_ASSUMPTIONS.infl),
+    usePension: (p.usePension as unknown) === true || (p.usePension as unknown) === 1 || (p.usePension as unknown) === "1",
   };
 }
 

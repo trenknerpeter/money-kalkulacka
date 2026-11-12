@@ -996,7 +996,7 @@ function PlanPage() {
         initial={plan}
         onDone={(p) => {
           const { wd, infl } = plan ?? DEFAULT_ASSUMPTIONS;
-          setPlan({ ...p, wd, infl });
+          setPlan({ ...p, wd, infl, usePension: plan?.usePension ?? false });
           setEditing(false);
         }}
       />

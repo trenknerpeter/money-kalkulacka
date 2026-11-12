@@ -1,4 +1,5 @@
 import { num, solveMonths, solvePayment } from "./finance";
+import { monthsToPhasedTarget } from "./phased";
 import {
   monthsToTarget,
   potsAfterMonths,
@@ -78,19 +79,22 @@ export function retirementMilestones(
   profile: PlanProfile,
   assumptions: PlanAssumptions,
   schedule: MortgageSchedule | null,
+  targetAt?: (months: number) => number,
 ): Milestones {
   const target = targetPotFor(profile.spend, assumptions.wd);
-  const livingMonths = monthsToTarget(profile, assumptions, target);
+  const livingMonths = targetAt
+    ? monthsToPhasedTarget(profile, assumptions, targetAt)
+    : monthsToTarget(profile, assumptions, target);
   const debtAt = (m: number) => realBalanceAt(schedule, m, assumptions.infl);
   const owedAtLiving = livingMonths === null ? 0 : debtAt(livingMonths);
 
   let debtFreeMonths: number | null = livingMonths;
-  if (livingMonths !== null && owedAtLiving > 0.5 && isFinite(target)) {
+  if (livingMonths !== null && owedAtLiving > 0.5 && (targetAt ? isFinite(targetAt(livingMonths)) : isFinite(target))) {
     debtFreeMonths = null;
     const maxMonths = Math.max(0, Math.round((90 - num(profile.age)) * 12));
     for (let m = livingMonths; m <= maxMonths; m++) {
       const pot = m === 0 ? startPot(profile) : potsAfterMonths(profile, assumptions, m).total;
-      if (pot >= target + debtAt(m)) {
+      if (pot >= (targetAt ? targetAt(m) : target) + debtAt(m)) {
         debtFreeMonths = m;
         break;
       }
