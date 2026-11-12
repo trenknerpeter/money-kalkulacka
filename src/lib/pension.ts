@@ -314,17 +314,20 @@ export function normalisePension(raw: Partial<PensionScenario>, currentYear: num
     gross: money(raw.gross, d.gross),
     grossOverride: Boolean(raw.grossOverride ?? d.grossOverride),
     yearsWorked: clamp(num(raw.yearsWorked, d.yearsWorked), 0, Math.max(0, currentAge - 15)),
-    workUntil: money(raw.workUntil, d.workUntil),
+    workUntil: (() => {
+      const w = money(raw.workUntil, d.workUntil);
+      return w <= 0 ? 0 : clamp(w, 18, 100);
+    })(),
     earlyMonths: Math.round(clamp(num(raw.earlyMonths, d.earlyMonths), 0, 36)),
     dpsBalance: money(raw.dpsBalance, d.dpsBalance),
     dpsOwn: money(raw.dpsOwn, d.dpsOwn),
     dpsEmployer: money(raw.dpsEmployer, d.dpsEmployer),
-    dpsStart: Math.round(num(raw.dpsStart, d.dpsStart)) || d.dpsStart,
+    dpsStart: Math.round(clamp(num(raw.dpsStart, d.dpsStart) || d.dpsStart, 1990, currentYear + 50)),
     dpsRet: clamp(num(raw.dpsRet, d.dpsRet), 0, 15),
     dipBalance: money(raw.dipBalance, d.dipBalance),
     dipOwn: money(raw.dipOwn, d.dipOwn),
     dipEmployer: money(raw.dipEmployer, d.dipEmployer),
-    dipStart: Math.round(num(raw.dipStart, d.dipStart)) || d.dipStart,
+    dipStart: Math.round(clamp(num(raw.dipStart, d.dipStart) || d.dipStart, 1990, currentYear + 50)),
     dipRet: clamp(num(raw.dipRet, d.dipRet), 0, 15),
     drawYears: Math.round(clamp(num(raw.drawYears, d.drawYears), 10, 30)),
     infl: clamp(num(raw.infl, d.infl), 0, 15),

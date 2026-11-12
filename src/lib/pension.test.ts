@@ -122,6 +122,16 @@ describe("DPS / DIP, tax line, scenario, summary", () => {
     expect(r.state).toBe(2400);
     expect(r.atOpen).toBeCloseTo(10000 + 12000 + 6000 + 2400, 0);
   });
+  it("normalisePension clamps start years and workUntil from share links", () => {
+    const s = normalisePension({ dpsStart: 1e9, dipStart: 1800, workUntil: 5 }, 2026);
+    expect(s.dpsStart).toBe(2076);
+    expect(s.dipStart).toBe(1990);
+    expect(s.workUntil).toBe(18);
+    expect(normalisePension({ workUntil: 500 }, 2026).workUntil).toBe(100);
+    expect(normalisePension({ workUntil: -3 }, 2026).workUntil).toBe(0);
+    expect(normalisePension({ workUntil: 0 }, 2026).workUntil).toBe(0);
+  });
+
   it("normalisePension clamps nonsense", () => {
     const s = normalisePension({ birthYear: 1900, yearsWorked: 80, children: -2, dpsOwn: -5 }, 2026);
     expect(s.birthYear).toBe(1961);
