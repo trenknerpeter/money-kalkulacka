@@ -142,3 +142,65 @@ describe("dashboard with a pension", () => {
     expect(snapshotMetrics({ ...withP, "finbuddy.currency": "EUR" }).target).toBe(without.target);
   });
 });
+
+import { potAtStop } from "./plan";
+import { normalisePension } from "./pension";
+import { pensionLinkFrom, requiredReturnPhased, withPensionAge } from "./phased";
+
+describe("withPensionAge (C1)", () => {
+  it("uses the Retirement birth year as the plan's current age", () => {
+    expect(withPensionAge({ age: 50, stop: 60 }, 1991, 2026)).toEqual({ age: 35, stop: 60 });
+  });
+  it("moves a stop age that is no longer in the future to the next year", () => {
+    expect(withPensionAge({ age: 30, stop: 40 }, 1980, 2026)).toEqual({ age: 46, stop: 47 });
+  });
+});
+
+describe("DPS/DIP pot keeps growing until the stop age (I1)", () => {
+  const s = normalisePension(
+    { birthYear: 1981, yearsWorked: 23, dpsBalance: 200000, dpsOwn: 1700, dpsEmployer: 1000, dpsStart: 2015 },
+    2026,
+  );
+  const link = pensionLinkFrom(s, { currentYear: 2026, salaryGross: null });
+  it("stopping at 65 gives a larger pot than stopping at 60, valued at the stop age", () => {
+    expect(link.at(65).savingsPot).toBeGreaterThan(link.at(63).savingsPot);
+    expect(link.at(63).savingsPot).toBeGreaterThan(link.at(60).savingsPot);
+    expect(link.at(65).savingsAge).toBe(65);
+    expect(link.at(55).savingsAge).toBe(60);
+  });
+});
+
+describe("requiredReturnPhased (I3)", () => {
+  const s = normalisePension({ birthYear: 1986, yearsWorked: 18, dpsBalance: 100000, dpsOwn: 1000 }, 2026);
+  const link = pensionLinkFrom(s, { currentYear: 2026, salaryGross: null });
+  const profile = { age: 40, stop: 55, spend: 40000, invested: 1500000, cash: 0, saveInvest: 15000, saveCash: 0 };
+  it("at the solved return the pot at stop meets the phased target at stop", () => {
+    const rr = requiredReturnPhased(profile, a, link)!;
+    expect(rr).not.toBeNull();
+    const a2 = { ...a, ret: rr };
+    const pot = potAtStop(profile, a2);
+    const target = phasedTarget(profile.spend, profile.stop, a2, link.at(profile.stop));
+    expect(Math.abs(pot - target) / target).toBeLessThan(1e-6);
+  });
+  it("null when even 15% is not enough", () => {
+    expect(requiredReturnPhased({ ...profile, invested: 0, saveInvest: 0, spend: 500000 }, a, link)).toBeNull();
+  });
+});
+
+describe("dashboard uses the Retirement birth year as the age (C1)", () => {
+  it("plan age 50 with a pension born 35 years ago → metrics use age 35", () => {
+    const year = new Date().getFullYear();
+    const plan: SavedPlan = {
+      age: 50, stop: 60, spend: 40000, invested: 3e6, cash: 0, saveInvest: 20000, saveCash: 0,
+      ret: 7, cashRet: 3, wd: 4, infl: 2, usePension: true,
+    };
+    const link: PensionLink = {
+      birthYear: year - 35,
+      at: () => ({ pensionMonthly: 20000, pensionAge: 67, savingsAge: 60, savingsPot: 0 }),
+    };
+    const m = deriveMetrics({ invest: null, mortgage: null, plan, income: 0, pension: link });
+    expect(m.age).toBe(35);
+    expect(m.path[0]!.age).toBe(35);
+    expect(deriveMetrics({ invest: null, mortgage: null, plan, income: 0, pension: null }).age).toBe(50);
+  });
+});

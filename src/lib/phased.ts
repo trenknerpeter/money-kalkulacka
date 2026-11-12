@@ -1,6 +1,7 @@
 import { num } from "./finance";
 import { retirementSummary, type PensionScenario } from "./pension";
 import {
+  potAtStop,
   potsAfterMonths,
   realMonthlyRate,
   startPot,
@@ -23,6 +24,19 @@ export type PhaseValues = {
 
 export type PensionLink = { birthYear: number; at: (stopAge: number) => PhaseValues };
 
+/**
+ * While the pension is used, the Retirement tab's birth year is the single source of truth
+ * for the plan's current age. A stop age that is no longer ahead moves to the next year.
+ */
+export function withPensionAge<T extends { age: number; stop: number }>(
+  plan: T,
+  birthYear: number,
+  currentYear: number,
+): T {
+  const age = currentYear - birthYear;
+  return { ...plan, age, stop: Math.max(num(plan.stop), age + 1) };
+}
+
 /** Links a saved pension scenario to the Independence maths. Independence always uses the regular pension start. */
 export function pensionLinkFrom(
   s: PensionScenario,
@@ -36,11 +50,14 @@ export function pensionLinkFrom(
       const hit = cache.get(key);
       if (hit) return hit;
       const r = retirementSummary({ ...s, earlyMonths: 0 }, { ...opts, stopAge: key });
+      // The pots join when they open, or at the stop age if that is later — with the
+      // contributions and growth up to then (contributions end at the stop age).
+      const joinMonths = Math.max(r.savingsOpenMonths, key * 12);
       const v: PhaseValues = {
         pensionMonthly: r.pension.monthly,
         pensionAge: r.pension.startMonths / 12,
-        savingsAge: r.savingsOpenMonths / 12,
-        savingsPot: r.savingsAtOpen,
+        savingsAge: joinMonths / 12,
+        savingsPot: (r.dps?.atMonths(joinMonths) ?? 0) + (r.dip?.atMonths(joinMonths) ?? 0),
       };
       cache.set(key, v);
       return v;
@@ -116,6 +133,34 @@ export function affordableSpendPhased(
     else hi = mid;
   }
   return lo;
+}
+
+/**
+ * Nominal investment return needed for the pot at the stop age to meet the phased target
+ * at the stop age. The target itself depends on the return, so it is recomputed at every
+ * step. null with no time left, or if even 15% is not enough.
+ */
+export function requiredReturnPhased(
+  profile: PlanProfile,
+  assumptions: PlanAssumptions,
+  link: PensionLink,
+): number | null {
+  const stop = num(profile.stop);
+  if (Math.round((stop - num(profile.age)) * 12) <= 0) return null;
+  const v = link.at(stop);
+  const surplus = (ret: number) => {
+    const a = { ...assumptions, ret };
+    return potAtStop(profile, a) - phasedTarget(num(profile.spend), stop, a, v);
+  };
+  if (!(surplus(15) >= 0)) return null;
+  let lo = 0;
+  let hi = 30;
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    if (surplus(mid) >= 0) hi = mid;
+    else lo = mid;
+  }
+  return hi;
 }
 
 export type PhaseSegment = { from: number; to: number | null; kind: "savings" | "dps" | "pension" };

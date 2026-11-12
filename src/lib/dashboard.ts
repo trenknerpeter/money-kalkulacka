@@ -1,6 +1,6 @@
 import { num } from "./finance";
 import { loadPension, resolvePlanPension } from "./pension";
-import { phasedTarget, type PensionLink, pensionLinkFrom } from "./phased";
+import { phasedTarget, type PensionLink, pensionLinkFrom, withPensionAge } from "./phased";
 import { loadPlan, potsAfterMonths, startPot, type SavedPlan } from "./plan";
 import { SALARY_KEY, parseSalaryStore } from "./salary";
 import {
@@ -167,7 +167,11 @@ export function deriveMetrics(input: {
   /** Pension link for the phased target; only used when the plan has `usePension` on. */
   pension?: PensionLink | null;
 }): DashboardMetrics {
-  const { invest, mortgage, plan, income } = input;
+  const { invest, mortgage, income } = input;
+  // With the pension used, the Retirement tab's birth year sets the plan's current age.
+  const link = input.plan?.usePension && input.pension ? input.pension : null;
+  const plan =
+    input.plan && link ? withPensionAge(input.plan, link.birthYear, new Date().getFullYear()) : input.plan;
 
   // Single source of truth for what you own today: Plan if answered, otherwise the Invest tab.
   const invested = plan ? num(plan.invested) : invest ? num(invest.initial) : 0;
@@ -198,7 +202,6 @@ export function deriveMetrics(input: {
   let outlook: DashboardMetrics["outlook"] = null;
 
   if (plan) {
-    const link = plan.usePension && input.pension ? input.pension : null;
     const targetAt = link
       ? (m: number) => {
           const age = num(plan.age) + m / 12;
