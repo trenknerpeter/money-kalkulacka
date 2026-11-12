@@ -947,8 +947,8 @@ function Dashboard() {
                   title: t("Independence"),
                   rows: plan
                     ? [
-                        [t("Age"), String(plan.age)],
-                        [t("Target age"), String(plan.stop)],
+                        [t("Age"), String(m.age ?? plan.age)],
+                        [t("Target age"), String(m.targetAge)],
                         [t("Monthly spending"), money(plan.spend)],
                         [t("Withdrawal rate"), percent(plan.wd)],
                         [t("Inflation"), percent(plan.infl)],

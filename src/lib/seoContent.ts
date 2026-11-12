@@ -240,7 +240,7 @@ export const SEO_CONTENT: Record<SeoPage, Record<Lang, SeoArticleContent>> = {
       paragraphs: [
         "Důchodový věk závisí na roce narození. Ročníky 1961 až 1972 mají věk stanovený tabulkou (u žen se liší podle počtu vychovaných dětí), ročníky 1973 až 1988 odcházejí v 65 letech a 8 měsících plus jeden měsíc za každý rok narození po roce 1973. Kdo se narodil v roce 1989 nebo později, půjde do důchodu v 67 letech.",
         "Starobní důchod se skládá ze základní výměry, která je v roce 2026 přibližně 4 900 Kč měsíčně, a z procentní výměry. Ta závisí na vaší hrubé mzdě, počtu odpracovaných let a na době, kdy do důchodu nastoupíte. Za každé vychované dítě se přičítá výchovné 500 Kč. Pro nárok na důchod v řádném věku potřebujete 35 let pojištění, s 20 až 34 lety nastoupíte o pět let později.",
-        "Doplňkové penzijní spoření (DPS) a dlouhodobý investiční produkt (DIP) důchod doplňují. Peníze z obou se uvolní nejdříve v 60 letech a po 120 měsících spoření. Příspěvky do DPS i DIP si můžete odečíst ze základu daně do společného limitu 48 000 Kč ročně. Všechny částky jsou odhad v dnešních cenách; přesné číslo spočítá důchodová kalkulačka ČSSZ.",
+        "Doplňkové penzijní spoření (DPS) a dlouhodobý investiční produkt (DIP) důchod doplňují. Peníze z obou se uvolní nejdříve v 60 letech a po 120 měsících spoření; u smluv DPS uzavřených před rokem 2024 stačí 60 měsíců. Příspěvky do DPS i DIP si můžete odečíst ze základu daně do společného limitu 48 000 Kč ročně. Všechny částky jsou odhad v dnešních cenách; přesné číslo spočítá důchodová kalkulačka ČSSZ.",
       ],
       faqHeading: "Časté otázky",
       faq: [
@@ -258,7 +258,7 @@ export const SEO_CONTENT: Record<SeoPage, Record<Lang, SeoArticleContent>> = {
         },
         {
           q: "Jaký je rozdíl mezi DPS a DIP?",
-          a: "DPS je spoření u penzijní společnosti se státním příspěvkem a omezenou volbou fondů. DIP je investiční produkt bez státního příspěvku, ale s širší nabídkou investic. Oba se otevírají v 60 letech po 120 měsících a o odpočet z daní se dělí o společný limit 48 000 Kč ročně.",
+          a: "DPS je spoření u penzijní společnosti se státním příspěvkem a omezenou volbou fondů. DIP je investiční produkt bez státního příspěvku, ale s širší nabídkou investic. Oba se otevírají v 60 letech po 120 měsících spoření (u DPS ze smluv před rokem 2024 po 60 měsících) a o odpočet z daní se dělí o společný limit 48 000 Kč ročně.",
         },
         {
           q: "Co když budu pracovat méně než 35 let?",
@@ -271,7 +271,7 @@ export const SEO_CONTENT: Record<SeoPage, Record<Lang, SeoArticleContent>> = {
       paragraphs: [
         "Your retirement age depends on the year you were born. Those born 1961 to 1972 follow a table (for women it varies with the number of children raised), those born 1973 to 1988 retire at 65 years 8 months plus one month for each birth year after 1973. Anyone born in 1989 or later retires at 67.",
         "The old-age pension is a basic amount, about 4,900 CZK a month in 2026, plus a percentage amount. The percentage amount depends on your gross salary, the years you worked and when you retire. Each child you raised adds 500 CZK. You need 35 years of insurance to retire at the statutory age; with 20 to 34 years you retire five years later.",
-        "Supplementary pension savings (DPS) and the long-term investment product (DIP) top this up. Money from both opens at 60 at the earliest, after 120 months of saving. Contributions to DPS and DIP share one tax deduction limit of 48,000 CZK a year. All figures are estimates in today's money; for the exact number use the ČSSZ pension calculator.",
+        "Supplementary pension savings (DPS) and the long-term investment product (DIP) top this up. Money from both opens at 60 at the earliest, after 120 months of saving; DPS contracts from before 2024 need only 60 months. Contributions to DPS and DIP share one tax deduction limit of 48,000 CZK a year. All figures are estimates in today's money; for the exact number use the ČSSZ pension calculator.",
       ],
       faqHeading: "Frequently asked questions",
       faq: [
@@ -289,7 +289,7 @@ export const SEO_CONTENT: Record<SeoPage, Record<Lang, SeoArticleContent>> = {
         },
         {
           q: "What is the difference between DPS and DIP?",
-          a: "DPS is saving with a pension company, with a state contribution and a limited choice of funds. DIP is an investment product with no state contribution but a wider choice of investments. Both open at 60 after 120 months, and they share one tax deduction limit of 48,000 CZK a year.",
+          a: "DPS is saving with a pension company, with a state contribution and a limited choice of funds. DIP is an investment product with no state contribution but a wider choice of investments. Both open at 60 after 120 months of saving (60 months for DPS contracts from before 2024), and they share one tax deduction limit of 48,000 CZK a year.",
         },
         {
           q: "What if I work fewer than 35 years?",

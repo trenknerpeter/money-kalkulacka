@@ -132,23 +132,13 @@ function Duchod() {
   const age = CURRENT_YEAR - s.birthYear;
   const statutory = statutoryAgeMonths(s.birthYear, s.female, s.children);
 
-  // The largest early-pension cut that is still allowed (0 = not available).
-  const earlyMax = useMemo(() => {
-    for (let m = 36; m >= 1; m--) {
-      const r = retirementSummary(
-        { ...s, earlyMonths: m },
-        { currentYear: CURRENT_YEAR, salaryGross },
-      );
-      if (r.pension.earlyAllowed) return m;
-    }
-    return 0;
-  }, [s, salaryGross]);
-  const earlyMonths = Math.min(s.earlyMonths, earlyMax);
+  // The summary clamps a stored early-pension request to the largest allowed (same rule on every page).
   const sum = useMemo(
-    () => retirementSummary({ ...s, earlyMonths }, { currentYear: CURRENT_YEAR, salaryGross }),
-    [s, earlyMonths, salaryGross],
+    () => retirementSummary(s, { currentYear: CURRENT_YEAR, salaryGross }),
+    [s, salaryGross],
   );
   const p = sum.pension;
+  const { earlyMax, earlyMonths } = sum;
 
   const hasDps = s.dpsBalance > 0 || s.dpsOwn > 0 || s.dpsEmployer > 0;
   const hasDip = s.dipBalance > 0 || s.dipOwn > 0 || s.dipEmployer > 0;
@@ -316,9 +306,9 @@ function Duchod() {
           <NumberSlider
             label={t("Children you raised")}
             value={s.children}
-            onChange={(v) => patch({ children: Math.min(8, Math.round(v)) })}
+            onChange={(v) => patch({ children: Math.min(10, Math.round(v)) })}
             min={0}
-            max={8}
+            max={10}
             step={1}
           />
 
@@ -346,9 +336,9 @@ function Duchod() {
                     {t("reset")}
                   </button>
                 </>
-              ) : (
+              ) : Math.round(gross) === CZ_PENSION_2026.averageWage ? (
                 t("Defaults to the 2026 average wage.")
-              )}
+              ) : null}
             </p>
           </div>
 
@@ -371,14 +361,15 @@ function Duchod() {
           <div>
             <NumberSlider
               label={t("Work until (age, 0 = statutory)")}
-              value={raw.workUntil}
-              onChange={(v) => patch({ workUntil: Math.round(v) })}
+              value={s.workUntil}
+              // 0 = statutory age; otherwise at least 18, the same rule the maths use.
+              onChange={(v) => patch({ workUntil: v <= 0 ? 0 : Math.max(18, Math.round(v)) })}
               min={0}
               max={70}
               step={1}
             />
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              {s.workUntil === 0
+              {s.workUntil === 0 || s.workUntil * 12 >= statutory
                 ? t("Working until the statutory age, {age}.", { age: ageLabel(statutory) })
                 : t("Stopping earlier means fewer insured years and a lower average.")}
             </p>
@@ -554,7 +545,7 @@ function Duchod() {
               </p>
             ) : (
               <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                {t("Up to {n} months early, with a permanent cut.", { n: earlyMax })}
+                {t("Up to {n} early, with a permanent cut.", { n: count(earlyMax, "month") })}
               </p>
             )}
           </div>
