@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { ArrowLeft, Check } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -25,6 +25,7 @@ import {
   type PlanProfile,
   type SavedPlan,
 } from "@/lib/plan";
+import { loadPension } from "@/lib/pension";
 import { loadInvest, loadMortgage, type InvestScenario } from "@/lib/dashboard";
 import { ageAt, mortgageSchedule, realBalanceAt, retirementMilestones } from "@/lib/retirement";
 import { cn } from "@/lib/utils";
@@ -91,6 +92,8 @@ type Field = {
 
 const STEPS: {
   id: string;
+  /** Short name shown in the progress line. */
+  label: string;
   title: string;
   helper?: string;
   detail: string;
@@ -102,6 +105,7 @@ const STEPS: {
 }[] = [
   {
     id: "age",
+    label: "Age",
     title: "How old are you?",
     helper: "Your current age sets how long your money has to grow.",
     detail: "Use your age today, rounded to the nearest whole year.",
@@ -109,6 +113,7 @@ const STEPS: {
   },
   {
     id: "stop",
+    label: "Stop age",
     title: "At what age would you like to stop working?",
     helper: "Aiming early is fine — that's the point of working it out.",
     detail: "This is your target, not a commitment. You can test other ages in your results.",
@@ -116,6 +121,7 @@ const STEPS: {
   },
   {
     id: "spend",
+    label: "Spending",
     title: "How much would you need each month to live on?",
     helper: "In today's money — what your life costs now is usually a good guide.",
     detail: "Include regular living costs and room for the lifestyle you want. Leave out savings contributions.",
@@ -123,6 +129,7 @@ const STEPS: {
   },
   {
     id: "invest",
+    label: "Investments",
     title: "Your investments",
     helper: "Funds, shares, ETFs, pension pots — money that's in the market.",
     detail: "Use today's value, and only monthly amounts that will continue until your target age. Avoid counting your home unless you plan to sell it.",
@@ -142,6 +149,7 @@ const STEPS: {
   },
   {
     id: "savings",
+    label: "Savings",
     title: "Your savings accounts",
     helper: "Cash in savings accounts or term deposits rather than the market.",
     detail: "Leave out your everyday current account. Together with your investments this is your starting pot.",
@@ -212,7 +220,9 @@ function Questionnaire({
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const q = STEPS[step]!;
+  // Steps shown to this visitor; the step count and labels derive from this list.
+  const steps = STEPS;
+  const q = steps[step]!;
   const multi = q.fields.length > 1;
   const fromInvest = investValuesFor(invest, q.fromInvest);
   const usingInvest =
@@ -268,7 +278,7 @@ function Questionnaire({
       next[f.key] = value;
     }
     setAnswers(next);
-    if (step === STEPS.length - 1) {
+    if (step === steps.length - 1) {
       onDone(next);
     } else {
       goTo(step + 1);
@@ -289,16 +299,21 @@ function Questionnaire({
         >
           <ArrowLeft className="size-4" />
         </button>
-        <div className="flex items-center gap-2">
-          {STEPS.map((qq, i) => (
-            <span
-              key={qq.id}
-              className={cn(
-                "size-2 rounded-full transition-colors",
-                i <= step ? "bg-primary" : "bg-neutral-fill",
-              )}
-            />
-          ))}
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-xs font-medium text-muted-foreground">
+            {t("Step {i} of {n}", { i: step + 1, n: steps.length })} · {t(q.label)}
+          </p>
+          <div className="flex items-center gap-2" aria-hidden>
+            {steps.map((qq, i) => (
+              <span
+                key={qq.id}
+                className={cn(
+                  "size-2 rounded-full transition-colors",
+                  i <= step ? "bg-primary" : "bg-neutral-fill",
+                )}
+              />
+            ))}
+          </div>
         </div>
         <span className="size-11" />
       </div>
@@ -407,7 +422,7 @@ function Questionnaire({
           type="submit"
           className="mt-10 inline-flex h-11 items-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          {step === STEPS.length - 1 ? t("See my plan") : t("Continue")}
+          {step === steps.length - 1 ? t("See my plan") : t("Continue")}
         </button>
       </form>
 
@@ -418,6 +433,113 @@ function Questionnaire({
       >
         {t("Skip for now")}
       </button>
+    </div>
+  );
+}
+
+/* --------------------------------- Intro ---------------------------------- */
+
+function Intro({ onStart }: { onStart: () => void }) {
+  const { t } = useT();
+  const [hasInvest, setHasInvest] = useState(false);
+  const [hasPension, setHasPension] = useState(false);
+  useEffect(() => {
+    setHasInvest(loadInvest() !== null);
+    setHasPension(loadPension() !== null);
+  }, []);
+
+  const tabs = [hasInvest && t("Invest"), hasPension && t("Retirement")].filter(Boolean) as string[];
+  const prefill =
+    tabs.length === 2
+      ? t("We'll pre-fill from your Invest and Retirement tabs")
+      : hasInvest
+        ? t("We'll pre-fill from your Invest tab")
+        : hasPension
+          ? t("We'll pre-fill from your Retirement tab")
+          : null;
+
+  const tiles = [
+    {
+      title: t("The age you can stop"),
+      body: t("A realistic age, in today's money."),
+      preview: (
+        <svg viewBox="0 0 120 48" className="h-12 w-full" aria-hidden="true">
+          <line x1="6" y1="36" x2="114" y2="36" className="stroke-border" strokeWidth="2" />
+          {[24, 48, 72, 96].map((x) => (
+            <line key={x} x1={x} y1="32" x2={x} y2="40" className="stroke-border" strokeWidth="2" />
+          ))}
+          <circle cx="72" cy="36" r="7" className="fill-primary" />
+          <text x="72" y="14" textAnchor="middle" className="fill-foreground text-[11px] font-semibold">
+            60
+          </text>
+        </svg>
+      ),
+    },
+    {
+      title: t("How big your pot needs to be"),
+      body: t("The number your money has to reach."),
+      preview: (
+        <svg viewBox="0 0 120 48" className="h-12 w-full" aria-hidden="true">
+          <path d="M6 42 C40 40 70 30 110 8" className="fill-none stroke-primary" strokeWidth="3" strokeLinecap="round" />
+          <line x1="6" y1="8" x2="114" y2="8" className="stroke-muted-foreground" strokeWidth="1.5" strokeDasharray="4 4" />
+        </svg>
+      ),
+    },
+    {
+      title: t("What to change if you're short"),
+      body: t("Save more, retire later or spend less."),
+      preview: (
+        <svg viewBox="0 0 120 48" className="h-12 w-full" aria-hidden="true">
+          {[0, 1, 2].map((i) => (
+            <g key={i}>
+              <rect x="6" y={6 + i * 14} width="108" height="6" rx="3" className="fill-neutral-fill" />
+              <rect x="6" y={6 + i * 14} width={[70, 48, 88][i]} height="6" rx="3" className="fill-primary" />
+            </g>
+          ))}
+        </svg>
+      ),
+    },
+  ];
+
+  return (
+    <div className="mx-auto flex min-h-[70vh] max-w-2xl flex-col justify-center py-10">
+      <p className="text-xs font-medium uppercase tracking-wide text-primary">
+        {t("Path to financial independence")}
+      </p>
+      <h1 className="mt-3 text-4xl font-semibold tracking-tight">{t("When can you stop working?")}</h1>
+
+      <div className="mt-8 grid gap-3 sm:grid-cols-3">
+        {tiles.map((tile) => (
+          <div key={tile.title} className="min-w-0 rounded-lg border border-border p-4">
+            {tile.preview}
+            <p className="mt-3 text-sm font-semibold">{tile.title}</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{tile.body}</p>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-6 text-sm text-muted-foreground">
+        {t("{n} questions · about 2 minutes · everything in today's money · stays in your browser", {
+          n: STEPS.length,
+        })}
+      </p>
+      {prefill && <p className="mt-2 text-sm text-muted-foreground">{prefill}</p>}
+
+      <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
+        <button
+          type="button"
+          onClick={onStart}
+          className="inline-flex h-11 items-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          {t("Work out my plan")}
+        </button>
+        <Link
+          to="/duchod"
+          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+        >
+          {t("Only want your state pension? → Retirement tab")}
+        </Link>
+      </div>
     </div>
   );
 }
@@ -972,6 +1094,8 @@ function PlanPage() {
   const [plan, setPlan] = useState<SavedPlan | null>(null);
   const [editing, setEditing] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  // First visit (no saved plan, no plan in the URL) starts on the intro.
+  const [intro, setIntro] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -983,12 +1107,16 @@ function PlanPage() {
       });
       setPlan(normalisePlan(raw));
     } else {
-      setPlan(loadPlan());
+      const saved = loadPlan();
+      setPlan(saved);
+      setIntro(saved === null);
     }
     setHydrated(true);
   }, []);
 
   if (!hydrated) return null;
+
+  if (plan === null && intro) return <Intro onStart={() => setIntro(false)} />;
 
   if (plan === null || editing) {
     return (
