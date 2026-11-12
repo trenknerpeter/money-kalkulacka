@@ -100,3 +100,45 @@ describe("phaseSegments", () => {
     ]);
   });
 });
+
+import { deriveMetrics, snapshotMetrics } from "./dashboard";
+import { PENSION_KEY, pensionDefaults } from "./pension";
+import type { PensionLink } from "./phased";
+import type { SavedPlan } from "./plan";
+
+describe("dashboard with a pension", () => {
+  const plan: SavedPlan = {
+    age: 35, stop: 55, spend: 40000, invested: 3e6, cash: 5e5, saveInvest: 20000, saveCash: 5000,
+    ret: 7, cashRet: 3, wd: 4, infl: 2, usePension: true,
+  };
+  const half: PensionLink = {
+    birthYear: 1990,
+    at: () => ({ pensionMonthly: 20000, pensionAge: 67, savingsAge: 60, savingsPot: 0 }),
+  };
+  const base = { invest: null, mortgage: null, income: 0 };
+
+  it("pension lowers the target and does not delay living age", () => {
+    const off = deriveMetrics({ ...base, plan, pension: null });
+    const on = deriveMetrics({ ...base, plan, pension: half });
+    expect(on.target!).toBeLessThan(off.target!);
+    expect(on.livingAge!).toBeLessThanOrEqual(off.livingAge!);
+    expect(on.readiness!).toBeGreaterThan(off.readiness!);
+    expect(on.path[0]!.need).toBeLessThan(off.path[0]!.need);
+  });
+  it("no link, or plan switch off, equals the flat behaviour", () => {
+    const off = deriveMetrics({ ...base, plan, pension: null });
+    expect(off.target).toBe(targetPotFor(40000, 4));
+    expect(deriveMetrics({ ...base, plan: { ...plan, usePension: false }, pension: half }).target).toBe(off.target);
+    expect(deriveMetrics({ ...base, plan })).toEqual(off);
+  });
+  it("snapshotMetrics uses the snapshot's own pension, CZK only", () => {
+    const year = new Date().getFullYear();
+    const data: Record<string, string> = {
+      "finbuddy.profile.v1": JSON.stringify(plan),
+    };
+    const without = snapshotMetrics(data);
+    const withP = { ...data, [PENSION_KEY]: JSON.stringify({ ...pensionDefaults(year), birthYear: year - 35, gross: 60000, grossOverride: true, yearsWorked: 10 }) };
+    expect(snapshotMetrics(withP).target!).toBeLessThan(without.target!);
+    expect(snapshotMetrics({ ...withP, "finbuddy.currency": "EUR" }).target).toBe(without.target);
+  });
+});

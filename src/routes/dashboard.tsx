@@ -26,6 +26,8 @@ import {
   type PathRow,
 } from "@/lib/dashboard";
 import { useT } from "@/lib/i18n";
+import { loadPension, resolveGross, resolvePlanPension, retirementSummary } from "@/lib/pension";
+import { pensionLinkFrom } from "@/lib/phased";
 import { loadPlan } from "@/lib/plan";
 import { SALARY_KEY, calcSalary, formatCzk, parseSalaryStore } from "@/lib/salary";
 import { cn } from "@/lib/utils";
@@ -38,7 +40,7 @@ export const Route = createFileRoute("/dashboard")({
       {
         name: "description",
         content:
-          "Celý obraz vašich financí na jedné stránce: čisté jmění, míra spoření a kam směřujete — sestavené ze záložek Mzda, Investice, Hypotéka a Plán.",
+          "Celý obraz vašich financí na jedné stránce: čisté jmění, míra spoření a kam směřujete — sestavené ze záložek Mzda, Důchod, Investice, Hypotéka a Nezávislost.",
       },
       { property: "og:title", content: "Přehled financí — Money Kalkulačka" },
       {
@@ -557,6 +559,8 @@ function Dashboard() {
   const [hydrated, setHydrated] = useState(false);
   const { currency } = useCurrency();
   const [salaryNet, setSalaryNet] = useState<number | null>(null);
+  const [salaryGross, setSalaryGross] = useState<number | null>(null);
+  const [storedPension, setStoredPension] = useState<ReturnType<typeof loadPension>>(null);
   const [saved, setSaved] = useState<{
     invest: ReturnType<typeof loadInvest>;
     mortgage: ReturnType<typeof loadMortgage>;
@@ -568,6 +572,8 @@ function Dashboard() {
     setSaved({ invest: loadInvest(), mortgage: loadMortgage(), plan: loadPlan() });
     const salary = parseSalaryStore(window.localStorage.getItem(SALARY_KEY));
     setSalaryNet(salary ? calcSalary(salary).payout : null);
+    setSalaryGross(salary?.gross ?? null);
+    setStoredPension(loadPension());
     setHydrated(true);
   }, []);
 
@@ -583,10 +589,42 @@ function Dashboard() {
   const { invest, mortgage, plan } = saved;
   const income = store.income;
 
+  const pensionLink = useMemo(() => {
+    const p = resolvePlanPension({
+      usePension: Boolean(plan?.usePension),
+      fromUrl: null,
+      stored: storedPension,
+      currency,
+    });
+    return p ? pensionLinkFrom(p, { currentYear: new Date().getFullYear(), salaryGross }) : null;
+  }, [plan, storedPension, currency, salaryGross]);
+
   const m = useMemo(
-    () => deriveMetrics({ invest, mortgage, plan, income }),
-    [invest, mortgage, plan, income],
+    () => deriveMetrics({ invest, mortgage, plan, income, pension: pensionLink }),
+    [invest, mortgage, plan, income, pensionLink],
   );
+
+  const retirement = useMemo(
+    () =>
+      storedPension
+        ? {
+            s: storedPension,
+            sum: retirementSummary(storedPension, {
+              currentYear: new Date().getFullYear(),
+              salaryGross,
+            }),
+            gross: resolveGross(storedPension, salaryGross),
+          }
+        : null,
+    [storedPension, salaryGross],
+  );
+  const monthsLabel = (months: number) => {
+    const y = Math.floor(months / 12);
+    const r = months % 12;
+    return r === 0
+      ? count(y, "year")
+      : t("{a} and {b}", { a: count(y, "year"), b: count(r, "month") });
+  };
 
   if (!hydrated) return null;
 
@@ -934,6 +972,22 @@ function Dashboard() {
                         [t("In savings today"), money(plan.cash)],
                         [t("Saved monthly"), money(plan.saveCash)],
                         [t("Savings interest rate"), percent(plan.cashRet)],
+                      ]
+                    : null,
+                },
+                {
+                  title: t("Retirement"),
+                  rows: retirement
+                    ? [
+                        [t("Birth year"), String(retirement.s.birthYear)],
+                        [t("Gross monthly salary"), money(retirement.gross)],
+                        [t("Years worked so far"), count(Math.round(retirement.s.yearsWorked), "year")],
+                        [t("DPS, your contribution a month"), money(retirement.s.dpsOwn)],
+                        [t("DPS, employer a month"), money(retirement.s.dpsEmployer)],
+                        [t("DIP, your contribution a month"), money(retirement.s.dipOwn)],
+                        [t("DIP, employer a month"), money(retirement.s.dipEmployer)],
+                        [t("Estimated state pension a month"), money(retirement.sum.pension.monthly)],
+                        [t("Statutory retirement age"), monthsLabel(retirement.sum.pension.statutoryMonths)],
                       ]
                     : null,
                 },
