@@ -226,7 +226,9 @@ function Questionnaire({
       return null;
     }
   });
-  const [usePension, setUsePension] = useState(initial?.usePension ?? false);
+  const [usePension, setUsePension] = useState(
+    (initial?.usePension ?? false) && pension !== null && currency === "CZK",
+  );
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Answers>(() => {
     if (initial) {
@@ -424,19 +426,20 @@ function Questionnaire({
                         age: Math.floor(pensionSummary.pension.startMonths / 12),
                       })}
                 </span>
-                {usePension ? (
-                  <span className="flex items-center gap-1 font-medium text-primary">
-                    <Check className="size-4" /> {t("Using these")}
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setUsePension(true)}
-                    className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground"
-                  >
-                    {t("Use these")}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  aria-pressed={usePension}
+                  onClick={() => setUsePension((v) => !v)}
+                  className={cn(
+                    "inline-flex h-9 items-center gap-1 rounded-md px-3 text-sm font-medium",
+                    usePension
+                      ? "border border-primary text-primary"
+                      : "bg-primary text-primary-foreground",
+                  )}
+                >
+                  {usePension && <Check className="size-4" />}
+                  {usePension ? t("Using these") : t("Use these")}
+                </button>
               </div>
             ) : (
               <div className="rounded-lg border border-border px-4 py-4 text-sm">
