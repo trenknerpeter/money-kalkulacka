@@ -131,9 +131,16 @@ const CS: Record<string, string> = {
     "Započítejte státní důchod a DPS/DIP do plánu, nebo je vynechte.",
   "Only what you'll receive in retirement is counted, in today's money. Czech pension rules apply, so this step is for CZK only.":
     "Počítá se jen to, co dostanete v penzi, v dnešních cenách. Platí česká pravidla, proto je tento krok jen pro CZK.",
-  "Retirement tab: state pension ~{p} from {age}; DPS + DIP ~{pot} from {openAge}":
-    "Záložka Důchod: státní důchod ~{p} od {age} let; DPS + DIP ~{pot} od {openAge} let",
-  "Retirement tab: state pension ~{p} from {age}": "Záložka Důchod: státní důchod ~{p} od {age} let",
+  "If you stop at {stop}: state pension ~{p} from {age}; DPS + DIP ~{pot} from {openAge}":
+    "Když přestanete pracovat v {stop} letech: státní důchod ~{p} od věku {age}; DPS + DIP ~{pot} od věku {openAge}",
+  "If you stop at {stop}: state pension ~{p} from {age}":
+    "Když přestanete pracovat v {stop} letech: státní důchod ~{p} od věku {age}",
+  "If you stop at {stop}: no state pension (fewer than 20 insured years); DPS + DIP ~{pot} from {openAge}":
+    "Když přestanete pracovat v {stop} letech: bez státního důchodu (méně než 20 let pojištění); DPS + DIP ~{pot} od věku {openAge}",
+  "If you stop at {stop}: no state pension (fewer than 20 insured years)":
+    "Když přestanete pracovat v {stop} letech: bez státního důchodu (méně než 20 let pojištění)",
+  "Your Retirement tab says you were born in {y}, so we use age {a}.":
+    "Podle záložky Důchod jste se narodili v roce {y}, proto počítáme s věkem {a} let.",
   "Add your state pension and DPS/DIP to lower what you need to save.":
     "Přidejte státní důchod a DPS/DIP a snižte, kolik musíte spořit.",
   "Open the Retirement tab": "Otevřít záložku Důchod",
@@ -349,12 +356,17 @@ const CS: Record<string, string> = {
   "Target age {n}": "Cílový věk {n}",
   "Covers your {v} a year of spending until your pensions start, then what they leave uncovered — in today's money.": "Pokryje vaše výdaje {v} ročně do začátku důchodů a poté to, co důchody nepokryjí — v dnešních cenách.",
   "Your number at each age": "Vaše číslo v každém věku",
-  "DPS/DIP opens at {age}": "DPS/DIP se otevře v {age}",
-  "State pension starts at {age}": "Státní důchod začíná v {age}",
+  "DPS/DIP opens at {age}": "DPS/DIP se otevře v {age} letech",
+  "State pension starts at {age}": "Státní důchod začíná v {age} letech",
   "{range}: your savings pay everything": "{range}: vše platí vaše úspory",
   "{range}: + DPS/DIP": "{range}: + DPS/DIP",
   "{range}: + state pension {p}": "{range}: + státní důchod {p}",
-  "Stopping at {stop} lowers your state pension from {full} to {reduced} (fewer insured years).": "Když skončíte v {stop}, sníží se váš státní důchod z {full} na {reduced} (méně let pojištění).",
+  "{range}: + DPS/DIP + state pension {p}": "{range}: + DPS/DIP + státní důchod {p}",
+  "{range}: your savings + DPS/DIP": "{range}: vaše úspory + DPS/DIP",
+  "{range}: your savings + state pension {p}": "{range}: vaše úspory + státní důchod {p}",
+  "{range}: your savings + DPS/DIP + state pension {p}": "{range}: vaše úspory + DPS/DIP + státní důchod {p}",
+  "Stopping at {stop} lowers your state pension from {full} to {reduced} (fewer insured years).": "Když přestanete pracovat v {stop} letech, sníží se váš státní důchod z {full} na {reduced} (méně let pojištění).",
+  "Stopping at {stop} means you won't qualify for a state pension (fewer than 20 insured years).": "Když přestanete pracovat v {stop} letech, nebudete mít nárok na státní důchod (méně než 20 let pojištění).",
   "Monthly spending": "Měsíční výdaje",
   "Saved today": "Naspořeno dnes",
   "Monthly saving": "Měsíční spoření",
@@ -600,7 +612,7 @@ const CS: Record<string, string> = {
   "Estimate. For the exact figure use the ČSSZ calculator": "Odhad. Přesnou částku zjistíte v kalkulačce ČSSZ",
   "Take the state pension early (months)": "Předčasný důchod (měsíce)",
   "Your pension starts at {age}, which cuts it by {v} a month for life.": "Důchod začne ve věku {age}, což ho trvale sníží o {v} měsíčně.",
-  "Up to {n} months early, with a permanent cut.": "Až {n} měsíců předem, s trvalým krácením.",
+  "Up to {n} early, with a permanent cut.": "Až o {n} dříve, s trvalým krácením.",
   "Pension savings (DPS + DIP)": "Penzijní spoření (DPS + DIP)",
   "All savings at {age}": "Všechny úspory ve věku {age}",
   "At retirement ({age})": "V době odchodu do důchodu ({age})",
