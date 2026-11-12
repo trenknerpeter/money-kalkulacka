@@ -1,5 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { firstBandRate, statePension, statutoryAgeMonths, yearRate } from "./pension";
+import {
+  dpsStateContribution,
+  drawdownMonthly,
+  firstBandRate,
+  normalisePension,
+  pensionDefaults,
+  pensionFromParams,
+  pensionToParams,
+  potOpenMonths,
+  projectPot,
+  resolveGross,
+  retirementSummary,
+  statePension,
+  statutoryAgeMonths,
+  taxSaving,
+  yearRate,
+} from "./pension";
 
 describe("statutoryAgeMonths", () => {
   it("1961 woman, 5 children → 59y 8m", () => expect(statutoryAgeMonths(1961, true, 5)).toBe(59 * 12 + 8));
@@ -76,5 +92,60 @@ describe("statePension", () => {
     expect(r.earlyAllowed).toBe(false);
     expect(r.delayed).toBe(false);
     expect(r.startMonths).toBe(804);
+  });
+});
+
+describe("DPS / DIP, tax line, scenario, summary", () => {
+  it("DPS state contribution steps", () => {
+    expect([499, 500, 1000, 1700, 3000].map(dpsStateContribution)).toEqual([0, 100, 200, 340, 340]);
+  });
+  it("open age: pre-2024 DPS at 60, 2024+ DPS needs 120 months", () => {
+    expect(potOpenMonths(1991, 2020, "dps")).toBe(720);
+    expect(potOpenMonths(1991, 2055, "dps")).toBe((64 + 10) * 12);
+    expect(potOpenMonths(1991, 2055, "dip")).toBe((64 + 10) * 12);
+    expect(potOpenMonths(1991, 2026, "dip")).toBe(720);
+  });
+  it("tax line", () => {
+    expect(taxSaving(2000, 3000)).toBe(5940);
+    expect(taxSaving(5700, 0)).toBe(7200);
+    expect(taxSaving(10000, 10000)).toBe(7200);
+  });
+  it("drawdown at 0 % real: 1.2M over 20 years → 5,000", () => {
+    expect(drawdownMonthly(1_200_000, 20, 0)).toBeCloseTo(5000, 6);
+  });
+  it("projectPot at 0 % real equals balance + contributions", () => {
+    const r = projectPot({ balance: 10000, own: 1000, employer: 500, startYear: 2020, ret: 2 }, "dps",
+      { birthYear: 1991, currentYear: 2026, contributeUntilMonths: 36 * 12, infl: 2 });
+    expect(r.openMonths).toBe(720);
+    expect(r.paidIn).toBe(12000);
+    expect(r.employer).toBe(6000);
+    expect(r.state).toBe(2400);
+    expect(r.atOpen).toBeCloseTo(10000 + 12000 + 6000 + 2400, 0);
+  });
+  it("normalisePension clamps nonsense", () => {
+    const s = normalisePension({ birthYear: 1900, yearsWorked: 80, children: -2, dpsOwn: -5 }, 2026);
+    expect(s.birthYear).toBe(1961);
+    expect(s.yearsWorked).toBe(2026 - 1961 - 15);
+    expect(s.children).toBe(0);
+    expect(s.dpsOwn).toBe(0);
+    expect(Number.isFinite(retirementSummary(s, { currentYear: 2026, salaryGross: null }).totalMonthly)).toBe(true);
+  });
+  it("params round-trip and missing params → null", () => {
+    const s = pensionDefaults(2026);
+    expect(pensionFromParams(new URLSearchParams(pensionToParams(s)), 2026)).toEqual(s);
+    expect(pensionFromParams(new URLSearchParams("usePension=1"), 2026)).toBeNull();
+  });
+  it("resolveGross follows Salary unless overridden", () => {
+    const s = pensionDefaults(2026);
+    expect(resolveGross(s, 60000)).toBe(60000);
+    expect(resolveGross({ ...s, grossOverride: true, gross: 30000 }, 60000)).toBe(30000);
+    expect(resolveGross(s, null)).toBe(48967);
+  });
+  it("summary stops contributions at stopAge", () => {
+    const s = { ...pensionDefaults(2026), birthYear: 1991, dpsOwn: 1000 };
+    const a = retirementSummary(s, { currentYear: 2026, salaryGross: null });
+    const b = retirementSummary(s, { currentYear: 2026, salaryGross: null, stopAge: 45 });
+    expect(b.savingsAtOpen).toBeLessThan(a.savingsAtOpen);
+    expect(b.pension.monthly).toBeLessThan(a.pension.monthly);
   });
 });
