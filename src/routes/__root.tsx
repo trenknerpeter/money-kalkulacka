@@ -17,6 +17,7 @@ import { LanguageProvider } from "../lib/i18n";
 import { AppShell } from "../components/AppShell";
 import { AnalyticsProvider, trackError } from "../lib/analytics";
 import { THEME_BOOT } from "../lib/theme";
+import { useNativeShell } from "../lib/native";
 
 function NotFoundComponent() {
   return (
@@ -83,7 +84,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "theme-color", content: "#f7f6f2" },
       { title: "Money Kalkulačka — finanční kalkulačky: mzda, investice, hypotéka" },
       {
@@ -143,6 +144,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useNativeShell();
 
   return (
     <AnalyticsProvider>

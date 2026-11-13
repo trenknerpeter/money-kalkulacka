@@ -281,7 +281,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <header className="sticky top-0 z-20 border-b pt-[env(safe-area-inset-top)] border-border bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-4 px-5">
           <Link to="/" className="flex shrink-0 items-center gap-2.5">
             <Logomark />
@@ -309,7 +309,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
       <main className="mx-auto max-w-[1200px] px-5 py-8 sm:py-10">{children}</main>
-      <footer className="mt-4 border-t border-border">
+      <footer className="mt-4 border-t border-border pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-center gap-x-2 gap-y-1 px-5 py-6 text-center text-xs text-muted-foreground">
           <Shield className="size-3.5 shrink-0 text-primary-deep" aria-hidden="true" />
           <span className="font-medium text-foreground">{t("100% private")}</span>
