@@ -142,12 +142,29 @@ function SettingsChip() {
 }
 
 function Logomark() {
+  // A banknote with a calculator keypad where the portrait would be. The note stays white
+  // and the key gold in both themes; the tile and keypad follow the primary colour.
+  // Master artwork: design/logo/mark-small.svg
   return (
     <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true" className="shrink-0">
       <rect width="30" height="30" rx="9" className="fill-primary" />
-      <rect x="7" y="16" width="4" height="7" rx="1.5" fill="#fff" opacity="0.55" />
-      <rect x="13" y="11" width="4" height="12" rx="1.5" fill="#fff" opacity="0.8" />
-      <rect x="19" y="6" width="4" height="17" rx="1.5" fill="#fff" />
+      <rect x="2.5" y="6.5" width="25" height="17" rx="3" fill="#fff" />
+      <g className="fill-primary" opacity="0.35">
+        <circle cx="6" cy="10.2" r="1.1" />
+        <circle cx="24" cy="10.2" r="1.1" />
+        <circle cx="6" cy="19.8" r="1.1" />
+        <circle cx="24" cy="19.8" r="1.1" />
+      </g>
+      <rect x="10" y="8.2" width="10" height="13.6" rx="2.4" className="fill-primary" />
+      <rect x="11.6" y="9.8" width="6.8" height="2" rx="0.7" fill="#fff" opacity="0.8" />
+      <g fill="#fff">
+        <rect x="11.6" y="13.4" width="2" height="2" rx="0.6" />
+        <rect x="14.1" y="13.4" width="2" height="2" rx="0.6" />
+        <rect x="16.6" y="13.4" width="1.8" height="2" rx="0.6" />
+        <rect x="11.6" y="16.2" width="2" height="2" rx="0.6" />
+        <rect x="14.1" y="16.2" width="2" height="2" rx="0.6" />
+      </g>
+      <rect x="16.6" y="16.2" width="1.8" height="2" rx="0.6" fill="#f2c94c" />
     </svg>
   );
 }
@@ -281,7 +298,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <header className="sticky top-0 z-20 border-b pt-[env(safe-area-inset-top)] border-border bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-4 px-5">
           <Link to="/" className="flex shrink-0 items-center gap-2.5">
             <Logomark />
@@ -309,7 +326,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
       <main className="mx-auto max-w-[1200px] px-5 py-8 sm:py-10">{children}</main>
-      <footer className="mt-4 border-t border-border">
+      <footer className="mt-4 border-t border-border pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-center gap-x-2 gap-y-1 px-5 py-6 text-center text-xs text-muted-foreground">
           <Shield className="size-3.5 shrink-0 text-primary-deep" aria-hidden="true" />
           <span className="font-medium text-foreground">{t("100% private")}</span>
