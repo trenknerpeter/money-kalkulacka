@@ -1,15 +1,19 @@
 import type { ComponentType, ReactNode } from "react";
+import { TONE, type Tone } from "@/lib/tone";
+import { cn } from "@/lib/utils";
 
 /** Calculator page title with its illustration tile and the actions on the right. */
 export function PageHeader({
   title,
   subtitle,
   Visual,
+  tone = "green",
   children,
 }: {
   title: string;
   subtitle?: ReactNode;
   Visual?: ComponentType;
+  tone?: Tone;
   children?: ReactNode;
 }) {
   return (
@@ -17,7 +21,10 @@ export function PageHeader({
       <div className="flex items-center gap-4">
         {Visual && (
           <div
-            className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-accent-soft px-2 py-3"
+            className={cn(
+              "flex size-14 shrink-0 items-center justify-center rounded-2xl px-2 py-3",
+              TONE[tone].tile,
+            )}
             aria-hidden="true"
           >
             <Visual />

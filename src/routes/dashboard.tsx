@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import {
   Area,
   CartesianGrid,
@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { Panel } from "@/components/Panel";
 import { SnapshotBar } from "@/components/dashboard/SnapshotBar";
+import { CROSSHAIR, TOOLTIP_BOX, gradientId } from "@/lib/chartStyle";
 import { useCurrency, useFormatters } from "@/lib/currency";
 import {
   deriveMetrics,
@@ -105,11 +106,19 @@ function RetirementPathChart({ m }: { m: DashboardMetrics }) {
       ? path.find((r) => r.age === debtFreeAge)
       : undefined;
   const labelStyle = { fill: "var(--muted-foreground)", fontSize: 12 };
+  const uid = useId();
+  const potFill = gradientId("pot", uid);
 
   return (
     <div className="h-[300px] w-full print:h-[170px]">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={path} margin={{ top: 24, right: 8, left: 0, bottom: 0 }}>
+          <defs>
+            <linearGradient id={potFill} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.45} />
+              <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.04} />
+            </linearGradient>
+          </defs>
           <CartesianGrid vertical={false} stroke="var(--border)" />
           <XAxis
             dataKey="age"
@@ -129,17 +138,17 @@ function RetirementPathChart({ m }: { m: DashboardMetrics }) {
             tickFormatter={(v: number) => compact(v)}
           />
           <Tooltip
-            cursor={{ stroke: "var(--border)" }}
+            cursor={CROSSHAIR}
             content={({ active, payload, label }) => {
               if (!active || !payload?.length) return null;
               const p = payload[0]?.payload as PathRow;
               return (
-                <div className="rounded-md border border-border bg-card p-3 text-xs">
+                <div className={TOOLTIP_BOX}>
                   <p className="mb-2 font-semibold">{t("Age {n}", { n: String(label) })}</p>
                   <dl className="tnum space-y-1">
                     <div className="flex justify-between gap-6">
                       <dt className="text-muted-foreground">{t("Pot")}</dt>
-                      <dd className="font-medium text-primary">{money(p.pot)}</dd>
+                      <dd className="font-medium text-primary-deep">{money(p.pot)}</dd>
                     </div>
                     {target !== null && (
                       <div className="flex justify-between gap-6">
@@ -162,9 +171,9 @@ function RetirementPathChart({ m }: { m: DashboardMetrics }) {
             type="monotone"
             dataKey="pot"
             stroke="var(--accent)"
-            strokeWidth={2}
-            fill="var(--accent)"
-            fillOpacity={0.15}
+            strokeWidth={2.5}
+            fill={`url(#${potFill})`}
+            fillOpacity={1}
             animationDuration={200}
           />
           {showDebt && (

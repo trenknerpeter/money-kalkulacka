@@ -15,6 +15,7 @@ import { SalaryVisual } from "@/components/home/Illustrations";
 import { Switch } from "@/components/ui/switch";
 import { useCurrency } from "@/lib/currency";
 import { useT } from "@/lib/i18n";
+import { useCountUp } from "@/lib/useCountUp";
 import {
   CZ_2026,
   SALARY_DEFAULTS,
@@ -85,6 +86,7 @@ function Mzda() {
   const { currency } = useCurrency();
   const { t } = useT();
   const r = useMemo(() => calcSalary(s), [s]);
+  const heroValue = useCountUp(r.owed > 0 ? -r.owed : r.payout);
 
   // The bar splits gross, so its net segment leaves out the child bonus.
   const parts = [
@@ -141,6 +143,7 @@ function Mzda() {
             max={300000}
             step={500}
             suffix="Kč"
+            presets={[30000, 50000, 80000, 120000].map((v) => ({ value: v }))}
           />
 
           <div>
@@ -270,7 +273,7 @@ function Mzda() {
         <Panel variant="hero">
           <Eyebrow onInk>{r.owed > 0 ? t("You owe") : t("Net salary")}</Eyebrow>
           <p className="tnum mt-3 text-[clamp(2.5rem,6vw,4rem)] font-semibold leading-none tracking-tight">
-            {formatCzk(r.owed > 0 ? -r.owed : r.payout)}
+            {formatCzk(heroValue)}
           </p>
           <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-muted">
             {t("From {gross} gross, {ins} goes to insurance and {tax} to tax.", {

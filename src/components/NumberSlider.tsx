@@ -1,6 +1,9 @@
 import { useEffect, useId, useState } from "react";
 import { Slider } from "@/components/ui/slider";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+
+export type Preset = { value: number; label?: string };
 
 type Props = {
   label: string;
@@ -12,6 +15,8 @@ type Props = {
   suffix?: string | undefined;
   suffixPosition?: "left" | "right" | undefined;
   disabled?: boolean | undefined;
+  /** Quick picks shown under the slider; the one equal to the current value is highlighted. */
+  presets?: Preset[] | undefined;
 };
 
 export function NumberSlider({
@@ -24,8 +29,10 @@ export function NumberSlider({
   suffix,
   suffixPosition = "right",
   disabled = false,
+  presets,
 }: Props) {
   const id = useId();
+  const { locale } = useT();
   const [text, setText] = useState(String(value));
   // While the user types, keep their text even if the parent clamps the value
   // (e.g. "6" on the way to "67" must not snap to a minimum); blur shows the real value.
@@ -43,6 +50,9 @@ export function NumberSlider({
   };
 
   const sliderValue = Math.min(Math.max(value, min), max);
+  const chipLabel = (p: Preset) =>
+    p.label ??
+    `${p.value.toLocaleString(locale)}${suffix && suffixPosition === "right" ? `\u00a0${suffix}` : ""}`;
 
   return (
     <div
@@ -85,6 +95,34 @@ export function NumberSlider({
         onValueChange={(v) => onChange(v[0] ?? 0)}
         aria-label={`${label} slider`}
       />
+      {presets && presets.length > 0 && (
+        <div
+          className="flex flex-wrap gap-1.5 pt-0.5"
+          role="group"
+          aria-label={`${label}: quick picks`}
+        >
+          {presets.map((p) => {
+            const active = Math.abs(value - p.value) < step / 2;
+            return (
+              <button
+                key={p.value}
+                type="button"
+                disabled={disabled}
+                aria-pressed={active}
+                onClick={() => onChange(p.value)}
+                className={cn(
+                  "tnum h-8 rounded-full border px-3 text-[13px] transition-colors disabled:pointer-events-none",
+                  active
+                    ? "border-primary bg-accent-soft font-semibold text-primary-deep"
+                    : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                )}
+              >
+                {chipLabel(p)}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

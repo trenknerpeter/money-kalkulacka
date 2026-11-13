@@ -1,3 +1,4 @@
+import { useId } from "react";
 import {
   Area,
   CartesianGrid,
@@ -10,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { CROSSHAIR, TOOLTIP_BOX, gradientId } from "@/lib/chartStyle";
 import { useFormatters } from "@/lib/currency";
 import { useT } from "@/lib/i18n";
 import type { PlanYearRow } from "@/lib/plan";
@@ -30,6 +32,8 @@ type Props = {
 export function PlanChart({ rows, target, stopAge, reachedAge, debtFreeAge = null, markers = [], needAt }: Props) {
   const { money, compact } = useFormatters();
   const { t } = useT();
+  const uid = useId();
+  const growthFill = gradientId("plan-growth", uid);
   const showTarget = isFinite(target);
   const showDebt = showTarget && rows.some((r) => r.debt > 0.5);
   const data: (PlanYearRow & { need?: number; number?: number })[] =
@@ -50,6 +54,12 @@ export function PlanChart({ rows, target, stopAge, reachedAge, debtFreeAge = nul
     <div className="h-[340px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} margin={{ top: 24, right: 8, left: 0, bottom: 0 }}>
+          <defs>
+            <linearGradient id={growthFill} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.45} />
+              <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.04} />
+            </linearGradient>
+          </defs>
           <CartesianGrid vertical={false} stroke="var(--border)" />
           <XAxis
             dataKey="age"
@@ -73,12 +83,12 @@ export function PlanChart({ rows, target, stopAge, reachedAge, debtFreeAge = nul
             ]}
           />
           <Tooltip
-            cursor={{ stroke: "var(--border)" }}
+            cursor={CROSSHAIR}
             content={({ active, payload, label }) => {
               if (!active || !payload?.length) return null;
               const p = payload[0]?.payload as PlanYearRow;
               return (
-                <div className="rounded-md border border-border bg-card p-3 text-xs">
+                <div className={TOOLTIP_BOX}>
                   <p className="mb-2 font-semibold">{t("Age {n}", { n: String(label) })}</p>
                   <dl className="tnum space-y-1">
                     <div className="flex justify-between gap-6">
@@ -109,7 +119,7 @@ export function PlanChart({ rows, target, stopAge, reachedAge, debtFreeAge = nul
                     </div>
                     <div className="flex justify-between gap-6">
                       <dt className="text-muted-foreground">{t("Growth")}</dt>
-                      <dd className="text-primary">{money(p.growth)}</dd>
+                      <dd className="text-primary-deep">{money(p.growth)}</dd>
                     </div>
                   </dl>
                 </div>
@@ -131,9 +141,9 @@ export function PlanChart({ rows, target, stopAge, reachedAge, debtFreeAge = nul
             dataKey="growth"
             stackId="1"
             stroke="var(--accent)"
-            strokeWidth={2}
-            fill="var(--accent)"
-            fillOpacity={0.18}
+            strokeWidth={2.5}
+            fill={`url(#${growthFill})`}
+            fillOpacity={1}
             animationDuration={200}
           />
           <Line

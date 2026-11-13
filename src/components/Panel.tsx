@@ -1,3 +1,4 @@
+import { Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
@@ -85,6 +86,21 @@ export function StatTile({
         {value}
       </p>
       {caption && <div className="mt-1.5 text-sm text-muted-foreground">{caption}</div>}
+    </div>
+  );
+}
+
+/** A one-sentence takeaway under a chart or result. */
+export function Insight({ title, children }: { title: string; children?: ReactNode }) {
+  return (
+    <div className="flex items-start gap-3.5 rounded-xl bg-accent-soft p-4 sm:p-5">
+      <Sparkles className="mt-0.5 size-5 shrink-0 text-primary-deep" aria-hidden="true" />
+      <div>
+        <p className="font-semibold text-foreground">{title}</p>
+        {children && (
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{children}</p>
+        )}
+      </div>
     </div>
   );
 }

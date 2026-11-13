@@ -8,6 +8,7 @@ import {
   YAxis,
 } from "recharts";
 import type { MortgageYear } from "@/lib/finance";
+import { AXIS_TICK, TOOLTIP_BOX } from "@/lib/chartStyle";
 import { useFormatters } from "@/lib/currency";
 import { useT } from "@/lib/i18n";
 
@@ -24,7 +25,7 @@ export function PaymentBreakdownChart({ rows }: { rows: MortgageYear[] }) {
             dataKey="year"
             tickLine={false}
             axisLine={false}
-            tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+            tick={AXIS_TICK}
             tickMargin={10}
             minTickGap={16}
           />
@@ -32,7 +33,7 @@ export function PaymentBreakdownChart({ rows }: { rows: MortgageYear[] }) {
             tickLine={false}
             axisLine={false}
             width={60}
-            tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+            tick={AXIS_TICK}
             tickFormatter={(value: number) => compact(value)}
           />
           <Tooltip
@@ -41,7 +42,7 @@ export function PaymentBreakdownChart({ rows }: { rows: MortgageYear[] }) {
               if (!active || !payload?.length) return null;
               const row = payload[0]?.payload as MortgageYear;
               return (
-                <div className="rounded-md border border-border bg-card p-3 text-xs">
+                <div className={TOOLTIP_BOX}>
                   <p className="mb-2 font-semibold">{t("Year {n}", { n: String(label) })}</p>
                   <dl className="tnum space-y-1">
                     <div className="flex justify-between gap-6">
@@ -61,14 +62,14 @@ export function PaymentBreakdownChart({ rows }: { rows: MortgageYear[] }) {
             dataKey="principalPaid"
             name="Principal"
             fill="var(--accent)"
-            radius={[2, 2, 0, 0]}
+            radius={[4, 4, 0, 0]}
             animationDuration={200}
           />
           <Bar
             dataKey="interestPaid"
             name="Interest"
             fill="var(--info)"
-            radius={[2, 2, 0, 0]}
+            radius={[4, 4, 0, 0]}
             animationDuration={200}
           />
         </BarChart>

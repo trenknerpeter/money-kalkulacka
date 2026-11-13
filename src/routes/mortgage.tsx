@@ -21,6 +21,7 @@ import { byCurrency } from "@/lib/scenarioDefaults";
 import { useScenario } from "@/lib/useScenario";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
+import { useCountUp } from "@/lib/useCountUp";
 import { canonical, faqLd, webAppLd } from "@/lib/seo";
 import { SEO_CONTENT } from "@/lib/seoContent";
 import { SeoArticle } from "@/components/SeoArticle";
@@ -130,6 +131,7 @@ function Mortgage() {
     return buildScenario(s.principal, s.newRate, solved.months, monthly);
   }, [s.principal, s.newRate, solved.months]);
 
+  const heroValue = useCountUp(current.monthly);
   const invalid = solved.warning || solved.months <= 0;
   const maxInterest = Math.max(current.totalInterest, whatIf.totalInterest, 1);
   const sameRate = Math.abs(s.rate - s.newRate) < 0.001;
@@ -227,6 +229,7 @@ function Mortgage() {
               max={40}
               step={1}
               suffix={t("years")}
+              presets={[10, 20, 30].map((v) => ({ value: v }))}
             />
           )}
 
@@ -364,6 +367,7 @@ function Mortgage() {
             </>
           }
           Visual={MortgageVisual}
+          tone="blue"
         >
           <CopyLinkButton />
         </PageHeader>
@@ -419,7 +423,7 @@ function Mortgage() {
               <Panel variant="hero">
                 <Eyebrow onInk>{t("Monthly payment")}</Eyebrow>
                 <p className="tnum mt-3 text-[clamp(2.5rem,6vw,4rem)] font-semibold leading-none tracking-tight">
-                  {money(current.monthly)}
+                  {money(heroValue)}
                 </p>
                 <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-muted">
                   {t("Over {years} you'll pay {interest} in interest, {total} in total.", {
@@ -501,7 +505,7 @@ function Mortgage() {
                     <span className="h-0.5 w-5 bg-foreground" /> {t("Now")}
                   </span>
                   <span className="flex items-center gap-2">
-                    <span className="h-0.5 w-5 border-t-2 border-dashed border-primary" /> {t("What-if")}
+                    <span className="h-0.5 w-5 border-t-2 border-dashed border-info" /> {t("What-if")}
                   </span>
                 </div>
               </Panel>

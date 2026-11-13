@@ -8,16 +8,17 @@ import {
 } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
 import { NumberSlider } from "@/components/NumberSlider";
-import { Eyebrow, Panel, StatTile } from "@/components/Panel";
+import { Eyebrow, Insight, Panel, StatTile } from "@/components/Panel";
 import { PageHeader } from "@/components/PageHeader";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { InvestChart } from "@/components/invest/InvestChart";
 import { InvestVisual } from "@/components/home/Illustrations";
 import { useCurrencyScale, useFormatters } from "@/lib/currency";
-import { computeInvest } from "@/lib/finance";
+import { computeInvest, growthCrossoverYear } from "@/lib/finance";
 import { byCurrency } from "@/lib/scenarioDefaults";
 import { useScenario } from "@/lib/useScenario";
 import { useT } from "@/lib/i18n";
+import { useCountUp } from "@/lib/useCountUp";
 import { canonical, faqLd, webAppLd } from "@/lib/seo";
 import { SEO_CONTENT } from "@/lib/seoContent";
 import { SeoArticle } from "@/components/SeoArticle";
@@ -197,6 +198,8 @@ function Invest() {
   const inflationFactor = Math.pow(1 + s.inflation / 100, Math.max(0, Math.round(s.years)));
 
   const emptyState = Math.round(s.years) <= 0;
+  const heroValue = useCountUp(result.finalValue);
+  const crossover = growthCrossoverYear(result.rows);
 
   return (
     <div className="grid gap-10 lg:grid-cols-[380px_1fr]">
@@ -211,6 +214,7 @@ function Invest() {
             step={500 * scale}
             suffix={symbol}
             suffixPosition="left"
+            presets={[0, 1000, 4000, 20000].map((v) => ({ value: v * scale }))}
           />
           <NumberSlider
             label={t("Monthly contribution")}
@@ -221,6 +225,7 @@ function Invest() {
             step={50 * scale}
             suffix={symbol}
             suffixPosition="left"
+            presets={[40, 120, 200, 400].map((v) => ({ value: v * scale }))}
           />
           <NumberSlider
             label={t("Expected annual return")}
@@ -230,6 +235,11 @@ function Invest() {
             max={15}
             step={0.1}
             suffix="%"
+            presets={[
+              { value: 4, label: `4 % · ${t("cautious")}` },
+              { value: 7, label: `7 % · ${t("typical")}` },
+              { value: 10, label: `10 % · ${t("bold")}` },
+            ]}
           />
           <NumberSlider
             label={t("Investment period")}
@@ -239,6 +249,7 @@ function Invest() {
             max={40}
             step={1}
             suffix={t("years")}
+            presets={[10, 20, 30].map((v) => ({ value: v }))}
           />
 
           <div className="border-t border-border pt-6">
@@ -346,7 +357,7 @@ function Invest() {
               <Eyebrow onInk>
                 {t("In {years} you'll have", { years: count(Math.round(s.years), "year") })}
               </Eyebrow>
-              <FitNumber value={money(result.finalValue)} max="4rem" className="mt-3" />
+              <FitNumber value={money(heroValue)} max="4rem" className="mt-3" />
               <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-muted">
                 {t(
                   "In today's money that's about {real}. You put in {c}; the remaining {g} is growth.",
@@ -433,6 +444,12 @@ function Invest() {
                 </span>
               </div>
             </Panel>
+
+            {crossover !== null && crossover < Math.round(s.years) && (
+              <Insight title={t("From year {n}, growth adds more each year than you pay in.", { n: crossover })}>
+                {t("Until then, how much you send matters most. After that, compounding does more of the work every year.")}
+              </Insight>
+            )}
 
             <Panel title={t("What it pays you")}>
               <p className="-mt-3 mb-5 text-sm leading-relaxed text-muted-foreground">

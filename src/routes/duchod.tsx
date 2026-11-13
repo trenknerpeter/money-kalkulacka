@@ -27,6 +27,7 @@ import {
   type PotProjection,
 } from "@/lib/pension";
 import { SALARY_KEY, formatCzk, parseSalaryStore } from "@/lib/salary";
+import { useCountUp } from "@/lib/useCountUp";
 import { canonical, faqLd, webAppLd } from "@/lib/seo";
 import { SEO_CONTENT } from "@/lib/seoContent";
 import { useScenario } from "@/lib/useScenario";
@@ -140,6 +141,7 @@ function Duchod() {
     [s, salaryGross],
   );
   const p = sum.pension;
+  const heroValue = useCountUp(p.eligible ? p.monthly : 0);
   const { earlyMax, earlyMonths } = sum;
 
   const hasDps = s.dpsBalance > 0 || s.dpsOwn > 0 || s.dpsEmployer > 0;
@@ -418,6 +420,7 @@ function Duchod() {
             title={t("Retirement")}
             subtitle={t("Your state pension and pension savings. Everything is in today's money.")}
             Visual={RetirementVisual}
+            tone="amber"
           >
             <CopyLinkButton />
           </PageHeader>
@@ -440,7 +443,7 @@ function Duchod() {
         <Panel variant="hero">
           <Eyebrow onInk>{t("State pension (estimate)")}</Eyebrow>
           <p className="tnum mt-3 text-[clamp(2.5rem,6vw,4rem)] font-semibold leading-none tracking-tight">
-            {p.eligible ? formatCzk(p.monthly) : formatCzk(0)}
+            {formatCzk(heroValue)}
           </p>
           <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-muted">
             {p.eligible

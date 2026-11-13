@@ -1,4 +1,5 @@
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { AXIS_TICK, CROSSHAIR, TOOLTIP_BOX } from "@/lib/chartStyle";
 import { useFormatters } from "@/lib/currency";
 import { useT } from "@/lib/i18n";
 
@@ -27,7 +28,7 @@ export function BalanceChart({
             dataKey="year"
             tickLine={false}
             axisLine={false}
-            tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+            tick={AXIS_TICK}
             tickMargin={10}
             minTickGap={24}
           />
@@ -35,16 +36,16 @@ export function BalanceChart({
             tickLine={false}
             axisLine={false}
             width={60}
-            tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+            tick={AXIS_TICK}
             tickFormatter={(v: number) => compact(v)}
           />
           <Tooltip
-            cursor={{ stroke: "var(--border)" }}
+            cursor={CROSSHAIR}
             content={({ active, payload, label }) => {
               if (!active || !payload?.length) return null;
               const p = payload[0]?.payload as (typeof data)[number];
               return (
-                <div className="rounded-md border border-border bg-card p-3 text-xs">
+                <div className={TOOLTIP_BOX}>
                   <p className="mb-2 font-semibold">{t("Year {n}", { n: String(label) })}</p>
                   <dl className="tnum space-y-1">
                     <div className="flex justify-between gap-6">
@@ -53,7 +54,7 @@ export function BalanceChart({
                     </div>
                     <div className="flex justify-between gap-6">
                       <dt className="text-muted-foreground">{t("What-if")}</dt>
-                      <dd className="text-primary">{money(p.whatIf)}</dd>
+                      <dd className="text-info-deep">{money(p.whatIf)}</dd>
                     </div>
                   </dl>
                 </div>
@@ -64,17 +65,21 @@ export function BalanceChart({
             type="monotone"
             dataKey="current"
             stroke="var(--foreground)"
-            strokeWidth={2}
+            strokeWidth={2.5}
+            strokeLinecap="round"
             dot={false}
+            activeDot={{ r: 5, stroke: "var(--card)", strokeWidth: 2 }}
             animationDuration={200}
           />
           <Line
             type="monotone"
             dataKey="whatIf"
-            stroke="var(--accent)"
-            strokeWidth={2}
-            strokeDasharray="5 4"
+            stroke="var(--info)"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeDasharray="6 5"
             dot={false}
+            activeDot={{ r: 5, stroke: "var(--card)", strokeWidth: 2 }}
             animationDuration={200}
           />
         </LineChart>

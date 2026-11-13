@@ -19,6 +19,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CURRENCIES, isCurrency, useCurrency } from "@/lib/currency";
 import { cn } from "@/lib/utils";
+import { TONE, type Tone } from "@/lib/tone";
 import { track } from "@/lib/analytics";
 import { isLangValue, useLang, useT } from "@/lib/i18n";
 import { PENSION_KEY } from "@/lib/pension";
@@ -117,15 +118,34 @@ type Tab = {
   Icon: ComponentType<{ className?: string }>;
   /** localStorage key that means "this tab has numbers". */
   storageKey?: string;
+  tone: Tone;
 };
 
 const TABS: Tab[] = [
-  { label: "Salary", to: "/mzda", Icon: Wallet, storageKey: SALARY_KEY },
-  { label: "Retirement", to: "/duchod", Icon: Clock, storageKey: PENSION_KEY },
-  { label: "Invest", to: "/invest", Icon: TrendingUp, storageKey: "finbuddy.invest" },
-  { label: "Mortgage", to: "/mortgage", Icon: House, storageKey: "finbuddy.mortgage" },
-  { label: "Financial independence", to: "/plan", Icon: Target, storageKey: PLAN_KEY },
-  { label: "Dashboard", to: "/dashboard", Icon: LayoutGrid },
+  { label: "Salary", to: "/mzda", Icon: Wallet, storageKey: SALARY_KEY, tone: "green" },
+  { label: "Retirement", to: "/duchod", Icon: Clock, storageKey: PENSION_KEY, tone: "amber" },
+  {
+    label: "Invest",
+    to: "/invest",
+    Icon: TrendingUp,
+    storageKey: "finbuddy.invest",
+    tone: "green",
+  },
+  {
+    label: "Mortgage",
+    to: "/mortgage",
+    Icon: House,
+    storageKey: "finbuddy.mortgage",
+    tone: "blue",
+  },
+  {
+    label: "Financial independence",
+    to: "/plan",
+    Icon: Target,
+    storageKey: PLAN_KEY,
+    tone: "green",
+  },
+  { label: "Dashboard", to: "/dashboard", Icon: LayoutGrid, tone: "green" },
 ];
 
 /** Which tabs already hold numbers. Re-read on every navigation and on cross-tab storage events. */
@@ -171,7 +191,7 @@ function NavPills({ pathname, filled }: { pathname: string; filled: Set<string> 
       >
         <House className="size-[18px]" />
       </Link>
-      {TABS.map(({ label, to, Icon }) => {
+      {TABS.map(({ label, to, Icon, tone }) => {
         const active = pathname.startsWith(to);
         const hasData = filled.has(to);
         return (
@@ -182,7 +202,7 @@ function NavPills({ pathname, filled }: { pathname: string; filled: Set<string> 
             className={cn(
               "flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-3.5 text-sm transition-colors",
               active
-                ? "bg-accent-soft font-semibold text-primary-deep"
+                ? cn("font-semibold", TONE[tone].pill)
                 : "font-medium text-muted-foreground hover:bg-secondary hover:text-foreground",
             )}
           >
@@ -192,7 +212,7 @@ function NavPills({ pathname, filled }: { pathname: string; filled: Set<string> 
               <span
                 className={cn(
                   "tnum inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold",
-                  active ? "bg-card text-primary-deep" : "bg-secondary text-muted-foreground",
+                  active ? TONE[tone].badge : "bg-secondary text-muted-foreground",
                 )}
                 aria-label={t("{n} of {total} tabs filled", { n: filledCount, total: dataTabs })}
               >
@@ -201,7 +221,7 @@ function NavPills({ pathname, filled }: { pathname: string; filled: Set<string> 
             ) : (
               hasData && (
                 <span
-                  className="size-1.5 rounded-full bg-accent"
+                  className={cn("size-1.5 rounded-full", TONE[tone].dot)}
                   role="img"
                   aria-label={t("Has your numbers")}
                 />
