@@ -1,0 +1,1159 @@
+diff --git a/src/routes/dashboard.tsx b/src/routes/dashboard.tsx
+index 7045f7f..6d1d794 100644
+--- a/src/routes/dashboard.tsx
++++ b/src/routes/dashboard.tsx
+@@ -29,6 +29,7 @@ import { useT } from "@/lib/i18n";
+ import { loadPlan } from "@/lib/plan";
+ import { SALARY_KEY, calcSalary, formatCzk, parseSalaryStore } from "@/lib/salary";
+ import { cn } from "@/lib/utils";
++import { canonical } from "@/lib/seo";
+ 
+ export const Route = createFileRoute("/dashboard")({
+   head: () => ({
+@@ -46,7 +47,9 @@ export const Route = createFileRoute("/dashboard")({
+       },
+       { property: "og:type", content: "website" },
+       { name: "twitter:card", content: "summary_large_image" },
++      canonical("/dashboard").meta,
+     ],
++    links: [canonical("/dashboard").link],
+   }),
+   component: Dashboard,
+ });
+@@ -252,7 +255,15 @@ function RetirementPathChart({ m }: { m: DashboardMetrics }) {
+   );
+ }
+ 
+-function Stat({ label, value, caption }: { label: string; value: string; caption?: string | undefined }) {
++function Stat({
++  label,
++  value,
++  caption,
++}: {
++  label: string;
++  value: string;
++  caption?: string | undefined;
++}) {
+   return (
+     <div className="min-w-0">
+       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+@@ -302,11 +313,14 @@ function Headline({ m, spend }: { m: DashboardMetrics; spend: number }) {
+       {owes && (
+         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+           {m.debtFreeAge !== null
+-            ? t("You'd still owe {d} on the mortgage at {age}. Keep going until {age2} to clear it.", {
+-                d: money(m.owedAtLiving),
+-                age: m.livingAge!,
+-                age2: m.debtFreeAge,
+-              })
++            ? t(
++                "You'd still owe {d} on the mortgage at {age}. Keep going until {age2} to clear it.",
++                {
++                  d: money(m.owedAtLiving),
++                  age: m.livingAge!,
++                  age2: m.debtFreeAge,
++                },
++              )
+             : t("You'd still owe {d} on the mortgage at {age}.", {
+                 d: money(m.owedAtLiving),
+                 age: m.livingAge!,
+@@ -365,13 +379,19 @@ function BalanceBars({
+       <div className="flex h-3.5 w-full overflow-hidden rounded-full bg-muted">
+         <div className="flex h-full" style={{ width: pct(assets) }}>
+           {rows.map((r) => (
+-            <div key={r.key} className={r.color} style={{ width: `${assets > 0 ? (r.value / assets) * 100 : 0}%` }} />
++            <div
++              key={r.key}
++              className={r.color}
++              style={{ width: `${assets > 0 ? (r.value / assets) * 100 : 0}%` }}
++            />
+           ))}
+         </div>
+       </div>
+       <span className="tnum text-right font-medium">{compact(assets)}</span>
+       <div className="h-3.5 w-full overflow-hidden rounded-full bg-muted">
+-        {debt > 0.5 && <div className="h-full rounded-full bg-destructive/70" style={{ width: pct(debt) }} />}
++        {debt > 0.5 && (
++          <div className="h-full rounded-full bg-destructive/70" style={{ width: pct(debt) }} />
++        )}
+       </div>
+       <span className="tnum text-right text-muted-foreground">
+         {debt > 0.5 ? `−${compact(debt)}` : t("No debt")}
+@@ -381,7 +401,15 @@ function BalanceBars({
+ }
+ 
+ /** Amount with its share of total assets beside it (stacked on narrow screens). */
+-function AmountShare({ value, share, strong }: { value: string; share?: string | undefined; strong?: boolean }) {
++function AmountShare({
++  value,
++  share,
++  strong,
++}: {
++  value: string;
++  share?: string | undefined;
++  strong?: boolean;
++}) {
+   return (
+     <span className="flex flex-col items-end sm:flex-row sm:items-baseline sm:justify-end sm:gap-2">
+       <span className={strong ? "font-medium" : "text-muted-foreground"}>{value}</span>
+@@ -396,9 +424,27 @@ function WhatYouOwn({ m }: { m: DashboardMetrics }) {
+   const { t } = useT();
+   const o = m.outlook;
+   const rows = [
+-    { key: "home", label: t("Your home"), color: "bg-foreground", now: m.homeValue, later: o?.home ?? 0 },
+-    { key: "invest", label: t("Investments"), color: "bg-primary", now: m.invested, later: o?.invested ?? 0 },
+-    { key: "cash", label: t("Savings account"), color: "bg-primary/40", now: m.cash, later: o?.cash ?? 0 },
++    {
++      key: "home",
++      label: t("Your home"),
++      color: "bg-foreground",
++      now: m.homeValue,
++      later: o?.home ?? 0,
++    },
++    {
++      key: "invest",
++      label: t("Investments"),
++      color: "bg-primary",
++      now: m.invested,
++      later: o?.invested ?? 0,
++    },
++    {
++      key: "cash",
++      label: t("Savings account"),
++      color: "bg-primary/40",
++      now: m.cash,
++      later: o?.cash ?? 0,
++    },
+   ].filter((r) => r.now > 0 || r.later > 0.5);
+   const assetsNow = rows.reduce((s, r) => s + r.now, 0);
+   const assetsLater = rows.reduce((s, r) => s + r.later, 0);
+@@ -406,7 +452,8 @@ function WhatYouOwn({ m }: { m: DashboardMetrics }) {
+   const debtLater = o?.debt ?? 0;
+   const showDebt = debtNow > 0 || debtLater > 0.5;
+   const scale = Math.max(assetsNow, debtNow, o ? assetsLater : 0, o ? debtLater : 0);
+-  const share = (v: number, total: number) => (total > 0 && v > 0.5 ? percent((v / total) * 100) : undefined);
++  const share = (v: number, total: number) =>
++    total > 0 && v > 0.5 ? percent((v / total) * 100) : undefined;
+   const laterLabel = o ? t("At {age}", { age: o.age }) : "";
+ 
+   return (
+@@ -455,7 +502,10 @@ function WhatYouOwn({ m }: { m: DashboardMetrics }) {
+         </thead>
+         <tbody>
+           <tr>
+-            <td colSpan={o ? 3 : 2} className="pb-1 pt-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
++            <td
++              colSpan={o ? 3 : 2}
++              className="pb-1 pt-1 text-xs font-medium uppercase tracking-wide text-muted-foreground"
++            >
+               {t("Assets")}
+             </td>
+           </tr>
+@@ -491,7 +541,10 @@ function WhatYouOwn({ m }: { m: DashboardMetrics }) {
+           {showDebt && (
+             <>
+               <tr>
+-                <td colSpan={o ? 3 : 2} className="pb-1 pt-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
++                <td
++                  colSpan={o ? 3 : 2}
++                  className="pb-1 pt-3 text-xs font-medium uppercase tracking-wide text-muted-foreground"
++                >
+                   {t("Liabilities")}
+                 </td>
+               </tr>
+@@ -503,7 +556,11 @@ function WhatYouOwn({ m }: { m: DashboardMetrics }) {
+                   </span>
+                 </td>
+                 <td className="py-1.5 text-right">
+-                  <AmountShare value={`−${money(debtNow)}`} share={share(debtNow, assetsNow)} strong />
++                  <AmountShare
++                    value={`−${money(debtNow)}`}
++                    share={share(debtNow, assetsNow)}
++                    strong
++                  />
+                 </td>
+                 {o && (
+                   <td className="py-1.5 pl-4 text-right">
+@@ -523,7 +580,11 @@ function WhatYouOwn({ m }: { m: DashboardMetrics }) {
+             </td>
+             {o && (
+               <td className="pt-2.5 pl-4 text-right">
+-                <AmountShare value={money(o.netWorth)} share={share(o.netWorth, assetsLater)} strong />
++                <AmountShare
++                  value={money(o.netWorth)}
++                  share={share(o.netWorth, assetsLater)}
++                  strong
++                />
+               </td>
+             )}
+           </tr>
+@@ -811,43 +872,43 @@ function Dashboard() {
+ 
+           {/* The path to your number */}
+           <Panel title={t("Your path to your number")} className="break-inside-avoid">
+-              {m.path.length > 0 ? (
+-                <>
+-                  <RetirementPathChart m={m} />
+-                  <div className="mt-4 flex flex-wrap items-center gap-5 text-xs text-muted-foreground">
++            {m.path.length > 0 ? (
++              <>
++                <RetirementPathChart m={m} />
++                <div className="mt-4 flex flex-wrap items-center gap-5 text-xs text-muted-foreground">
++                  <span className="flex items-center gap-2">
++                    <span className="size-2.5 rounded-sm bg-primary/30 ring-1 ring-primary" />{" "}
++                    {t("Your pot")}
++                  </span>
++                  {m.target !== null && (
+                     <span className="flex items-center gap-2">
+-                      <span className="size-2.5 rounded-sm bg-primary/30 ring-1 ring-primary" />{" "}
+-                      {t("Your pot")}
++                      <span className="h-0 w-3 border-t-2 border-dashed border-muted-foreground" />{" "}
++                      {t("Your number — {v}", { v: money(m.target) })}
+                     </span>
+-                    {m.target !== null && (
+-                      <span className="flex items-center gap-2">
+-                        <span className="h-0 w-3 border-t-2 border-dashed border-muted-foreground" />{" "}
+-                        {t("Your number — {v}", { v: money(m.target) })}
+-                      </span>
+-                    )}
+-                    {m.path.some((r) => r.debt > 0.5) && (
+-                      <span className="flex items-center gap-2">
+-                        <span className="h-0 w-3 border-t-2 border-dotted border-muted-foreground" />{" "}
+-                        {t("Your number + mortgage left")}
+-                      </span>
+-                    )}
+-                  </div>
+-                </>
+-              ) : (
+-                <div className="py-10 text-center">
+-                  <p className="mx-auto max-w-sm text-sm leading-relaxed text-muted-foreground">
+-                    {t(
+-                      "Answer the plan questions to see when you can stop working — and when the mortgage is cleared too.",
+-                    )}
+-                  </p>
+-                  <Link
+-                    to="/plan"
+-                    className="mt-4 inline-block text-sm font-medium text-primary hover:underline"
+-                  >
+-                    {t("Answer the plan questions →")}
+-                  </Link>
++                  )}
++                  {m.path.some((r) => r.debt > 0.5) && (
++                    <span className="flex items-center gap-2">
++                      <span className="h-0 w-3 border-t-2 border-dotted border-muted-foreground" />{" "}
++                      {t("Your number + mortgage left")}
++                    </span>
++                  )}
+                 </div>
+-              )}
++              </>
++            ) : (
++              <div className="py-10 text-center">
++                <p className="mx-auto max-w-sm text-sm leading-relaxed text-muted-foreground">
++                  {t(
++                    "Answer the plan questions to see when you can stop working — and when the mortgage is cleared too.",
++                  )}
++                </p>
++                <Link
++                  to="/plan"
++                  className="mt-4 inline-block text-sm font-medium text-primary hover:underline"
++                >
++                  {t("Answer the plan questions →")}
++                </Link>
++              </div>
++            )}
+           </Panel>
+ 
+           {/* Print-only page 2: the details behind the overview. */}
+diff --git a/src/routes/index.tsx b/src/routes/index.tsx
+index d25c727..0cc5bac 100644
+--- a/src/routes/index.tsx
++++ b/src/routes/index.tsx
+@@ -8,6 +8,7 @@ import {
+   SalaryVisual,
+ } from "@/components/home/Illustrations";
+ import { useT } from "@/lib/i18n";
++import { canonical, webSiteLd } from "@/lib/seo";
+ 
+ export const Route = createFileRoute("/")({
+   head: () => ({
+@@ -29,7 +30,14 @@ export const Route = createFileRoute("/")({
+       },
+       { property: "og:type", content: "website" },
+       { name: "twitter:card", content: "summary_large_image" },
++      canonical("/").meta,
+     ],
++    scripts: [
++      webSiteLd(
++        "Money Kalkulačka vám ukáže, kam vaše peníze směřují: spočítejte si čistou mzdu, růst investic, dopad sazby hypotéky a kdy můžete přestat pracovat.",
++      ),
++    ],
++    links: [canonical("/").link],
+   }),
+   component: Home,
+ });
+diff --git a/src/routes/invest.tsx b/src/routes/invest.tsx
+index f169bdd..5031db6 100644
+--- a/src/routes/invest.tsx
++++ b/src/routes/invest.tsx
+@@ -1,6 +1,11 @@
+ import { createFileRoute } from "@tanstack/react-router";
+ import { useMemo } from "react";
+-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
++import {
++  Accordion,
++  AccordionContent,
++  AccordionItem,
++  AccordionTrigger,
++} from "@/components/ui/accordion";
+ import { Switch } from "@/components/ui/switch";
+ import { NumberSlider } from "@/components/NumberSlider";
+ import { Panel } from "@/components/Panel";
+@@ -11,6 +16,9 @@ import { computeInvest } from "@/lib/finance";
+ import { byCurrency } from "@/lib/scenarioDefaults";
+ import { useScenario } from "@/lib/useScenario";
+ import { useT } from "@/lib/i18n";
++import { canonical, faqLd, webAppLd } from "@/lib/seo";
++import { SEO_CONTENT } from "@/lib/seoContent";
++import { SeoArticle } from "@/components/SeoArticle";
+ 
+ export const Route = createFileRoute("/invest")({
+   head: () => ({
+@@ -28,11 +36,30 @@ export const Route = createFileRoute("/invest")({
+       },
+       { property: "og:type", content: "website" },
+       { name: "twitter:card", content: "summary_large_image" },
++      canonical("/invest").meta,
+     ],
++    scripts: [
++      webAppLd(
++        "/invest",
++        "Investiční kalkulačka",
++        "Podívejte se, jak měsíční vklady v čase rostou díky složenému úročení, kolik z toho je výnos — a kolik to bude mít hodnotu v dnešních cenách.",
++      ),
++      faqLd(SEO_CONTENT.invest.cs.faq),
++    ],
++    links: [canonical("/invest").link],
+   }),
+-  component: Invest,
++  component: InvestWithArticle,
+ });
+ 
++function InvestWithArticle() {
++  return (
++    <>
++      <Invest />
++      <SeoArticle page="invest" />
++    </>
++  );
++}
++
+ const DEFAULTS = {
+   initial: 10000,
+   monthly: 500,
+@@ -240,11 +267,17 @@ function Invest() {
+             <label htmlFor="savings" className="text-sm font-semibold tracking-tight">
+               {t("Savings account")}
+             </label>
+-            <Switch id="savings" checked={s.savings} onCheckedChange={(v) => patch({ savings: v })} />
++            <Switch
++              id="savings"
++              checked={s.savings}
++              onCheckedChange={(v) => patch({ savings: v })}
++            />
+           </div>
+           {!s.savings ? (
+             <p className="-mt-3 text-xs leading-relaxed text-muted-foreground">
+-              {t("Add money you keep in a savings account. It grows alongside your investments over the same period.")}
++              {t(
++                "Add money you keep in a savings account. It grows alongside your investments over the same period.",
++              )}
+             </p>
+           ) : (
+             <>
+@@ -278,7 +311,9 @@ function Invest() {
+                 suffix="%"
+               />
+               <p className="text-xs text-muted-foreground">
+-                {t("Same period as your investments: {years}.", { years: count(Math.round(s.years), "year") })}
++                {t("Same period as your investments: {years}.", {
++                  years: count(Math.round(s.years), "year"),
++                })}
+               </p>
+             </>
+           )}
+@@ -290,7 +325,10 @@ function Invest() {
+           <div>
+             <h1 className="text-xl font-semibold tracking-tight">{t("Investment projection")}</h1>
+             <p className="mt-1 text-sm text-muted-foreground">
+-              {t("{years} at {rate} a year, compounded monthly.", { years: count(Math.round(s.years), "year"), rate: percent(s.rate) })}
++              {t("{years} at {rate} a year, compounded monthly.", {
++                years: count(Math.round(s.years), "year"),
++                rate: percent(s.rate),
++              })}
+             </p>
+           </div>
+           <CopyLinkButton />
+@@ -307,9 +345,7 @@ function Invest() {
+             <Panel>
+               <div
+                 className={`grid gap-6 sm:grid-cols-2 ${
+-                  s.real
+-                    ? "lg:grid-cols-[1.5fr_1fr_1fr_1.1fr]"
+-                    : "lg:grid-cols-[1.5fr_1fr_1.1fr]"
++                  s.real ? "lg:grid-cols-[1.5fr_1fr_1fr_1.1fr]" : "lg:grid-cols-[1.5fr_1fr_1.1fr]"
+                 }`}
+               >
+                 <Kpi label={t("Final value")} value={money(result.finalValue)} headline />
+@@ -318,7 +354,9 @@ function Invest() {
+                   label={t("Total growth")}
+                   value={money(result.totalGrowth)}
+                   accent
+-                  caption={t("{p}% of the final value", { p: (result.growthShare * 100).toFixed(0) })}
++                  caption={t("{p}% of the final value", {
++                    p: (result.growthShare * 100).toFixed(0),
++                  })}
+                 />
+                 {s.real && (
+                   <Kpi
+@@ -349,14 +387,18 @@ function Invest() {
+                   <span className="size-2.5 rounded-sm bg-neutral-fill" /> {t("Money you put in")}
+                 </span>
+                 <span className="flex items-center gap-2">
+-                  <span className="size-2.5 rounded-sm bg-primary/30 ring-1 ring-primary" /> {t("Growth")}
++                  <span className="size-2.5 rounded-sm bg-primary/30 ring-1 ring-primary" />{" "}
++                  {t("Growth")}
+                 </span>
+               </div>
+             </Panel>
+ 
+             <Panel title={t("What it pays you")}>
+               <p className="-mt-3 mb-5 text-sm leading-relaxed text-muted-foreground">
+-                {t("Once the {years} are up, this is what you could take out each year without touching the rest.", { years: count(Math.round(s.years), "year") })}
++                {t(
++                  "Once the {years} are up, this is what you could take out each year without touching the rest.",
++                  { years: count(Math.round(s.years), "year") },
++                )}
+               </p>
+               <div className="grid gap-8 lg:grid-cols-[300px_1fr]">
+                 <div className="space-y-6">
+@@ -399,7 +441,11 @@ function Invest() {
+                     <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                       {t("Per month")}
+                     </p>
+-                    <FitNumber value={money(monthlyIncome)} max="2rem" className="mt-1.5 text-primary" />
++                    <FitNumber
++                      value={money(monthlyIncome)}
++                      max="2rem"
++                      className="mt-1.5 text-primary"
++                    />
+                     <p className="mt-1.5 text-xs text-muted-foreground">
+                       {t("{p} a year, split over 12 months", { p: percent(s.withdrawRate) })}
+                     </p>
+@@ -426,7 +472,9 @@ function Invest() {
+                 </div>
+               </div>
+               <p className="mt-5 text-xs leading-relaxed text-muted-foreground">
+-                {t("Assumes the pot keeps earning at least the rate you take out, so the balance holds steady. Take out more than it earns and it will shrink over time.")}
++                {t(
++                  "Assumes the pot keeps earning at least the rate you take out, so the balance holds steady. Take out more than it earns and it will shrink over time.",
++                )}
+               </p>
+             </Panel>
+ 
+@@ -443,7 +491,9 @@ function Invest() {
+                           <tr className="border-b border-border">
+                             <th className="py-2 text-left font-normal">{t("Year")}</th>
+                             <th className="py-2 text-right font-normal">{t("Contributed")}</th>
+-                            <th className="py-2 text-right font-normal">{t("Total contributed")}</th>
++                            <th className="py-2 text-right font-normal">
++                              {t("Total contributed")}
++                            </th>
+                             <th className="py-2 text-right font-normal">{t("Growth")}</th>
+                             <th className="py-2 text-right font-normal">{t("Balance")}</th>
+                           </tr>
+diff --git a/src/routes/mortgage.tsx b/src/routes/mortgage.tsx
+index 39d6cb4..533b4e4 100644
+--- a/src/routes/mortgage.tsx
++++ b/src/routes/mortgage.tsx
+@@ -19,6 +19,9 @@ import { byCurrency } from "@/lib/scenarioDefaults";
+ import { useScenario } from "@/lib/useScenario";
+ import { cn } from "@/lib/utils";
+ import { useT } from "@/lib/i18n";
++import { canonical, faqLd, webAppLd } from "@/lib/seo";
++import { SEO_CONTENT } from "@/lib/seoContent";
++import { SeoArticle } from "@/components/SeoArticle";
+ 
+ export const Route = createFileRoute("/mortgage")({
+   head: () => ({
+@@ -36,11 +39,30 @@ export const Route = createFileRoute("/mortgage")({
+       },
+       { property: "og:type", content: "website" },
+       { name: "twitter:card", content: "summary_large_image" },
++      canonical("/mortgage").meta,
+     ],
++    scripts: [
++      webAppLd(
++        "/mortgage",
++        "Hypoteční kalkulačka",
++        "Zadejte zbývající jistinu hypotéky a uvidíte, co změna sazby udělá se splátkou a celkovými úroky.",
++      ),
++      faqLd(SEO_CONTENT.mortgage.cs.faq),
++    ],
++    links: [canonical("/mortgage").link],
+   }),
+-  component: Mortgage,
++  component: MortgageWithArticle,
+ });
+ 
++function MortgageWithArticle() {
++  return (
++    <>
++      <Mortgage />
++      <SeoArticle page="mortgage" />
++    </>
++  );
++}
++
+ const DEFAULTS = {
+   principal: 250000,
+   rate: 3.5,
+@@ -98,7 +120,17 @@ function Mortgage() {
+             yearly: s.extraYearly,
+           })
+         : current,
+-    [s.extraPayment, s.principal, s.rate, solved.months, solved.monthly, s.extraAmount, s.extraYear, s.extraYearly, current],
++    [
++      s.extraPayment,
++      s.principal,
++      s.rate,
++      solved.months,
++      solved.monthly,
++      s.extraAmount,
++      s.extraYear,
++      s.extraYearly,
++      current,
++    ],
+   );
+ 
+   const whatIf = useMemo(() => {
+@@ -155,7 +187,9 @@ function Mortgage() {
+               ))}
+             </div>
+             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+-              {t('Enter what you know. If the payment we calculate doesn\'t match your real one, switch to "Remaining term" and enter your actual payment instead.')}
++              {t(
++                'Enter what you know. If the payment we calculate doesn\'t match your real one, switch to "Remaining term" and enter your actual payment instead.',
++              )}
+             </p>
+           </div>
+ 
+@@ -213,7 +247,9 @@ function Mortgage() {
+               suffixPosition="left"
+             />
+             <p className="text-xs leading-relaxed text-muted-foreground">
+-              {t("What your home would sell for today. Counts towards your net worth on the Dashboard — never towards your retirement money.")}
++              {t(
++                "What your home would sell for today. Counts towards your net worth on the Dashboard — never towards your retirement money.",
++              )}
+             </p>
+             {s.homeValue > 0 && (
+               <div className="rounded-md border border-border bg-secondary/40 p-4">
+@@ -240,7 +276,9 @@ function Mortgage() {
+                       suffix="%"
+                     />
+                     <p className="text-xs leading-relaxed text-muted-foreground">
+-                      {t("On top of inflation — everything here is in today's money. 1% means the home gains 1% a year more than prices in general.")}
++                      {t(
++                        "On top of inflation — everything here is in today's money. 1% means the home gains 1% a year more than prices in general.",
++                      )}
+                     </p>
+                   </div>
+                 )}
+@@ -331,7 +369,13 @@ function Mortgage() {
+             <h1 className="text-xl font-semibold tracking-tight">{t("Rate change impact")}</h1>
+             <p className="mt-1 text-sm text-muted-foreground">
+               {t("{v} left", { v: money(s.principal) })}
+-              {!invalid && t(" over {years}", { years: count(Number((solved.months / 12).toFixed(solved.months % 12 === 0 ? 0 : 1)), "year") })}
++              {!invalid &&
++                t(" over {years}", {
++                  years: count(
++                    Number((solved.months / 12).toFixed(solved.months % 12 === 0 ? 0 : 1)),
++                    "year",
++                  ),
++                })}
+               .
+             </p>
+           </div>
+@@ -341,7 +385,11 @@ function Mortgage() {
+         {solved.warning && (
+           <div className="flex items-start gap-3 rounded-md border border-negative/30 bg-negative/5 p-4 text-sm text-negative">
+             <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+-            <p>{t("That payment doesn't cover the monthly interest — the balance would never go down.")}</p>
++            <p>
++              {t(
++                "That payment doesn't cover the monthly interest — the balance would never go down.",
++              )}
++            </p>
+           </div>
+         )}
+ 
+@@ -371,7 +419,10 @@ function Mortgage() {
+                     { label: "Total interest", a: current.totalInterest, b: whatIf.totalInterest },
+                     { label: "Total paid", a: current.totalPaid, b: whatIf.totalPaid },
+                   ].map((row) => (
+-                    <div key={row.label} className="col-span-3 grid grid-cols-subgrid items-center border-t border-border pt-4">
++                    <div
++                      key={row.label}
++                      className="col-span-3 grid grid-cols-subgrid items-center border-t border-border pt-4"
++                    >
+                       <span className="text-muted-foreground">{t(row.label)}</span>
+                       <span className="tnum text-right font-medium">{money(row.a)}</span>
+                       <span className="flex items-center justify-end gap-2 text-right">
+@@ -382,7 +433,9 @@ function Mortgage() {
+                   ))}
+                 </div>
+                 <p className="mt-5 text-xs text-muted-foreground">
+-                  {t("Assumes the same remaining term — the monthly payment absorbs the rate change.")}
++                  {t(
++                    "Assumes the same remaining term — the monthly payment absorbs the rate change.",
++                  )}
+                 </p>
+               </Panel>
+             ) : (
+@@ -395,7 +448,9 @@ function Mortgage() {
+                   ].map((item) => (
+                     <div key={item.label} className="border-t border-border pt-4">
+                       <p className="text-xs text-muted-foreground">{t(item.label)}</p>
+-                      <p className="tnum mt-1 whitespace-nowrap text-xl font-semibold">{money(item.value)}</p>
++                      <p className="tnum mt-1 whitespace-nowrap text-xl font-semibold">
++                        {money(item.value)}
++                      </p>
+                     </div>
+                   ))}
+                 </div>
+@@ -440,8 +495,14 @@ function Mortgage() {
+                 </div>
+                 <p className="mt-5 text-xs text-muted-foreground">
+                   {s.extraYearly
+-                    ? t("A payment of {v} every year from year {y}, keeping the same monthly payment.", { v: money(s.extraAmount), y: Math.round(s.extraYear) })
+-                    : t("A one-time payment of {v} in year {y}, keeping the same monthly payment.", { v: money(s.extraAmount), y: Math.round(s.extraYear) })}
++                    ? t(
++                        "A payment of {v} every year from year {y}, keeping the same monthly payment.",
++                        { v: money(s.extraAmount), y: Math.round(s.extraYear) },
++                      )
++                    : t(
++                        "A one-time payment of {v} in year {y}, keeping the same monthly payment.",
++                        { v: money(s.extraAmount), y: Math.round(s.extraYear) },
++                      )}
+                 </p>
+               </Panel>
+             )}
+@@ -454,49 +515,56 @@ function Mortgage() {
+                     <span className="h-0.5 w-5 bg-foreground" /> {t("Now")}
+                   </span>
+                   <span className="flex items-center gap-2">
+-                    <span className="h-0.5 w-5 border-t-2 border-dashed border-primary" /> {t("What-if")}
++                    <span className="h-0.5 w-5 border-t-2 border-dashed border-primary" />{" "}
++                    {t("What-if")}
+                   </span>
+                 </div>
+               </Panel>
+             )}
+ 
+-            {s.compareRate && <Panel title={t("Total interest, compared")}>
+-              <div className="space-y-6">
+-                {[
+-                  { label: t("Now · {p}", { p: percent(s.rate) }), value: current.totalInterest, accent: false },
+-                  {
+-                    label: t("What-if · {p}", { p: percent(s.newRate) }),
+-                    value: whatIf.totalInterest,
+-                    accent: true,
+-                  },
+-                ].map((bar) => {
+-                  const costsMore = whatIf.totalInterest > current.totalInterest;
+-                  return (
+-                    <div key={bar.label}>
+-                      <div className="mb-2 flex items-baseline justify-between text-sm">
+-                        <span className="text-muted-foreground">{bar.label}</span>
+-                        <span className="tnum text-lg font-semibold">{money(bar.value)}</span>
+-                      </div>
+-                      <div className="h-8 w-full overflow-hidden rounded bg-secondary">
+-                        <div
+-                          className={cn(
+-                            "h-full transition-all duration-200",
+-                            !bar.accent
+-                              ? "bg-neutral-fill"
+-                              : sameRate
++            {s.compareRate && (
++              <Panel title={t("Total interest, compared")}>
++                <div className="space-y-6">
++                  {[
++                    {
++                      label: t("Now · {p}", { p: percent(s.rate) }),
++                      value: current.totalInterest,
++                      accent: false,
++                    },
++                    {
++                      label: t("What-if · {p}", { p: percent(s.newRate) }),
++                      value: whatIf.totalInterest,
++                      accent: true,
++                    },
++                  ].map((bar) => {
++                    const costsMore = whatIf.totalInterest > current.totalInterest;
++                    return (
++                      <div key={bar.label}>
++                        <div className="mb-2 flex items-baseline justify-between text-sm">
++                          <span className="text-muted-foreground">{bar.label}</span>
++                          <span className="tnum text-lg font-semibold">{money(bar.value)}</span>
++                        </div>
++                        <div className="h-8 w-full overflow-hidden rounded bg-secondary">
++                          <div
++                            className={cn(
++                              "h-full transition-all duration-200",
++                              !bar.accent
+                                 ? "bg-neutral-fill"
+-                                : costsMore
+-                                  ? "bg-negative"
+-                                  : "bg-primary",
+-                          )}
+-                          style={{ width: `${(bar.value / maxInterest) * 100}%` }}
+-                        />
++                                : sameRate
++                                  ? "bg-neutral-fill"
++                                  : costsMore
++                                    ? "bg-negative"
++                                    : "bg-primary",
++                            )}
++                            style={{ width: `${(bar.value / maxInterest) * 100}%` }}
++                          />
++                        </div>
+                       </div>
+-                    </div>
+-                  );
+-                })}
+-              </div>
+-            </Panel>}
++                    );
++                  })}
++                </div>
++              </Panel>
++            )}
+ 
+             <Panel className="py-2">
+               <Accordion type="single" collapsible>
+@@ -519,7 +587,9 @@ function Mortgage() {
+                                 : "text-muted-foreground hover:text-foreground",
+                             )}
+                           >
+-                            {v === "current" ? t("Now · {p}", { p: percent(s.rate) }) : t("What-if · {p}", { p: percent(s.newRate) })}
++                            {v === "current"
++                              ? t("Now · {p}", { p: percent(s.rate) })
++                              : t("What-if · {p}", { p: percent(s.newRate) })}
+                           </button>
+                         ))}
+                       </div>
+@@ -531,7 +601,9 @@ function Mortgage() {
+                             <th className="py-2 text-left font-normal">{t("Year")}</th>
+                             <th className="py-2 text-right font-normal">{t("Interest paid")}</th>
+                             <th className="py-2 text-right font-normal">{t("Principal paid")}</th>
+-                            <th className="py-2 text-right font-normal">{t("Remaining balance")}</th>
++                            <th className="py-2 text-right font-normal">
++                              {t("Remaining balance")}
++                            </th>
+                           </tr>
+                         </thead>
+                         <tbody className="tnum">
+diff --git a/src/routes/mzda.tsx b/src/routes/mzda.tsx
+index f340383..249f50e 100644
+--- a/src/routes/mzda.tsx
++++ b/src/routes/mzda.tsx
+@@ -23,6 +23,9 @@ import {
+ } from "@/lib/salary";
+ import { useScenario } from "@/lib/useScenario";
+ import { cn } from "@/lib/utils";
++import { canonical, faqLd, webAppLd } from "@/lib/seo";
++import { SEO_CONTENT } from "@/lib/seoContent";
++import { SeoArticle } from "@/components/SeoArticle";
+ 
+ export const Route = createFileRoute("/mzda")({
+   head: () => ({
+@@ -40,11 +43,30 @@ export const Route = createFileRoute("/mzda")({
+       },
+       { property: "og:type", content: "website" },
+       { name: "twitter:card", content: "summary_large_image" },
++      canonical("/mzda").meta,
+     ],
++    scripts: [
++      webAppLd(
++        "/mzda",
++        "Kalkulačka čisté mzdy 2026",
++        "Spočítejte si čistou mzdu z hrubé pro rok 2026: daň, sociální a zdravotní pojištění, slevy a zvýhodnění na děti. Zdarma, bez registrace.",
++      ),
++      faqLd(SEO_CONTENT.mzda.cs.faq),
++    ],
++    links: [canonical("/mzda").link],
+   }),
+-  component: Mzda,
++  component: MzdaWithArticle,
+ });
+ 
++function MzdaWithArticle() {
++  return (
++    <>
++      <Mzda />
++      <SeoArticle page="mzda" />
++    </>
++  );
++}
++
+ const DISABILITY_OPTIONS = [
+   { label: "None", value: 0 },
+   { label: "Degree I–II", value: 1 },
+diff --git a/src/routes/plan.tsx b/src/routes/plan.tsx
+index f88b876..28418fa 100644
+--- a/src/routes/plan.tsx
++++ b/src/routes/plan.tsx
+@@ -1,7 +1,12 @@
+ import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+ import { ArrowLeft, Check } from "lucide-react";
+ import { useEffect, useMemo, useRef, useState } from "react";
+-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
++import {
++  Accordion,
++  AccordionContent,
++  AccordionItem,
++  AccordionTrigger,
++} from "@/components/ui/accordion";
+ import { NumberSlider } from "@/components/NumberSlider";
+ import { Panel } from "@/components/Panel";
+ import { PlanChart } from "@/components/plan/PlanChart";
+@@ -29,6 +34,9 @@ import { loadInvest, loadMortgage, type InvestScenario } from "@/lib/dashboard";
+ import { ageAt, mortgageSchedule, realBalanceAt, retirementMilestones } from "@/lib/retirement";
+ import { cn } from "@/lib/utils";
+ import { useT } from "@/lib/i18n";
++import { canonical, faqLd, webAppLd } from "@/lib/seo";
++import { SEO_CONTENT } from "@/lib/seoContent";
++import { SeoArticle } from "@/components/SeoArticle";
+ 
+ export const Route = createFileRoute("/plan")({
+   head: () => ({
+@@ -46,11 +54,30 @@ export const Route = createFileRoute("/plan")({
+       },
+       { property: "og:type", content: "website" },
+       { name: "twitter:card", content: "summary_large_image" },
++      canonical("/plan").meta,
++    ],
++    scripts: [
++      webAppLd(
++        "/plan",
++        "Kalkulačka finanční nezávislosti",
++        "Odpovězte na pět rychlých otázek a zjistěte, kdy můžete reálně přestat pracovat — a co změnit, pokud nestíháte.",
++      ),
++      faqLd(SEO_CONTENT.plan.cs.faq),
+     ],
++    links: [canonical("/plan").link],
+   }),
+-  component: PlanPage,
++  component: PlanPageWithArticle,
+ });
+ 
++function PlanPageWithArticle() {
++  return (
++    <>
++      <PlanPage />
++      <SeoArticle page="plan" />
++    </>
++  );
++}
++
+ /* ------------------------------ Questionnaire ----------------------------- */
+ 
+ type Answers = PlanProfile & Pick<PlanAssumptions, "ret" | "cashRet">;
+@@ -96,14 +123,16 @@ const STEPS: {
+     id: "spend",
+     title: "How much would you need each month to live on?",
+     helper: "In today's money — what your life costs now is usually a good guide.",
+-    detail: "Include regular living costs and room for the lifestyle you want. Leave out savings contributions.",
++    detail:
++      "Include regular living costs and room for the lifestyle you want. Leave out savings contributions.",
+     fields: [{ key: "spend", def: 2500, min: 0, max: 1000000, money: true }],
+   },
+   {
+     id: "invest",
+     title: "Your investments",
+     helper: "Funds, shares, ETFs, pension pots — money that's in the market.",
+-    detail: "Use today's value, and only monthly amounts that will continue until your target age. Avoid counting your home unless you plan to sell it.",
++    detail:
++      "Use today's value, and only monthly amounts that will continue until your target age. Avoid counting your home unless you plan to sell it.",
+     fields: [
+       { key: "invested", label: "Invested today", def: 20000, min: 0, max: 100000000, money: true },
+       { key: "saveInvest", label: "Invested monthly", def: 500, min: 0, max: 1000000, money: true },
+@@ -122,7 +151,8 @@ const STEPS: {
+     id: "savings",
+     title: "Your savings accounts",
+     helper: "Cash in savings accounts or term deposits rather than the market.",
+-    detail: "Leave out your everyday current account. Together with your investments this is your starting pot.",
++    detail:
++      "Leave out your everyday current account. Together with your investments this is your starting pot.",
+     fields: [
+       { key: "cash", label: "In savings today", def: 5000, min: 0, max: 100000000, money: true },
+       { key: "saveCash", label: "Saved monthly", def: 200, min: 0, max: 1000000, money: true },
+@@ -288,7 +318,9 @@ function Questionnaire({
+         }}
+       >
+         <h1 className="text-3xl font-semibold tracking-tight">{t(q.title)}</h1>
+-        {q.helper && <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{t(q.helper)}</p>}
++        {q.helper && (
++          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{t(q.helper)}</p>
++        )}
+ 
+         {fromInvest && (
+           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/5 px-4 py-3 text-sm">
+@@ -371,7 +403,9 @@ function Questionnaire({
+             <NumberSlider
+               label={t(q.rate.label)}
+               value={answers[q.rate.key]}
+-              onChange={(v) => setAnswers((a) => ({ ...a, [q.rate!.key]: Math.min(v, q.rate!.max) }))}
++              onChange={(v) =>
++                setAnswers((a) => ({ ...a, [q.rate!.key]: Math.min(v, q.rate!.max) }))
++              }
+               min={q.rate.min}
+               max={q.rate.max}
+               step={q.rate.step}
+@@ -434,7 +468,9 @@ function LeverCard({
+   const { t } = useT();
+   const atSolve = solved !== null && Math.abs(value - solved) <= step / 2;
+   const markerPct =
+-    solved !== null && max > min ? Math.min(100, Math.max(0, ((solved - min) / (max - min)) * 100)) : null;
++    solved !== null && max > min
++      ? Math.min(100, Math.max(0, ((solved - min) / (max - min)) * 100))
++      : null;
+ 
+   return (
+     <div className="rounded-lg border border-border p-5">
+@@ -539,7 +575,16 @@ function Results({ plan, onEdit }: { plan: SavedPlan; onEdit: () => void }) {
+     }
+     savePlan({ ...plan, ...profile, ...assumptions });
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+-  }, [plan.age, plan.stop, plan.spend, plan.invested, plan.cash, plan.saveInvest, plan.saveCash, assumptions]);
++  }, [
++    plan.age,
++    plan.stop,
++    plan.spend,
++    plan.invested,
++    plan.cash,
++    plan.saveInvest,
++    plan.saveCash,
++    assumptions,
++  ]);
+ 
+   // Effective (lever-adjusted) scenario drives the hero and the chart.
+   // The "save more" lever moves the total; the extra goes into investments.
+@@ -551,26 +596,38 @@ function Results({ plan, onEdit }: { plan: SavedPlan; onEdit: () => void }) {
+ 
+   const target = targetPotFor(levers.spend, assumptions.wd);
+   const months = monthsToTarget(effProfile, effAssumptions, target);
+-  const reachedAge = months === null ? null : months === 0 ? plan.age : Math.round(plan.age + months / 12);
++  const reachedAge =
++    months === null ? null : months === 0 ? plan.age : Math.round(plan.age + months / 12);
+   const potAtStop = projectPotAtStop(effProfile, effAssumptions);
+   const gap = isFinite(target) ? target - potAtStop : Infinity;
+ 
+   // Milestone 2: when the pot also covers what's left on the mortgage (Mortgage tab, if filled in).
+   const milestones = retirementMilestones(effProfile, effAssumptions, schedule);
+-  const debtFreeAge = milestones.debtFreeMonths === null ? null : ageAt(plan, milestones.debtFreeMonths);
++  const debtFreeAge =
++    milestones.debtFreeMonths === null ? null : ageAt(plan, milestones.debtFreeMonths);
+   const owesAtReached = reachedAge !== null && milestones.owedAtLiving > 0.5;
+   const chartEndAge = Math.max(reachedAge ?? 0, owesAtReached ? (debtFreeAge ?? 0) : 0);
+ 
+   const rows = useMemo(
+     () =>
+-      planRows(
+-        effProfile,
+-        effAssumptions,
+-        chartEndAge > plan.age ? chartEndAge : null,
+-        (m) => realBalanceAt(schedule, m, effAssumptions.infl),
++      planRows(effProfile, effAssumptions, chartEndAge > plan.age ? chartEndAge : null, (m) =>
++        realBalanceAt(schedule, m, effAssumptions.infl),
+       ),
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+-    [plan.age, plan.invested, plan.cash, plan.saveInvest, plan.saveCash, levers.save, levers.stop, levers.spend, levers.ret, assumptions, chartEndAge, schedule],
++    [
++      plan.age,
++      plan.invested,
++      plan.cash,
++      plan.saveInvest,
++      plan.saveCash,
++      levers.save,
++      levers.stop,
++      levers.spend,
++      levers.ret,
++      assumptions,
++      chartEndAge,
++      schedule,
++    ],
+   );
+ 
+   // Solve points are computed from the saved plan, not the dragged levers.
+@@ -616,10 +673,13 @@ function Results({ plan, onEdit }: { plan: SavedPlan; onEdit: () => void }) {
+                 })}
+               </h1>
+               <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+-                {t("That's ahead of your target of {stop}. Keep going until {stop} and you'd have about {v} more than your number.", {
+-                  stop: levers.stop,
+-                  v: money(surplusAtStop),
+-                })}
++                {t(
++                  "That's ahead of your target of {stop}. Keep going until {stop} and you'd have about {v} more than your number.",
++                  {
++                    stop: levers.stop,
++                    v: money(surplusAtStop),
++                  },
++                )}
+               </p>
+             </>
+           ) : onTrack ? (
+@@ -629,26 +689,34 @@ function Results({ plan, onEdit }: { plan: SavedPlan; onEdit: () => void }) {
+           ) : (
+             <>
+               <h1 className="text-[clamp(1.75rem,4vw,2.5rem)] font-semibold leading-tight tracking-tight">
+-                {t("At this rate, you can stop working at {age}.", { age: reachedAge ?? levers.stop })}
++                {t("At this rate, you can stop working at {age}.", {
++                  age: reachedAge ?? levers.stop,
++                })}
+               </h1>
+               <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+-                {t("{years} later than your target of {stop}. At {stop} you'd have about {v} — around {gap} short.", {
+-                  years: count((reachedAge ?? 0) - levers.stop, "year"),
+-                  stop: levers.stop,
+-                  v: money(potAtStop),
+-                  gap: money(Math.max(0, gap)),
+-                })}
++                {t(
++                  "{years} later than your target of {stop}. At {stop} you'd have about {v} — around {gap} short.",
++                  {
++                    years: count((reachedAge ?? 0) - levers.stop, "year"),
++                    stop: levers.stop,
++                    v: money(potAtStop),
++                    gap: money(Math.max(0, gap)),
++                  },
++                )}
+               </p>
+             </>
+           )}
+           {owesAtReached && (
+             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+               {debtFreeAge !== null
+-                ? t("You'd still owe {d} on the mortgage at {age}. Keep going until {age2} to clear it.", {
+-                    d: money(milestones.owedAtLiving),
+-                    age: reachedAge ?? plan.age,
+-                    age2: debtFreeAge,
+-                  })
++                ? t(
++                    "You'd still owe {d} on the mortgage at {age}. Keep going until {age2} to clear it.",
++                    {
++                      d: money(milestones.owedAtLiving),
++                      age: reachedAge ?? plan.age,
++                      age2: debtFreeAge,
++                    },
++                  )
+                 : t("You'd still owe {d} on the mortgage at {age}.", {
+                     d: money(milestones.owedAtLiving),
+                     age: reachedAge ?? plan.age,
+@@ -677,7 +745,9 @@ function Results({ plan, onEdit }: { plan: SavedPlan; onEdit: () => void }) {
+       <Panel>
+         <div className="grid gap-6 sm:grid-cols-3">
+           <div className="min-w-0">
+-            <p className="text-xs uppercase tracking-wide text-muted-foreground">{t("Your target")}</p>
++            <p className="text-xs uppercase tracking-wide text-muted-foreground">
++              {t("Your target")}
++            </p>
+             <p className="tnum mt-1.5 whitespace-nowrap text-[clamp(1.25rem,1.85vw,2rem)] font-semibold leading-tight tracking-tight">
+               {isFinite(target) ? money(target) : "—"}
+             </p>
+@@ -747,12 +817,19 @@ function Results({ plan, onEdit }: { plan: SavedPlan; onEdit: () => void }) {
+ 
+       <div className="print:hidden">
+         <div className="mb-4 flex items-center justify-between gap-4">
+-          <h2 className="text-sm font-semibold tracking-tight">{t("Four ways to close the gap")}</h2>
++          <h2 className="text-sm font-semibold tracking-tight">
++            {t("Four ways to close the gap")}
++          </h2>
+           {leversDirty && (
+             <button
+               type="button"
+               onClick={() =>
+-                setLevers({ save: planSave, stop: plan.stop, spend: plan.spend, ret: assumptions.ret })
++                setLevers({
++                  save: planSave,
++                  stop: plan.stop,
++                  spend: plan.spend,
++                  ret: assumptions.ret,
++                })
+               }
+               className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+             >
+@@ -766,7 +843,9 @@ function Results({ plan, onEdit }: { plan: SavedPlan; onEdit: () => void }) {
+             now={money(planSave)}
+             solved={solveSave}
+             solvedLabel={solveSave !== null ? money(solveSave) : "—"}
+-            caption={plan.saveCash > 0 ? t("Anything extra goes into your investments.") : undefined}
++            caption={
++              plan.saveCash > 0 ? t("Anything extra goes into your investments.") : undefined
++            }
+             value={levers.save}
+             onChange={(v) => setLevers((l) => ({ ...l, save: v }))}
+             min={0}
+@@ -823,7 +902,9 @@ function Results({ plan, onEdit }: { plan: SavedPlan; onEdit: () => void }) {
+               {t("Assumptions")}
+             </AccordionTrigger>
+             <AccordionContent>
+-              <p className="mb-6 text-sm text-muted-foreground">{t("All figures are in today's money.")}</p>
++              <p className="mb-6 text-sm text-muted-foreground">
++                {t("All figures are in today's money.")}
++              </p>
+               <div className="grid gap-6 sm:grid-cols-2">
+                 <NumberSlider
+                   label={t("Investment return")}
+@@ -866,7 +947,9 @@ function Results({ plan, onEdit }: { plan: SavedPlan; onEdit: () => void }) {
+                 />
+               </div>
+               <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
+-                {t("Take out 4% of the pot in your first year and adjust for inflation after that, and the money has historically lasted 30 years or more. It's a rule of thumb, not a guarantee.")}
++                {t(
++                  "Take out 4% of the pot in your first year and adjust for inflation after that, and the money has historically lasted 30 years or more. It's a rule of thumb, not a guarantee.",
++                )}
+               </p>
+             </AccordionContent>
+           </AccordionItem>
+@@ -928,17 +1011,25 @@ function Results({ plan, onEdit }: { plan: SavedPlan; onEdit: () => void }) {
+           </dl>
+           <p className="mt-5 text-xs text-muted-foreground">
+             {t("All figures in today's money. Made with Money Kalkulačka · {date}", {
+-              date: new Date().toLocaleDateString(locale, { year: "numeric", month: "long", day: "numeric" }),
++              date: new Date().toLocaleDateString(locale, {
++                year: "numeric",
++                month: "long",
++                day: "numeric",
++              }),
+             })}
+           </p>
+         </div>
+         <p className="plan-print-disclaimer mt-8 text-xs leading-relaxed text-muted-foreground">
+-          {t("Money Kalkulačka does arithmetic, not advice. These are projections based on assumptions you can change — not a prediction, and not a recommendation to buy or sell anything.")}
++          {t(
++            "Money Kalkulačka does arithmetic, not advice. These are projections based on assumptions you can change — not a prediction, and not a recommendation to buy or sell anything.",
++          )}
+         </p>
+       </div>
+ 
+       <p className="pb-4 text-xs leading-relaxed text-muted-foreground print:hidden">
+-        {t("Money Kalkulačka does arithmetic, not advice. These are projections based on assumptions you can change — not a prediction, and not a recommendation to buy or sell anything.")}
++        {t(
++          "Money Kalkulačka does arithmetic, not advice. These are projections based on assumptions you can change — not a prediction, and not a recommendation to buy or sell anything.",
++        )}
+       </p>
+     </div>
+   );
