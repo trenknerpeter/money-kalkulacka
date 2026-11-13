@@ -2,13 +2,13 @@
 @source "../src";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /*
  * Money Kalkulačka design system.
  * Warm off-white page, white cards with a soft shadow, one ink surface per page
  * for the headline number. Green is the brand and the interactive colour; blue
- * marks debt, amber marks pension and warnings. Dark palette follows the system.
+ * marks debt, amber marks pension and warnings. Dark is an opt-in choice.
  */
 
 @theme inline {
@@ -59,7 +59,7 @@
 }
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   --radius: 1rem; /* 16px cards, 14px inputs, 20px hero */
   --background: #f7f6f2;
   --foreground: #1c2521;
@@ -97,8 +97,11 @@
   --ring: #1b7f51;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
+/* Dark is opt-in from the settings menu (data-theme on <html>), never automatic.
+ * Screen only: printing always uses the light palette. */
+@media screen {
+  :root[data-theme="dark"] {
+    color-scheme: dark;
     --background: #121715;
     --foreground: #edf1ee;
     --card: #1a211d;

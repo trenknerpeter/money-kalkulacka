@@ -2,10 +2,12 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   ChevronDown,
   Clock,
-  Globe,
   House,
   LayoutGrid,
+  Moon,
+  Settings2,
   Shield,
+  Sun,
   Target,
   TrendingUp,
   Wallet,
@@ -23,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { TONE, type Tone } from "@/lib/tone";
 import { track } from "@/lib/analytics";
 import { isLangValue, useLang, useT } from "@/lib/i18n";
+import { useTheme, type Theme } from "@/lib/theme";
 import { PENSION_KEY } from "@/lib/pension";
 import { PLAN_KEY } from "@/lib/plan";
 import { SALARY_KEY } from "@/lib/salary";
@@ -49,14 +52,19 @@ function SettingsChip() {
   const { lang, setLang } = useLang();
   const { currency, setCurrency } = useCurrency();
   const { t } = useT();
+  const { theme, setTheme } = useTheme();
   const symbol = CURRENCIES.find((c) => c.code === currency)?.symbol ?? currency;
+  const themes: { value: Theme; label: string; Icon: ComponentType<{ className?: string }> }[] = [
+    { value: "light", label: "Light", Icon: Sun },
+    { value: "dark", label: "Dark", Icon: Moon },
+  ];
   return (
     <Popover>
       <PopoverTrigger
         className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-        aria-label={t("Language and currency")}
+        aria-label={t("Language, currency and appearance")}
       >
-        <Globe className="size-4 text-muted-foreground" aria-hidden="true" />
+        <Settings2 className="size-4 text-muted-foreground" aria-hidden="true" />
         <span className="tnum">
           {lang.toUpperCase()} · {symbol}
         </span>
@@ -97,6 +105,37 @@ function SettingsChip() {
             ))}
           </HeaderSelect>
         </label>
+        <div className="space-y-1.5">
+          <span
+            id="appearance-label"
+            className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+          >
+            {t("Appearance")}
+          </span>
+          <div
+            role="group"
+            aria-labelledby="appearance-label"
+            className="grid grid-cols-2 gap-1 rounded-lg border border-input bg-card p-1"
+          >
+            {themes.map(({ value, label, Icon }) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={theme === value}
+                onClick={() => setTheme(value)}
+                className={cn(
+                  "flex h-9 items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  theme === value
+                    ? "bg-accent-soft text-primary-deep"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                )}
+              >
+                <Icon className="size-4" aria-hidden="true" />
+                {t(label)}
+              </button>
+            ))}
+          </div>
+        </div>
       </PopoverContent>
     </Popover>
   );

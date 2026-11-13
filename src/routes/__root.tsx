@@ -16,6 +16,7 @@ import { CurrencyProvider } from "../lib/currency";
 import { LanguageProvider } from "../lib/i18n";
 import { AppShell } from "../components/AppShell";
 import { AnalyticsProvider, trackError } from "../lib/analytics";
+import { THEME_BOOT } from "../lib/theme";
 
 function NotFoundComponent() {
   return (
@@ -83,9 +84,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { name: "color-scheme", content: "light dark" },
-      { name: "theme-color", content: "#f7f6f2", media: "(prefers-color-scheme: light)" },
-      { name: "theme-color", content: "#121715", media: "(prefers-color-scheme: dark)" },
+      { name: "theme-color", content: "#f7f6f2" },
       { title: "Money Kalkulačka — finanční kalkulačky: mzda, investice, hypotéka" },
       {
         name: "description",
@@ -128,8 +127,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="cs">
+    // The head script may set data-theme before React hydrates; that is expected.
+    <html lang="cs" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
         <HeadContent />
       </head>
       <body>
