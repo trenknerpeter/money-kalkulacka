@@ -175,7 +175,7 @@ function Mortgage() {
                   key={t(opt.label)}
                   onClick={() => patch({ solveTerm: opt.value })}
                   className={cn(
-                    "min-h-9 flex-1 rounded px-3 py-1.5 text-sm leading-tight transition-colors",
+                    "min-h-9 flex-1 rounded-[calc(var(--radius)-3px)] px-3 py-1.5 text-sm leading-tight transition-colors",
                     s.solveTerm === opt.value
                       ? "bg-accent-soft font-semibold text-primary-deep"
                       : "text-muted-foreground hover:text-foreground",
@@ -548,7 +548,7 @@ function Mortgage() {
                             key={v}
                             onClick={() => setTableScenario(v)}
                             className={cn(
-                              "h-8 flex-1 rounded text-xs transition-colors",
+                              "h-8 flex-1 rounded-[calc(var(--radius)-3px)] text-xs transition-colors",
                               tableScenario === v
                                 ? "bg-accent-soft font-semibold text-primary-deep"
                                 : "text-muted-foreground hover:text-foreground",
