@@ -36,7 +36,6 @@ import { cn } from "@/lib/utils";
 const DESCRIPTION =
   "Spočítejte si, kdy půjdete do důchodu, jak vysoký bude starobní důchod a kolik vám přidá penzijní spoření (DPS) a DIP. Odhad v dnešních cenách, zdarma, bez registrace.";
 const CSSZ_URL = "https://www.cssz.gov.cz/duchodova-kalkulacka";
-const CURRENT_YEAR = new Date().getFullYear();
 
 export const Route = createFileRoute("/duchod")({
   head: () => ({
@@ -115,6 +114,10 @@ function YearField({
 }
 
 function Duchod() {
+  // Read the year on every render, never at module load: on the server the module is
+  // evaluated before any request, when the clock is not the real date, so a module-level
+  // constant renders the page for the wrong year and breaks hydration.
+  const CURRENT_YEAR = new Date().getFullYear();
   const [raw, patch] = useScenario(PENSION_KEY, pensionDefaults(CURRENT_YEAR));
   // Links and storage can hold anything; compute from clamped values.
   const s = useMemo(() => normalisePension(raw, CURRENT_YEAR), [raw]);
