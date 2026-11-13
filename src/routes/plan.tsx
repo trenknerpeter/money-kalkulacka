@@ -1,11 +1,11 @@
-import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { ArrowLeft, Check } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { NumberSlider } from "@/components/NumberSlider";
 import { Panel } from "@/components/Panel";
 import { PlanChart } from "@/components/plan/PlanChart";
-import { useCurrencyScale, useFormatters } from "@/lib/currency";
+import { useCurrency, useCurrencyScale, useFormatters } from "@/lib/currency";
 import {
   DEFAULT_ASSUMPTIONS,
   affordableSpend,
@@ -25,7 +25,25 @@ import {
   type PlanProfile,
   type SavedPlan,
 } from "@/lib/plan";
+import {
+  loadPension,
+  pensionFromParams,
+  pensionToParams,
+  resolvePlanPension,
+  retirementSummary,
+  type PensionScenario,
+} from "@/lib/pension";
+import { SALARY_KEY, parseSalaryStore } from "@/lib/salary";
 import { loadInvest, loadMortgage, type InvestScenario } from "@/lib/dashboard";
+import {
+  affordableSpendPhased,
+  monthsToPhasedTarget,
+  pensionLinkFrom,
+  phaseSegments,
+  phasedTarget,
+  requiredReturnPhased,
+  withPensionAge,
+} from "@/lib/phased";
 import { ageAt, mortgageSchedule, realBalanceAt, retirementMilestones } from "@/lib/retirement";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
@@ -36,13 +54,13 @@ import { SeoArticle } from "@/components/SeoArticle";
 export const Route = createFileRoute("/plan")({
   head: () => ({
     meta: [
-      { title: "Kdy můžete přestat pracovat — Money Kalkulačka" },
+      { title: "Cesta k finanční nezávislosti — Money Kalkulačka" },
       {
         name: "description",
         content:
           "Odpovězte na pět rychlých otázek a zjistěte, kdy můžete reálně přestat pracovat — a co změnit, pokud nestíháte.",
       },
-      { property: "og:title", content: "Kdy můžete přestat pracovat — Money Kalkulačka" },
+      { property: "og:title", content: "Cesta k finanční nezávislosti — Money Kalkulačka" },
       {
         property: "og:description",
         content: "Zjistěte, kdy můžete přestat pracovat, v dnešních cenách. Bez registrace.",
@@ -54,7 +72,7 @@ export const Route = createFileRoute("/plan")({
     scripts: [
       webAppLd(
         "/plan",
-        "Kalkulačka finanční nezávislosti",
+        "Cesta k finanční nezávislosti",
         "Odpovězte na pět rychlých otázek a zjistěte, kdy můžete reálně přestat pracovat — a co změnit, pokud nestíháte.",
       ),
       faqLd(SEO_CONTENT.plan.cs.faq),
@@ -91,6 +109,8 @@ type Field = {
 
 const STEPS: {
   id: string;
+  /** Short name shown in the progress line. */
+  label: string;
   title: string;
   helper?: string;
   detail: string;
@@ -102,6 +122,7 @@ const STEPS: {
 }[] = [
   {
     id: "age",
+    label: "Age",
     title: "How old are you?",
     helper: "Your current age sets how long your money has to grow.",
     detail: "Use your age today, rounded to the nearest whole year.",
@@ -109,6 +130,7 @@ const STEPS: {
   },
   {
     id: "stop",
+    label: "Stop age",
     title: "At what age would you like to stop working?",
     helper: "Aiming early is fine — that's the point of working it out.",
     detail: "This is your target, not a commitment. You can test other ages in your results.",
@@ -116,6 +138,7 @@ const STEPS: {
   },
   {
     id: "spend",
+    label: "Spending",
     title: "How much would you need each month to live on?",
     helper: "In today's money — what your life costs now is usually a good guide.",
     detail: "Include regular living costs and room for the lifestyle you want. Leave out savings contributions.",
@@ -123,8 +146,9 @@ const STEPS: {
   },
   {
     id: "invest",
+    label: "Investments",
     title: "Your investments",
-    helper: "Funds, shares, ETFs, pension pots — money that's in the market.",
+    helper: "Funds, shares, ETFs — money that's in the market.",
     detail: "Use today's value, and only monthly amounts that will continue until your target age. Avoid counting your home unless you plan to sell it.",
     fields: [
       { key: "invested", label: "Invested today", def: 20000, min: 0, max: 100000000, money: true },
@@ -142,6 +166,7 @@ const STEPS: {
   },
   {
     id: "savings",
+    label: "Savings",
     title: "Your savings accounts",
     helper: "Cash in savings accounts or term deposits rather than the market.",
     detail: "Leave out your everyday current account. Together with your investments this is your starting pot.",
@@ -159,9 +184,57 @@ const STEPS: {
     },
     fromInvest: "savings",
   },
+  {
+    id: "pension",
+    label: "Pension",
+    title: "Pension & retirement savings",
+    helper: "Count your state pension and DPS/DIP towards your plan, or leave them out.",
+    detail: "Only what you'll receive in retirement is counted, in today's money. Czech pension rules apply, so this step is for CZK only.",
+    fields: [],
+  },
 ];
 
+/** The one list of steps this visitor sees: the pension step is Czech-only. */
+function visibleSteps(currency: string) {
+  return currency === "CZK" ? STEPS : STEPS.filter((s) => s.id !== "pension");
+}
+
 const FIELDS = STEPS.flatMap((s) => s.fields);
+
+/** Answers in progress, kept while a first-time visitor pops over to the Retirement tab. */
+const DRAFT_KEY = "finbuddy.profile.draft.v1";
+/** The last plan URL this tab wrote itself (so going Back to it is not mistaken for a shared link). */
+const OWN_URL_KEY = "finbuddy.plan.ownUrl";
+
+function loadDraft(): Answers | null {
+  try {
+    const raw = window.localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const d = JSON.parse(raw) as Partial<Answers> | null;
+    if (!d || typeof d !== "object" || typeof d.age !== "number" || typeof d.stop !== "number") return null;
+    const n = normalisePlan(d);
+    const { wd: _wd, infl: _infl, usePension: _u, ...rest } = n;
+    return rest;
+  } catch {
+    return null;
+  }
+}
+
+function saveDraft(a: Answers) {
+  try {
+    window.localStorage.setItem(DRAFT_KEY, JSON.stringify(a));
+  } catch {
+    /* ignore */
+  }
+}
+
+function clearDraft() {
+  try {
+    window.localStorage.removeItem(DRAFT_KEY);
+  } catch {
+    /* ignore */
+  }
+}
 
 /** The Invest tab's numbers for one step, if it has them. */
 function investValuesFor(
@@ -178,28 +251,55 @@ function investValuesFor(
 
 function Questionnaire({
   initial,
+  draft = null,
   onDone,
 }: {
   initial: SavedPlan | null;
-  onDone: (p: Answers) => void;
+  /** Answers saved before visiting the Retirement tab; resumes at the pension step. */
+  draft?: Answers | null;
+  onDone: (p: Answers, usePension: boolean) => void;
 }) {
   const navigate = useNavigate();
   const { symbol, money, percent } = useFormatters();
   const scale = useCurrencyScale();
-  const { t } = useT();
+  const { t, count } = useT();
+  const { currency } = useCurrency();
   const [invest] = useState(() => loadInvest());
-  const [step, setStep] = useState(0);
+  const [pension] = useState(() => loadPension());
+  const [salaryGross] = useState<number | null>(() => {
+    try {
+      return parseSalaryStore(window.localStorage.getItem(SALARY_KEY))?.gross ?? null;
+    } catch {
+      return null;
+    }
+  });
+  const [usePension, setUsePension] = useState(
+    (initial?.usePension ?? false) && pension !== null && currency === "CZK",
+  );
+  const [step, setStep] = useState(() => {
+    if (!draft) return 0;
+    const steps = visibleSteps(currency);
+    const i = steps.findIndex((s) => s.id === "pension");
+    return i >= 0 ? i : steps.length - 1;
+  });
+  const [ageNotice, setAgeNotice] = useState<{ year: number; age: number } | null>(null);
   const [answers, setAnswers] = useState<Answers>(() => {
     if (initial) {
-      const { wd: _wd, infl: _infl, ...rest } = initial;
+      const { wd: _wd, infl: _infl, usePension: _u, ...rest } = initial;
       return rest;
     }
+    if (draft) return draft;
     const a = Object.fromEntries(
       FIELDS.map((f) => [f.key, f.money ? f.def * scale : f.def]),
     ) as PlanProfile;
     // A first visit starts from the Invest tab's numbers where there are any.
+    const ageField = FIELDS.find((f) => f.key === "age")!;
+    const fromPension = pension
+      ? { age: Math.min(ageField.max, Math.max(ageField.min, new Date().getFullYear() - pension.birthYear)) }
+      : {};
     return {
       ...a,
+      ...fromPension,
       ret: DEFAULT_ASSUMPTIONS.ret,
       cashRet: DEFAULT_ASSUMPTIONS.cashRet,
       ...investValuesFor(invest, "invest"),
@@ -212,7 +312,65 @@ function Questionnaire({
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const q = STEPS[step]!;
+  // Steps shown to this visitor; the step count and labels derive from this list.
+  const steps = visibleSteps(currency);
+  // The list can shrink mid-session (currency switch), so never index past its end.
+  const stepIdx = Math.min(step, steps.length - 1);
+  const q = steps[stepIdx]!;
+  const pensionOn = currency === "CZK" && pension !== null;
+  // Same values Independence uses for this stop age.
+  const pensionLink = useMemo(
+    () =>
+      pensionOn && pension ? pensionLinkFrom(pension, { currentYear: new Date().getFullYear(), salaryGross }) : null,
+    [pensionOn, pension, salaryGross],
+  );
+  const phase = pensionLink ? pensionLink.at(answers.stop) : null;
+  const ageLabel = (months: number) => {
+    const m = Math.round(months);
+    const y = Math.floor(m / 12);
+    const r = m % 12;
+    return r === 0 ? count(y, "year") : t("{a} and {b}", { a: count(y, "year"), b: count(r, "month") });
+  };
+  const phaseText = phase
+    ? (() => {
+        const vars = {
+          stop: answers.stop,
+          p: money(phase.pensionMonthly),
+          age: ageLabel(phase.pensionAge * 12),
+          pot: money(phase.savingsPot),
+          openAge: ageLabel(phase.savingsAge * 12),
+        };
+        const pot = phase.savingsPot > 0;
+        if (phase.pensionMonthly <= 0) {
+          return pot
+            ? t("If you stop at {stop}: no state pension (fewer than 20 insured years); DPS + DIP ~{pot} from {openAge}", vars)
+            : t("If you stop at {stop}: no state pension (fewer than 20 insured years)", vars);
+        }
+        return pot
+          ? t("If you stop at {stop}: state pension ~{p} from {age}; DPS + DIP ~{pot} from {openAge}", vars)
+          : t("If you stop at {stop}: state pension ~{p} from {age}", vars);
+      })()
+    : null;
+
+  // Turning the pension on makes the Retirement tab's birth year the age (one source of truth).
+  const togglePension = () => {
+    const next = !usePension;
+    setUsePension(next);
+    if (!next || !pension) {
+      setAgeNotice(null);
+      return;
+    }
+    const pensionAge = new Date().getFullYear() - pension.birthYear;
+    if (Math.abs(answers.age - pensionAge) > 1) {
+      const stop = Math.max(answers.stop, pensionAge + 1);
+      setAnswers((a) => ({ ...a, age: pensionAge, stop }));
+      setTexts((tx) => ({ ...tx, age: String(pensionAge), stop: String(stop) }));
+      setAgeNotice({ year: pension.birthYear, age: pensionAge });
+    }
+  };
+  const helper = q.id === "invest" && pensionOn
+    ? "Funds, shares, ETFs — money that's in the market. Leave out DPS and DIP — they're counted from your Retirement tab."
+    : q.helper;
   const multi = q.fields.length > 1;
   const fromInvest = investValuesFor(invest, q.fromInvest);
   const usingInvest =
@@ -224,7 +382,7 @@ function Questionnaire({
   useEffect(() => {
     inputRef.current?.focus();
     inputRef.current?.select();
-  }, [step]);
+  }, [stepIdx]);
 
   const goTo = (next: number) => {
     setStep(next);
@@ -268,10 +426,10 @@ function Questionnaire({
       next[f.key] = value;
     }
     setAnswers(next);
-    if (step === STEPS.length - 1) {
-      onDone(next);
+    if (stepIdx === steps.length - 1) {
+      onDone(next, usePension && currency === "CZK");
     } else {
-      goTo(step + 1);
+      goTo(stepIdx + 1);
     }
   };
 
@@ -280,25 +438,30 @@ function Questionnaire({
       <div className="mb-10 flex items-center justify-between">
         <button
           type="button"
-          onClick={() => step > 0 && goTo(step - 1)}
+          onClick={() => stepIdx > 0 && goTo(stepIdx - 1)}
           aria-label={t("Back")}
           className={cn(
             "flex size-11 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:text-foreground",
-            step === 0 && "pointer-events-none opacity-0",
+            stepIdx === 0 && "pointer-events-none opacity-0",
           )}
         >
           <ArrowLeft className="size-4" />
         </button>
-        <div className="flex items-center gap-2">
-          {STEPS.map((qq, i) => (
-            <span
-              key={qq.id}
-              className={cn(
-                "size-2 rounded-full transition-colors",
-                i <= step ? "bg-primary" : "bg-neutral-fill",
-              )}
-            />
-          ))}
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-xs font-medium text-muted-foreground">
+            {t("Step {i} of {n}", { i: stepIdx + 1, n: steps.length })} · {t(q.label)}
+          </p>
+          <div className="flex items-center gap-2" aria-hidden>
+            {steps.map((qq, i) => (
+              <span
+                key={qq.id}
+                className={cn(
+                  "size-2 rounded-full transition-colors",
+                  i <= stepIdx ? "bg-primary" : "bg-neutral-fill",
+                )}
+              />
+            ))}
+          </div>
         </div>
         <span className="size-11" />
       </div>
@@ -310,7 +473,7 @@ function Questionnaire({
         }}
       >
         <h1 className="text-3xl font-semibold tracking-tight">{t(q.title)}</h1>
-        {q.helper && <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{t(q.helper)}</p>}
+        {helper && <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{t(helper)}</p>}
 
         {fromInvest && (
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/5 px-4 py-3 text-sm">
@@ -343,6 +506,72 @@ function Questionnaire({
           </div>
         )}
 
+        {q.id === "pension" && (
+          <div className="mt-6 space-y-4">
+            {pensionOn && phaseText ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/5 px-4 py-3 text-sm">
+                <span className="min-w-0">{phaseText}</span>
+                <button
+                  type="button"
+                  aria-pressed={usePension}
+                  onClick={togglePension}
+                  className={cn(
+                    "inline-flex h-9 items-center gap-1 rounded-md px-3 text-sm font-medium",
+                    usePension
+                      ? "border border-primary text-primary"
+                      : "bg-primary text-primary-foreground",
+                  )}
+                >
+                  {usePension && <Check className="size-4" />}
+                  {usePension ? t("Using these") : t("Use these")}
+                </button>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-border px-4 py-4 text-sm">
+                <p>{t("Add your state pension and DPS/DIP to lower what you need to save.")}</p>
+                <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+                  <Link
+                    to="/duchod"
+                    onClick={() => {
+                      // A first visit has nothing saved yet: keep the answers for the way back.
+                      if (!initial) saveDraft(answers);
+                    }}
+                    className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground"
+                  >
+                    {t("Open the Retirement tab")}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => onDone(answers, false)}
+                    className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+                  >
+                    {t("Skip — count on my own money only")}
+                  </button>
+                </div>
+              </div>
+            )}
+            {usePension && ageNotice && (
+              <p role="status" className="text-sm leading-relaxed text-muted-foreground">
+                {t("Your Retirement tab says you were born in {y}, so we use age {a}.", {
+                  y: ageNotice.year,
+                  a: ageNotice.age,
+                })}
+              </p>
+            )}
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              {t("Make sure DPS and DIP aren't in your investments above.")}{" "}
+              <button
+                type="button"
+                onClick={() => goTo(steps.findIndex((x) => x.id === "invest"))}
+                className="underline underline-offset-4 hover:text-foreground"
+              >
+                {t("Check my investments")}
+              </button>
+            </p>
+          </div>
+        )}
+
+        {q.fields.length > 0 && (
         <div className={cn(multi ? "mt-8 grid gap-6 sm:grid-cols-2" : "mt-10")}>
           {q.fields.map((f, i) => (
             <div key={f.key} className="min-w-0">
@@ -384,6 +613,7 @@ function Questionnaire({
             </div>
           ))}
         </div>
+        )}
         <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{t(q.detail)}</p>
         {error && <p className="mt-3 text-sm text-muted-foreground">{error}</p>}
 
@@ -407,7 +637,7 @@ function Questionnaire({
           type="submit"
           className="mt-10 inline-flex h-11 items-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          {step === STEPS.length - 1 ? t("See my plan") : t("Continue")}
+          {stepIdx === steps.length - 1 ? t("See my plan") : t("Continue")}
         </button>
       </form>
 
@@ -418,6 +648,114 @@ function Questionnaire({
       >
         {t("Skip for now")}
       </button>
+    </div>
+  );
+}
+
+/* --------------------------------- Intro ---------------------------------- */
+
+function Intro({ onStart }: { onStart: () => void }) {
+  const { t } = useT();
+  const { currency } = useCurrency();
+  const [hasInvest, setHasInvest] = useState(false);
+  const [hasPension, setHasPension] = useState(false);
+  useEffect(() => {
+    setHasInvest(loadInvest() !== null);
+    setHasPension(loadPension() !== null);
+  }, []);
+
+  const tabs = [hasInvest && t("Invest"), hasPension && t("Retirement")].filter(Boolean) as string[];
+  const prefill =
+    tabs.length === 2
+      ? t("We'll pre-fill from your Invest and Retirement tabs")
+      : hasInvest
+        ? t("We'll pre-fill from your Invest tab")
+        : hasPension
+          ? t("We'll pre-fill from your Retirement tab")
+          : null;
+
+  const tiles = [
+    {
+      title: t("The age you can stop"),
+      body: t("A realistic age, in today's money."),
+      preview: (
+        <svg viewBox="0 0 120 48" className="h-12 w-full" aria-hidden="true">
+          <line x1="6" y1="36" x2="114" y2="36" className="stroke-border" strokeWidth="2" />
+          {[24, 48, 72, 96].map((x) => (
+            <line key={x} x1={x} y1="32" x2={x} y2="40" className="stroke-border" strokeWidth="2" />
+          ))}
+          <circle cx="72" cy="36" r="7" className="fill-primary" />
+          <text x="72" y="14" textAnchor="middle" className="fill-foreground text-[11px] font-semibold">
+            60
+          </text>
+        </svg>
+      ),
+    },
+    {
+      title: t("How big your pot needs to be"),
+      body: t("The number your money has to reach."),
+      preview: (
+        <svg viewBox="0 0 120 48" className="h-12 w-full" aria-hidden="true">
+          <path d="M6 42 C40 40 70 30 110 8" className="fill-none stroke-primary" strokeWidth="3" strokeLinecap="round" />
+          <line x1="6" y1="8" x2="114" y2="8" className="stroke-muted-foreground" strokeWidth="1.5" strokeDasharray="4 4" />
+        </svg>
+      ),
+    },
+    {
+      title: t("What to change if you're short"),
+      body: t("Save more, retire later or spend less."),
+      preview: (
+        <svg viewBox="0 0 120 48" className="h-12 w-full" aria-hidden="true">
+          {[0, 1, 2].map((i) => (
+            <g key={i}>
+              <rect x="6" y={6 + i * 14} width="108" height="6" rx="3" className="fill-neutral-fill" />
+              <rect x="6" y={6 + i * 14} width={[70, 48, 88][i]} height="6" rx="3" className="fill-primary" />
+            </g>
+          ))}
+        </svg>
+      ),
+    },
+  ];
+
+  return (
+    <div className="mx-auto flex min-h-[70vh] max-w-2xl flex-col justify-center py-10">
+      <p className="text-xs font-medium uppercase tracking-wide text-primary">
+        {t("Path to financial independence")}
+      </p>
+      <h1 className="mt-3 text-4xl font-semibold tracking-tight">{t("When can you stop working?")}</h1>
+
+      <div className="mt-8 grid gap-3 sm:grid-cols-3">
+        {tiles.map((tile) => (
+          <div key={tile.title} className="min-w-0 rounded-lg border border-border p-4">
+            {tile.preview}
+            <p className="mt-3 text-sm font-semibold">{tile.title}</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{tile.body}</p>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-6 text-sm text-muted-foreground">
+        {t("{n} questions · about 2 minutes · everything in today's money · stays in your browser", {
+          n: visibleSteps(currency).length,
+        })}
+      </p>
+      {prefill && <p className="mt-2 text-sm text-muted-foreground">{prefill}</p>}
+
+      <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
+        <button
+          type="button"
+          onClick={onStart}
+          className="inline-flex h-11 items-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          {t("Work out my plan")}
+        </button>
+        <Link
+          to="/duchod"
+          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+        >
+          {t("Only want your state pension? → Retirement tab")}
+        </Link>
+      </div>
     </div>
   );
 }
@@ -505,7 +843,20 @@ function LeverCard({
 
 /* --------------------------------- Results -------------------------------- */
 
-function Results({ plan, onEdit }: { plan: SavedPlan; onEdit: () => void }) {
+function Results({
+  plan,
+  pension,
+  ownUrl,
+  onEdit,
+}: {
+  /** With the pension used, its age already comes from the Retirement birth year. */
+  plan: SavedPlan;
+  /** Already null whenever it must not be used (off, non-CZK, no data). */
+  pension: PensionScenario | null;
+  /** The URL this writes is this browser's own (not showing a shared link's pension). */
+  ownUrl: boolean;
+  onEdit: () => void;
+}) {
   const router = useRouter();
   const { money, percent, symbol } = useFormatters();
   const { t, count, locale } = useT();
@@ -555,13 +906,24 @@ function Results({ plan, onEdit }: { plan: SavedPlan; onEdit: () => void }) {
       wd: String(assumptions.wd),
       infl: String(assumptions.infl),
     });
+    if (pension) {
+      params.set("usePension", "1");
+      for (const [k, v] of Object.entries(pensionToParams(pension))) params.set(k, v);
+    }
     const href = `${window.location.pathname}?${params.toString()}`;
     if (`${window.location.pathname}${window.location.search}` !== href) {
       void router.navigate({ href, replace: true, resetScroll: false });
     }
+    if (ownUrl) {
+      try {
+        window.sessionStorage.setItem(OWN_URL_KEY, `?${params.toString()}`);
+      } catch {
+        /* ignore */
+      }
+    }
     savePlan({ ...plan, ...profile, ...assumptions });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plan.age, plan.stop, plan.spend, plan.invested, plan.cash, plan.saveInvest, plan.saveCash, assumptions]);
+  }, [plan.age, plan.stop, plan.spend, plan.invested, plan.cash, plan.saveInvest, plan.saveCash, assumptions, pension, ownUrl]);
 
   // Effective (lever-adjusted) scenario drives the hero and the chart.
   // The "save more" lever moves the total; the extra goes into investments.
@@ -571,17 +933,104 @@ function Results({ plan, onEdit }: { plan: SavedPlan; onEdit: () => void }) {
   );
   const effAssumptions: PlanAssumptions = { ...assumptions, ret: levers.ret };
 
-  const target = targetPotFor(levers.spend, assumptions.wd);
-  const months = monthsToTarget(effProfile, effAssumptions, target);
+  // With the pension on, the number you need depends on the age you stop (it is lower the later you stop).
+  const [salaryGross] = useState<number | null>(() => {
+    try {
+      return parseSalaryStore(window.localStorage.getItem(SALARY_KEY))?.gross ?? null;
+    } catch {
+      return null;
+    }
+  });
+  const link = useMemo(
+    () => (pension ? pensionLinkFrom(pension, { currentYear: new Date().getFullYear(), salaryGross }) : null),
+    [pension, salaryGross],
+  );
+  // The full-career statutory pension: working until the statutory age, no early start.
+  const fullPension = useMemo(
+    () =>
+      pension
+        ? retirementSummary(
+            { ...pension, workUntil: 0, earlyMonths: 0 },
+            { currentYear: new Date().getFullYear(), salaryGross },
+          )
+        : null,
+    [pension, salaryGross],
+  );
+  const targetAt = link
+    ? (m: number) => {
+        const age = plan.age + m / 12;
+        return phasedTarget(levers.spend, age, effAssumptions, link.at(age));
+      }
+    : undefined;
+
+  const target = targetAt
+    ? targetAt((levers.stop - plan.age) * 12)
+    : targetPotFor(levers.spend, assumptions.wd);
+  const months = targetAt
+    ? monthsToPhasedTarget(effProfile, effAssumptions, targetAt)
+    : monthsToTarget(effProfile, effAssumptions, target);
   const reachedAge = months === null ? null : months === 0 ? plan.age : Math.round(plan.age + months / 12);
   const potAtStop = projectPotAtStop(effProfile, effAssumptions);
   const gap = isFinite(target) ? target - potAtStop : Infinity;
 
   // Milestone 2: when the pot also covers what's left on the mortgage (Mortgage tab, if filled in).
-  const milestones = retirementMilestones(effProfile, effAssumptions, schedule);
+  const milestones = retirementMilestones(effProfile, effAssumptions, schedule, targetAt);
   const debtFreeAge = milestones.debtFreeMonths === null ? null : ageAt(plan, milestones.debtFreeMonths);
   const owesAtReached = reachedAge !== null && milestones.owedAtLiving > 0.5;
-  const chartEndAge = Math.max(reachedAge ?? 0, owesAtReached ? (debtFreeAge ?? 0) : 0);
+  const phaseAt = link ? link.at(levers.stop) : null;
+  const pensionStartAge = phaseAt && phaseAt.pensionMonthly > 0 ? Math.round(phaseAt.pensionAge) : null;
+  const savingsOpenAge = phaseAt && phaseAt.savingsPot > 0 ? Math.round(phaseAt.savingsAge) : null;
+  // Show the pension start (plus a few years) on the chart.
+  const chartEndAge = Math.max(
+    reachedAge ?? 0,
+    owesAtReached ? (debtFreeAge ?? 0) : 0,
+    pensionStartAge ?? 0,
+  );
+  // Markers only for what starts after you stop; at or before the stop age the strip says it.
+  const chartMarkers = [
+    savingsOpenAge !== null ? { age: savingsOpenAge, label: t("DPS/DIP opens at {age}", { age: savingsOpenAge }) } : null,
+    pensionStartAge !== null
+      ? { age: pensionStartAge, label: t("State pension starts at {age}", { age: pensionStartAge }) }
+      : null,
+  ].filter((m): m is { age: number; label: string } => m !== null && m.age > levers.stop);
+  const phaseParts = phaseAt
+    ? (() => {
+        const dpsAt = phaseAt.savingsPot > 0 ? Math.max(levers.stop, phaseAt.savingsAge) : Infinity;
+        const penAt = phaseAt.pensionMonthly > 0 ? Math.max(levers.stop, phaseAt.pensionAge) : Infinity;
+        const p = t("{v}/mo", { v: money(phaseAt.pensionMonthly) });
+        const segs = phaseSegments(levers.stop, phaseAt).filter(
+          (s) => s.to === null || Math.round(s.from) < Math.round(s.to),
+        );
+        return segs.map((s, i) => {
+          const range = s.to === null ? `${Math.round(s.from)}+` : `${Math.round(s.from)}–${Math.round(s.to)}`;
+          const dps = dpsAt <= s.from + 1e-9;
+          const pen = penAt <= s.from + 1e-9;
+          if (i === 0) {
+            // The first phase reads on its own: name every source that pays.
+            return dps && pen
+              ? t("{range}: your savings + DPS/DIP + state pension {p}", { range, p })
+              : dps
+                ? t("{range}: your savings + DPS/DIP", { range })
+                : pen
+                  ? t("{range}: your savings + state pension {p}", { range, p })
+                  : t("{range}: your savings pay everything", { range });
+          }
+          const prev = segs[i - 1]!;
+          const newDps = dps && !(dpsAt <= prev.from + 1e-9);
+          const newPen = pen && !(penAt <= prev.from + 1e-9);
+          return newDps && newPen
+            ? t("{range}: + DPS/DIP + state pension {p}", { range, p })
+            : newDps
+              ? t("{range}: + DPS/DIP", { range })
+              : t("{range}: + state pension {p}", { range, p });
+        });
+      })()
+    : [];
+  const earlyStopCut =
+    phaseAt && fullPension && levers.stop * 12 < fullPension.pension.statutoryMonths &&
+    phaseAt.pensionMonthly < fullPension.pension.monthly
+      ? { full: fullPension.pension.monthly, reduced: phaseAt.pensionMonthly }
+      : null;
 
   const rows = useMemo(
     () =>
@@ -596,15 +1045,24 @@ function Results({ plan, onEdit }: { plan: SavedPlan; onEdit: () => void }) {
   );
 
   // Solve points are computed from the saved plan, not the dragged levers.
-  const baseTarget = targetPotFor(plan.spend, assumptions.wd);
+  const baseTarget = link
+    ? phasedTarget(plan.spend, plan.stop, assumptions, link.at(plan.stop))
+    : targetPotFor(plan.spend, assumptions.wd);
   const solveSave = requiredMonthly(profile, assumptions, baseTarget);
-  const baseMonths = monthsToTarget(profile, assumptions, baseTarget);
+  const baseMonths = link
+    ? monthsToPhasedTarget(profile, assumptions, (m) => {
+        const age = plan.age + m / 12;
+        return phasedTarget(plan.spend, age, assumptions, link.at(age));
+      })
+    : monthsToTarget(profile, assumptions, baseTarget);
   const solveStop = baseMonths === null ? null : Math.round(plan.age + baseMonths / 12);
-  const solveSpendRaw = affordableSpend(profile, assumptions);
+  const solveSpendRaw = link ? affordableSpendPhased(profile, assumptions, link) : affordableSpend(profile, assumptions);
   const solveSpend = baseMonths === 0 || solveSpendRaw < plan.spend ? solveSpendRaw : null;
-  const solveRet = requiredReturn(profile, assumptions, baseTarget);
+  // With the pension on, the target moves with the return, so the solve re-computes it.
+  const solveRet = link ? requiredReturnPhased(profile, assumptions, link) : requiredReturn(profile, assumptions, baseTarget);
 
-  const alreadyFunded = isFinite(target) && pot >= target;
+  // With the pension on, "now" is judged against the number needed to stop today, not at the stop age.
+  const alreadyFunded = targetAt ? months === 0 : isFinite(target) && pot >= target;
   const early = !alreadyFunded && reachedAge !== null && reachedAge < levers.stop;
   const onTrack = !alreadyFunded && reachedAge !== null && reachedAge === levers.stop;
   const unreachable = !alreadyFunded && reachedAge === null;
@@ -696,6 +1154,34 @@ function Results({ plan, onEdit }: { plan: SavedPlan; onEdit: () => void }) {
         </div>
       </div>
 
+      {(phaseParts.length > 0 || earlyStopCut) && (
+        <div className="-mt-3 space-y-1.5">
+          {phaseParts.length > 0 && (
+            <p className="flex max-w-2xl flex-wrap items-center gap-x-2 gap-y-1 text-sm leading-relaxed text-muted-foreground">
+              {phaseParts.map((part, i) => (
+                <span key={i} className="flex items-center gap-2">
+                  {i > 0 && <span aria-hidden="true">→</span>}
+                  <span>{part}</span>
+                </span>
+              ))}
+            </p>
+          )}
+          {earlyStopCut && (
+            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+              {earlyStopCut.reduced <= 0
+                ? t("Stopping at {stop} means you won't qualify for a state pension (fewer than 20 insured years).", {
+                    stop: levers.stop,
+                  })
+                : t("Stopping at {stop} lowers your state pension from {full} to {reduced} (fewer insured years).", {
+                    stop: levers.stop,
+                    full: money(earlyStopCut.full),
+                    reduced: money(earlyStopCut.reduced),
+                  })}
+            </p>
+          )}
+        </div>
+      )}
+
       <Panel>
         <div className="grid gap-6 sm:grid-cols-3">
           <div className="min-w-0">
@@ -704,10 +1190,14 @@ function Results({ plan, onEdit }: { plan: SavedPlan; onEdit: () => void }) {
               {isFinite(target) ? money(target) : "—"}
             </p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              {t("{p} a year of it covers your yearly spending of {v} without touching the pot", {
-                p: percent(assumptions.wd),
-                v: money(levers.spend * 12),
-              })}
+              {link
+                ? t("Covers your {v} a year of spending until your pensions start, then what they leave uncovered — in today's money.", {
+                    v: money(levers.spend * 12),
+                  })
+                : t("{p} a year of it covers your yearly spending of {v} without touching the pot", {
+                    p: percent(assumptions.wd),
+                    v: money(levers.spend * 12),
+                  })}
             </p>
           </div>
           <div className="min-w-0">
@@ -750,6 +1240,8 @@ function Results({ plan, onEdit }: { plan: SavedPlan; onEdit: () => void }) {
           stopAge={levers.stop}
           reachedAge={reachedAge}
           debtFreeAge={owesAtReached ? debtFreeAge : null}
+          markers={chartMarkers}
+          needAt={targetAt ? (age: number) => targetAt((age - plan.age) * 12) : undefined}
         />
         <div className="mt-4 flex flex-wrap items-center gap-5 text-xs text-muted-foreground">
           <span className="flex items-center gap-2">
@@ -758,6 +1250,12 @@ function Results({ plan, onEdit }: { plan: SavedPlan; onEdit: () => void }) {
           <span className="flex items-center gap-2">
             <span className="size-2.5 rounded-sm bg-primary/30 ring-1 ring-primary" /> {t("Growth")}
           </span>
+          {link && (
+            <span className="flex items-center gap-2">
+              <span className="h-0 w-3 border-t-2 border-dashed border-muted-foreground" />{" "}
+              {t("Your number at each age")}
+            </span>
+          )}
           {rows.some((r) => r.debt > 0.5) && (
             <span className="flex items-center gap-2">
               <span className="h-0 w-3 border-t-2 border-dotted border-muted-foreground" />{" "}
@@ -972,10 +1470,30 @@ function PlanPage() {
   const [plan, setPlan] = useState<SavedPlan | null>(null);
   const [editing, setEditing] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  // First visit (no saved plan, no plan in the URL) starts on the intro.
+  const [intro, setIntro] = useState(false);
+  // Answers kept from before a trip to the Retirement tab.
+  const [draft, setDraft] = useState<Answers | null>(null);
+  const { currency } = useCurrency();
+  // A shared link's pension is used as-is and never written to this browser's storage.
+  const [urlPension, setUrlPension] = useState<PensionScenario | null>(null);
+  const [storedPension, setStoredPension] = useState<PensionScenario | null>(null);
+  // The plan came from someone else's link on this load (not this tab's own URL, e.g. after Back).
+  const [planFromUrl, setPlanFromUrl] = useState(false);
+  const [edited, setEdited] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    setUrlPension(pensionFromParams(params, new Date().getFullYear()));
+    setStoredPension(loadPension());
     if (params.has("age") && params.has("stop")) {
+      let own = false;
+      try {
+        own = window.sessionStorage.getItem(OWN_URL_KEY) === window.location.search;
+      } catch {
+        own = false;
+      }
+      setPlanFromUrl(!own);
       const raw: Record<string, number> = {};
       params.forEach((v, k) => {
         const n = parseFloat(v);
@@ -983,25 +1501,57 @@ function PlanPage() {
       });
       setPlan(normalisePlan(raw));
     } else {
-      setPlan(loadPlan());
+      const saved = loadPlan();
+      setPlan(saved);
+      const d = saved === null ? loadDraft() : null;
+      setDraft(d);
+      setIntro(saved === null && d === null);
     }
     setHydrated(true);
   }, []);
 
   if (!hydrated) return null;
 
-  if (plan === null || editing) {
+  if (plan === null && intro) return <Intro onStart={() => setIntro(false)} />;
+
+  const pension = plan
+    ? resolvePlanPension({
+        usePension: plan.usePension,
+        fromUrl: urlPension,
+        stored: storedPension,
+        currency,
+        planFromUrl,
+        edited,
+      })
+    : null;
+  // While the pension is used, the Retirement tab's birth year sets the age.
+  const shown = plan && pension ? withPensionAge(plan, pension.birthYear, new Date().getFullYear()) : plan;
+
+  if (shown === null || editing) {
     return (
       <Questionnaire
-        initial={plan}
-        onDone={(p) => {
+        initial={shown}
+        draft={shown === null ? draft : null}
+        onDone={(p, usePension) => {
           const { wd, infl } = plan ?? DEFAULT_ASSUMPTIONS;
-          setPlan({ ...p, wd, infl });
+          clearDraft();
+          setDraft(null);
+          setPlan({ ...p, wd, infl, usePension });
+          setStoredPension(loadPension());
+          setEdited(true);
           setEditing(false);
         }}
       />
     );
   }
 
-  return <Results plan={plan} onEdit={() => setEditing(true)} />;
+  return (
+    <Results
+      key={`${shown.age}-${shown.stop}`}
+      plan={shown}
+      pension={pension}
+      ownUrl={pension === null || pension !== urlPension}
+      onEdit={() => setEditing(true)}
+    />
+  );
 }

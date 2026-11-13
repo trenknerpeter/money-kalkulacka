@@ -66,9 +66,10 @@ function CurrencySelect() {
 
 const TABS = [
   { label: "Salary", to: "/mzda" },
+  { label: "Retirement", to: "/duchod" },
   { label: "Invest", to: "/invest" },
   { label: "Mortgage", to: "/mortgage" },
-  { label: "Plan", to: "/plan" },
+  { label: "Financial independence", to: "/plan" },
   { label: "Dashboard", to: "/dashboard" },
 ] as const;
 

@@ -1,5 +1,8 @@
 import { num } from "./finance";
+import { loadPension, resolvePlanPension } from "./pension";
+import { phasedTarget, type PensionLink, pensionLinkFrom, withPensionAge } from "./phased";
 import { loadPlan, potsAfterMonths, startPot, type SavedPlan } from "./plan";
+import { SALARY_KEY, parseSalaryStore } from "./salary";
 import {
   ageAt,
   homeValueAt,
@@ -161,8 +164,14 @@ export function deriveMetrics(input: {
   mortgage: MortgageScenario | null;
   plan: SavedPlan | null;
   income: number;
+  /** Pension link for the phased target; only used when the plan has `usePension` on. */
+  pension?: PensionLink | null;
 }): DashboardMetrics {
-  const { invest, mortgage, plan, income } = input;
+  const { invest, mortgage, income } = input;
+  // With the pension used, the Retirement tab's birth year sets the plan's current age.
+  const link = input.plan?.usePension && input.pension ? input.pension : null;
+  const plan =
+    input.plan && link ? withPensionAge(input.plan, link.birthYear, new Date().getFullYear()) : input.plan;
 
   // Single source of truth for what you own today: Plan if answered, otherwise the Invest tab.
   const invested = plan ? num(plan.invested) : invest ? num(invest.initial) : 0;
@@ -193,11 +202,18 @@ export function deriveMetrics(input: {
   let outlook: DashboardMetrics["outlook"] = null;
 
   if (plan) {
-    const ms = retirementMilestones(plan, plan, schedule);
+    const targetAt = link
+      ? (m: number) => {
+          const age = num(plan.age) + m / 12;
+          return phasedTarget(num(plan.spend), age, plan, link.at(age));
+        }
+      : undefined;
+    const ms = retirementMilestones(plan, plan, schedule, targetAt);
+    const targetNow = targetAt ? targetAt((num(plan.stop) - num(plan.age)) * 12) : ms.target;
     const debtAt = (m: number) => realBalanceAt(schedule, m, plan.infl);
-    if (isFinite(ms.target) && ms.target > 0) {
-      target = ms.target;
-      readiness = startPot(plan) / ms.target;
+    if (isFinite(targetNow) && targetNow > 0) {
+      target = targetNow;
+      readiness = startPot(plan) / targetNow;
     }
     livingAge = ms.livingMonths === null ? null : ageAt(plan, ms.livingMonths);
     debtFreeAge = ms.debtFreeMonths === null ? null : ageAt(plan, ms.debtFreeMonths);
@@ -210,7 +226,7 @@ export function deriveMetrics(input: {
     for (let age = start; age <= end; age++) {
       const m = (age - start) * 12;
       const debt = debtAt(m);
-      path.push({ age, pot: potsAfterMonths(plan, plan, m).total, need: ms.target + debt, debt });
+      path.push({ age, pot: potsAfterMonths(plan, plan, m).total, need: (targetAt ? targetAt(m) : ms.target) + debt, debt });
     }
 
     const outlookMonths =
@@ -259,10 +275,24 @@ export function deriveMetrics(input: {
 /** Headline metrics for a saved snapshot, without loading it. */
 export function snapshotMetrics(data: Record<string, string>): DashboardMetrics {
   const get: Source = (key) => data[key] ?? null;
+  const plan = loadPlan(get);
+  const pension = resolvePlanPension({
+    usePension: Boolean(plan?.usePension),
+    fromUrl: null,
+    stored: loadPension(get),
+    currency: get("finbuddy.currency") ?? "CZK",
+  });
+  const link = pension
+    ? pensionLinkFrom(pension, {
+        currentYear: new Date().getFullYear(),
+        salaryGross: parseSalaryStore(get(SALARY_KEY))?.gross ?? null,
+      })
+    : null;
   return deriveMetrics({
+    pension: link,
     invest: loadInvest(get),
     mortgage: loadMortgage(get),
-    plan: loadPlan(get),
+    plan,
     income: loadDashboard(get).income,
   });
 }

@@ -5,7 +5,7 @@ import type { Lang } from "./i18n";
  * the FAQPage JSON-LD, so search results always match what's on the page.
  * Figures are checked against calcSalary / computeInvest / solvePayment.
  */
-export type SeoPage = "mzda" | "invest" | "mortgage" | "plan";
+export type SeoPage = "mzda" | "invest" | "mortgage" | "plan" | "duchod";
 export type SeoArticleContent = {
   heading: string;
   paragraphs: string[];
@@ -193,7 +193,7 @@ export const SEO_CONTENT: Record<SeoPage, Record<Lang, SeoArticleContent>> = {
         },
         {
           q: "Počítá plán se státním důchodem?",
-          a: "Ne. Výsledek ukazuje, kdy byste vystačili jen z vlastních peněz, takže je spíše opatrný.",
+          a: "Volitelně. Pokud vyplníte záložku Důchod, plán započítá váš státní důchod a DPS/DIP od věku, kdy začnou. Jinak ukáže, kdy vám stačí jen vlastní peníze.",
         },
         {
           q: "Proč je vše v dnešních cenách?",
@@ -220,7 +220,7 @@ export const SEO_CONTENT: Record<SeoPage, Record<Lang, SeoArticleContent>> = {
         },
         {
           q: "Does the plan include the state pension?",
-          a: "No. The result shows when you could live on your own money alone, so it errs on the careful side.",
+          a: "Optionally. If you fill in the Retirement tab, the plan counts your state pension and DPS/DIP from the age they start. Otherwise it shows when your own money alone is enough.",
         },
         {
           q: "Why is everything in today's money?",
@@ -229,6 +229,71 @@ export const SEO_CONTENT: Record<SeoPage, Record<Lang, SeoArticleContent>> = {
         {
           q: "How much do I need to live on 40,000 CZK a month?",
           a: "About 12,000,000 CZK under the 4% rule (480,000 CZK a year divided by 0.04). Every extra 10,000 CZK of monthly spending adds 3 million to the target.",
+        },
+      ],
+    },
+  },
+
+  duchod: {
+    cs: {
+      heading: "Jak se počítá důchod a kdy do něj půjdete",
+      paragraphs: [
+        "Důchodový věk závisí na roce narození. Ročníky 1961 až 1972 mají věk stanovený tabulkou (u žen se liší podle počtu vychovaných dětí), ročníky 1973 až 1988 odcházejí v 65 letech a 8 měsících plus jeden měsíc za každý rok narození po roce 1973. Kdo se narodil v roce 1989 nebo později, půjde do důchodu v 67 letech.",
+        "Starobní důchod se skládá ze základní výměry, která je v roce 2026 přibližně 4 900 Kč měsíčně, a z procentní výměry. Ta závisí na vaší hrubé mzdě, počtu odpracovaných let a na době, kdy do důchodu nastoupíte. Za každé vychované dítě se přičítá výchovné 500 Kč. Pro nárok na důchod v řádném věku potřebujete 35 let pojištění, s 20 až 34 lety nastoupíte o pět let později.",
+        "Doplňkové penzijní spoření (DPS) a dlouhodobý investiční produkt (DIP) důchod doplňují. Peníze z obou se uvolní nejdříve v 60 letech a po 120 měsících spoření; u smluv DPS uzavřených před rokem 2024 stačí 60 měsíců. Příspěvky do DPS i DIP si můžete odečíst ze základu daně do společného limitu 48 000 Kč ročně. Všechny částky jsou odhad v dnešních cenách; přesné číslo spočítá důchodová kalkulačka ČSSZ.",
+      ],
+      faqHeading: "Časté otázky",
+      faq: [
+        {
+          q: "Kdy půjdu do důchodu?",
+          a: "Záleží na roce narození. Ročník 1973 odchází v 65 letech a 8 měsících, ročník 1988 v 66 letech a 11 měsících a všichni narození v roce 1989 a později v 67 letech. U žen narozených do roku 1972 věk snižuje počet vychovaných dětí.",
+        },
+        {
+          q: "Kolik budu mít důchod?",
+          a: "Důchod je přibližně 4 900 Kč základní výměry plus procentní výměra. Při hrubé mzdě 48 967 Kč a 44 letech pojištění vychází zhruba 21 800 Kč měsíčně v dnešních cenách. Je to odhad, přesnou částku určí ČSSZ.",
+        },
+        {
+          q: "Kolik dává stát na penzijní spoření?",
+          a: "Stát přispívá na DPS 20 % z vašeho měsíčního vkladu mezi 500 a 1 700 Kč, nejvýše 340 Kč měsíčně. Při vkladu pod 500 Kč nedostanete nic. Na příspěvky zaměstnavatele a na DIP státní příspěvek není.",
+        },
+        {
+          q: "Jaký je rozdíl mezi DPS a DIP?",
+          a: "DPS je spoření u penzijní společnosti se státním příspěvkem a omezenou volbou fondů. DIP je investiční produkt bez státního příspěvku, ale s širší nabídkou investic. Oba se otevírají v 60 letech po 120 měsících spoření (u DPS ze smluv před rokem 2024 po 60 měsících) a o odpočet z daní se dělí o společný limit 48 000 Kč ročně.",
+        },
+        {
+          q: "Co když budu pracovat méně než 35 let?",
+          a: "S 20 až 34 lety pojištění nastoupíte do důchodu o pět let později, než je řádný věk. S méně než 20 lety nárok na starobní důchod nevznikne.",
+        },
+      ],
+    },
+    en: {
+      heading: "How the Czech state pension is calculated and when you can retire",
+      paragraphs: [
+        "Your retirement age depends on the year you were born. Those born 1961 to 1972 follow a table (for women it varies with the number of children raised), those born 1973 to 1988 retire at 65 years 8 months plus one month for each birth year after 1973. Anyone born in 1989 or later retires at 67.",
+        "The old-age pension is a basic amount, about 4,900 CZK a month in 2026, plus a percentage amount. The percentage amount depends on your gross salary, the years you worked and when you retire. Each child you raised adds 500 CZK. You need 35 years of insurance to retire at the statutory age; with 20 to 34 years you retire five years later.",
+        "Supplementary pension savings (DPS) and the long-term investment product (DIP) top this up. Money from both opens at 60 at the earliest, after 120 months of saving; DPS contracts from before 2024 need only 60 months. Contributions to DPS and DIP share one tax deduction limit of 48,000 CZK a year. All figures are estimates in today's money; for the exact number use the ČSSZ pension calculator.",
+      ],
+      faqHeading: "Frequently asked questions",
+      faq: [
+        {
+          q: "When will I retire?",
+          a: "It depends on your birth year. Born in 1973 you retire at 65 years 8 months, born in 1988 at 66 years 11 months, and everyone born in 1989 or later at 67. For women born up to 1972 the number of children raised lowers the age.",
+        },
+        {
+          q: "How much pension will I get?",
+          a: "About 4,900 CZK basic amount plus a percentage amount. On a gross salary of 48,967 CZK and 44 insured years that comes to roughly 21,800 CZK a month in today's money. It is an estimate; ČSSZ sets the exact amount.",
+        },
+        {
+          q: "How much does the state add to pension savings?",
+          a: "For DPS the state adds 20% of your monthly contribution between 500 and 1,700 CZK, at most 340 CZK a month. Below 500 CZK you get nothing. There is no state contribution on employer payments or on DIP.",
+        },
+        {
+          q: "What is the difference between DPS and DIP?",
+          a: "DPS is saving with a pension company, with a state contribution and a limited choice of funds. DIP is an investment product with no state contribution but a wider choice of investments. Both open at 60 after 120 months of saving (60 months for DPS contracts from before 2024), and they share one tax deduction limit of 48,000 CZK a year.",
+        },
+        {
+          q: "What if I work fewer than 35 years?",
+          a: "With 20 to 34 years of insurance you retire five years after the statutory age. With fewer than 20 years you have no right to an old-age pension.",
         },
       ],
     },

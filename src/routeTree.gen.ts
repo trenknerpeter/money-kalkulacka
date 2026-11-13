@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as DuchodRouteImport } from './routes/duchod'
 import { Route as InvestRouteImport } from './routes/invest'
 import { Route as MortgageRouteImport } from './routes/mortgage'
 import { Route as MzdaRouteImport } from './routes/mzda'
@@ -24,6 +25,11 @@ const IndexRoute = IndexRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DuchodRoute = DuchodRouteImport.update({
+  id: '/duchod',
+  path: '/duchod',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InvestRoute = InvestRouteImport.update({
@@ -50,6 +56,7 @@ const PlanRoute = PlanRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/duchod': typeof DuchodRoute
   '/invest': typeof InvestRoute
   '/mortgage': typeof MortgageRoute
   '/mzda': typeof MzdaRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/duchod': typeof DuchodRoute
   '/invest': typeof InvestRoute
   '/mortgage': typeof MortgageRoute
   '/mzda': typeof MzdaRoute
@@ -67,6 +75,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/duchod': typeof DuchodRoute
   '/invest': typeof InvestRoute
   '/mortgage': typeof MortgageRoute
   '/mzda': typeof MzdaRoute
@@ -74,13 +83,16 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/invest' | '/mortgage' | '/mzda' | '/plan'
+  fullPaths:
+    '/' | '/dashboard' | '/duchod' | '/invest' | '/mortgage' | '/mzda' | '/plan'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/invest' | '/mortgage' | '/mzda' | '/plan'
+  to:
+    '/' | '/dashboard' | '/duchod' | '/invest' | '/mortgage' | '/mzda' | '/plan'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
+    | '/duchod'
     | '/invest'
     | '/mortgage'
     | '/mzda'
@@ -90,6 +102,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
+  DuchodRoute: typeof DuchodRoute
   InvestRoute: typeof InvestRoute
   MortgageRoute: typeof MortgageRoute
   MzdaRoute: typeof MzdaRoute
@@ -110,6 +123,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/duchod': {
+      id: '/duchod'
+      path: '/duchod'
+      fullPath: '/duchod'
+      preLoaderRoute: typeof DuchodRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/invest': {
@@ -146,6 +166,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  DuchodRoute: DuchodRoute,
   InvestRoute: InvestRoute,
   MortgageRoute: MortgageRoute,
   MzdaRoute: MzdaRoute,

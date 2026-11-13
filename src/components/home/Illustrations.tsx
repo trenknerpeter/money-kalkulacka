@@ -124,3 +124,21 @@ export function SalaryVisual() {
     </svg>
   );
 }
+
+export function RetirementVisual() {
+  return (
+    <svg viewBox="0 0 160 96" className="h-full w-full" aria-hidden="true">
+      {/* stepped monthly income: state pension, then DPS and DIP on top */}
+      <rect x="22" y="56" width="30" height="30" rx="3" className="fill-primary" />
+      <rect x="62" y="40" width="30" height="46" rx="3" className="fill-primary" opacity="0.65" />
+      <rect x="102" y="22" width="30" height="64" rx="3" className="fill-primary" opacity="0.35" />
+      <path
+        d="M22 86 L 132 86"
+        fill="none"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        className="stroke-muted-foreground"
+      />
+    </svg>
+  );
+}

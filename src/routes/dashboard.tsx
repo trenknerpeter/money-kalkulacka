@@ -26,6 +26,8 @@ import {
   type PathRow,
 } from "@/lib/dashboard";
 import { useT } from "@/lib/i18n";
+import { loadPension, resolveGross, resolvePlanPension, retirementSummary } from "@/lib/pension";
+import { pensionLinkFrom } from "@/lib/phased";
 import { loadPlan } from "@/lib/plan";
 import { SALARY_KEY, calcSalary, formatCzk, parseSalaryStore } from "@/lib/salary";
 import { cn } from "@/lib/utils";
@@ -38,7 +40,7 @@ export const Route = createFileRoute("/dashboard")({
       {
         name: "description",
         content:
-          "Celý obraz vašich financí na jedné stránce: čisté jmění, míra spoření a kam směřujete — sestavené ze záložek Mzda, Investice, Hypotéka a Plán.",
+          "Celý obraz vašich financí na jedné stránce: čisté jmění, míra spoření a kam směřujete — sestavené ze záložek Mzda, Důchod, Investice, Hypotéka a Nezávislost.",
       },
       { property: "og:title", content: "Přehled financí — Money Kalkulačka" },
       {
@@ -557,6 +559,8 @@ function Dashboard() {
   const [hydrated, setHydrated] = useState(false);
   const { currency } = useCurrency();
   const [salaryNet, setSalaryNet] = useState<number | null>(null);
+  const [salaryGross, setSalaryGross] = useState<number | null>(null);
+  const [storedPension, setStoredPension] = useState<ReturnType<typeof loadPension>>(null);
   const [saved, setSaved] = useState<{
     invest: ReturnType<typeof loadInvest>;
     mortgage: ReturnType<typeof loadMortgage>;
@@ -568,6 +572,8 @@ function Dashboard() {
     setSaved({ invest: loadInvest(), mortgage: loadMortgage(), plan: loadPlan() });
     const salary = parseSalaryStore(window.localStorage.getItem(SALARY_KEY));
     setSalaryNet(salary ? calcSalary(salary).payout : null);
+    setSalaryGross(salary?.gross ?? null);
+    setStoredPension(loadPension());
     setHydrated(true);
   }, []);
 
@@ -583,10 +589,42 @@ function Dashboard() {
   const { invest, mortgage, plan } = saved;
   const income = store.income;
 
+  const pensionLink = useMemo(() => {
+    const p = resolvePlanPension({
+      usePension: Boolean(plan?.usePension),
+      fromUrl: null,
+      stored: storedPension,
+      currency,
+    });
+    return p ? pensionLinkFrom(p, { currentYear: new Date().getFullYear(), salaryGross }) : null;
+  }, [plan, storedPension, currency, salaryGross]);
+
   const m = useMemo(
-    () => deriveMetrics({ invest, mortgage, plan, income }),
-    [invest, mortgage, plan, income],
+    () => deriveMetrics({ invest, mortgage, plan, income, pension: pensionLink }),
+    [invest, mortgage, plan, income, pensionLink],
   );
+
+  const retirement = useMemo(
+    () =>
+      storedPension
+        ? {
+            s: storedPension,
+            sum: retirementSummary(storedPension, {
+              currentYear: new Date().getFullYear(),
+              salaryGross,
+            }),
+            gross: resolveGross(storedPension, salaryGross),
+          }
+        : null,
+    [storedPension, salaryGross],
+  );
+  const monthsLabel = (months: number) => {
+    const y = Math.floor(months / 12);
+    const r = months % 12;
+    return r === 0
+      ? count(y, "year")
+      : t("{a} and {b}", { a: count(y, "year"), b: count(r, "month") });
+  };
 
   if (!hydrated) return null;
 
@@ -608,7 +646,7 @@ function Dashboard() {
           <p className="text-base font-semibold">{t("Nothing here yet")}</p>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
             {t(
-              "Fill in your numbers in Mzda, Invest, Mortgage and Plan — the dashboard brings them together here.",
+              "Fill in your numbers in Mzda, Invest, Mortgage and Independence — the dashboard brings them together here.",
             )}
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3 text-sm font-medium">
@@ -622,7 +660,7 @@ function Dashboard() {
               {t("Set up your mortgage →")}
             </Link>
             <Link to="/plan" className="text-primary hover:underline">
-              {t("Answer the plan questions →")}
+              {t("Start your independence plan →")}
             </Link>
           </div>
         </Panel>
@@ -704,7 +742,7 @@ function Dashboard() {
                       : t("Stop work at {age}", { age: m.livingAge })
                     : m.readiness !== null
                       ? t("of your number")
-                      : t("Answer the plan questions →")
+                      : t("Start your independence plan →")
                 }
               />
             </div>
@@ -840,14 +878,14 @@ function Dashboard() {
                 <div className="py-10 text-center">
                   <p className="mx-auto max-w-sm text-sm leading-relaxed text-muted-foreground">
                     {t(
-                      "Answer the plan questions to see when you can stop working — and when the mortgage is cleared too.",
+                      "Start your independence plan to see when you can stop working — and when the mortgage is cleared too.",
                     )}
                   </p>
                   <Link
                     to="/plan"
                     className="mt-4 inline-block text-sm font-medium text-primary hover:underline"
                   >
-                    {t("Answer the plan questions →")}
+                    {t("Start your independence plan →")}
                   </Link>
                 </div>
               )}
@@ -906,11 +944,11 @@ function Dashboard() {
                     : null,
                 },
                 {
-                  title: t("Plan"),
+                  title: t("Financial independence"),
                   rows: plan
                     ? [
-                        [t("Age"), String(plan.age)],
-                        [t("Target age"), String(plan.stop)],
+                        [t("Age"), String(m.age ?? plan.age)],
+                        [t("Target age"), String(m.targetAge)],
                         [t("Monthly spending"), money(plan.spend)],
                         [t("Withdrawal rate"), percent(plan.wd)],
                         [t("Inflation"), percent(plan.infl)],
@@ -918,7 +956,7 @@ function Dashboard() {
                     : null,
                 },
                 {
-                  title: t("Plan — investments"),
+                  title: t("Independence — investments"),
                   rows: plan
                     ? [
                         [t("Invested today"), money(plan.invested)],
@@ -928,12 +966,28 @@ function Dashboard() {
                     : null,
                 },
                 {
-                  title: t("Plan — savings"),
+                  title: t("Independence — savings"),
                   rows: plan
                     ? [
                         [t("In savings today"), money(plan.cash)],
                         [t("Saved monthly"), money(plan.saveCash)],
                         [t("Savings interest rate"), percent(plan.cashRet)],
+                      ]
+                    : null,
+                },
+                {
+                  title: t("Retirement"),
+                  rows: retirement
+                    ? [
+                        [t("Birth year"), String(retirement.s.birthYear)],
+                        [t("Gross monthly salary"), formatCzk(retirement.gross)],
+                        [t("Years worked so far"), count(Math.round(retirement.s.yearsWorked), "year")],
+                        [t("DPS, your contribution a month"), formatCzk(retirement.s.dpsOwn)],
+                        [t("DPS, employer a month"), formatCzk(retirement.s.dpsEmployer)],
+                        [t("DIP, your contribution a month"), formatCzk(retirement.s.dipOwn)],
+                        [t("DIP, employer a month"), formatCzk(retirement.s.dipEmployer)],
+                        [t("Estimated state pension a month"), formatCzk(retirement.sum.pension.monthly)],
+                        [t("Statutory retirement age"), monthsLabel(retirement.sum.pension.statutoryMonths)],
                       ]
                     : null,
                 },
@@ -988,7 +1042,7 @@ function Dashboard() {
               )}
               {!saved.plan && (
                 <Link to="/plan" className="text-primary hover:underline">
-                  {t("Answer the plan questions →")}
+                  {t("Start your independence plan →")}
                 </Link>
               )}
             </div>

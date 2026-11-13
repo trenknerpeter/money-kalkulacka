@@ -10,6 +10,7 @@ type Props = {
   step: number;
   suffix?: string | undefined;
   suffixPosition?: "left" | "right" | undefined;
+  disabled?: boolean | undefined;
 };
 
 export function NumberSlider({
@@ -21,12 +22,17 @@ export function NumberSlider({
   step,
   suffix,
   suffixPosition = "right",
+  disabled = false,
 }: Props) {
   const [text, setText] = useState(String(value));
+  // While the user types, keep their text even if the parent clamps the value
+  // (e.g. "6" on the way to "67" must not snap to a minimum); blur shows the real value.
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
+    if (editing) return;
     setText((prev) => (parseFloat(prev) === value ? prev : String(value)));
-  }, [value]);
+  }, [value, editing]);
 
   const commit = (raw: string) => {
     setText(raw);
@@ -37,7 +43,10 @@ export function NumberSlider({
   const sliderValue = Math.min(Math.max(value, min), max);
 
   return (
-    <div className="space-y-3">
+    <div
+      className={disabled ? "space-y-3 opacity-50" : "space-y-3"}
+      aria-disabled={disabled || undefined}
+    >
       <div className="flex items-baseline justify-between gap-3">
         <label className="text-sm text-muted-foreground">{label}</label>
         <div className="flex items-center gap-1 rounded-md border border-border px-2.5 py-1.5 focus-within:border-primary">
@@ -48,9 +57,14 @@ export function NumberSlider({
             inputMode="decimal"
             value={text}
             onChange={(e) => commit(e.target.value)}
-            onBlur={() => setText(String(value))}
+            onFocus={() => setEditing(true)}
+            onBlur={() => {
+              setEditing(false);
+              setText(String(value));
+            }}
             className="tnum w-24 bg-transparent text-right text-sm font-medium tabular-nums outline-none"
             aria-label={label}
+            disabled={disabled}
           />
           {suffix && suffixPosition === "right" && (
             <span className="text-sm text-muted-foreground">{suffix}</span>
@@ -62,6 +76,7 @@ export function NumberSlider({
         min={min}
         max={max}
         step={step}
+        disabled={disabled}
         onValueChange={(v) => onChange(v[0] ?? 0)}
         aria-label={`${label} slider`}
       />
