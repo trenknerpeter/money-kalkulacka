@@ -142,3 +142,36 @@ export function RetirementVisual() {
     </svg>
   );
 }
+
+/** Four tiles waiting to be filled: the dashboard before any numbers exist. */
+export function EmptyDashboardVisual() {
+  return (
+    <svg viewBox="0 0 200 120" className="h-full w-full" aria-hidden="true">
+      <rect
+        x="5"
+        y="5"
+        width="190"
+        height="110"
+        rx="16"
+        className="fill-none stroke-border"
+        strokeWidth="2"
+        strokeDasharray="6 6"
+      />
+      {/* salary / invest: rising bars */}
+      <rect x="18" y="18" width="78" height="40" rx="10" className="fill-accent" opacity="0.22" />
+      <rect x="30" y="38" width="9" height="12" rx="2" className="fill-accent" opacity="0.6" />
+      <rect x="44" y="32" width="9" height="18" rx="2" className="fill-accent" opacity="0.8" />
+      <rect x="58" y="26" width="9" height="24" rx="2" className="fill-accent" />
+      {/* retirement: a clock */}
+      <rect x="104" y="18" width="78" height="40" rx="10" className="fill-warning" opacity="0.22" />
+      <circle cx="143" cy="38" r="12" className="fill-none stroke-warning" strokeWidth="3" />
+      <path d="M143 31 V38 L148 41" className="fill-none stroke-warning" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      {/* mortgage: a roof */}
+      <rect x="18" y="66" width="78" height="38" rx="10" className="fill-info" opacity="0.22" />
+      <path d="M44 88 L57 76 L70 88 M48 86 V94 H66 V86" className="fill-none stroke-info" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      {/* the plan: a target that is still empty */}
+      <rect x="104" y="66" width="78" height="38" rx="10" className="fill-none stroke-border" strokeWidth="2" strokeDasharray="5 5" />
+      <path d="M143 78 V92 M136 85 H150" className="fill-none stroke-muted-foreground" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
+}

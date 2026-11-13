@@ -3,7 +3,7 @@ import { ArrowLeft, Check } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { NumberSlider } from "@/components/NumberSlider";
-import { Panel } from "@/components/Panel";
+import { Eyebrow, Panel } from "@/components/Panel";
 import { PlanChart } from "@/components/plan/PlanChart";
 import { useCurrency, useCurrencyScale, useFormatters } from "@/lib/currency";
 import {
@@ -46,6 +46,7 @@ import {
 } from "@/lib/phased";
 import { ageAt, mortgageSchedule, realBalanceAt, retirementMilestones } from "@/lib/retirement";
 import { cn } from "@/lib/utils";
+import { scheduleUrlReplace } from "@/lib/urlSync";
 import { useT } from "@/lib/i18n";
 import { canonical, faqLd, webAppLd } from "@/lib/seo";
 import { SEO_CONTENT } from "@/lib/seoContent";
@@ -719,14 +720,17 @@ function Intro({ onStart }: { onStart: () => void }) {
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-2xl flex-col justify-center py-10">
-      <p className="text-xs font-medium uppercase tracking-wide text-primary">
-        {t("Path to financial independence")}
-      </p>
-      <h1 className="mt-3 text-4xl font-semibold tracking-tight">{t("When can you stop working?")}</h1>
+      <Eyebrow className="text-primary-deep">{t("Path to financial independence")}</Eyebrow>
+      <h1 className="mt-3 text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl">
+        {t("When can you stop working?")}
+      </h1>
 
       <div className="mt-8 grid gap-3 sm:grid-cols-3">
         {tiles.map((tile) => (
-          <div key={tile.title} className="min-w-0 rounded-lg border border-border p-4">
+          <div
+            key={tile.title}
+            className="min-w-0 rounded-xl border border-border bg-card p-4 shadow-card"
+          >
             {tile.preview}
             <p className="mt-3 text-sm font-semibold">{tile.title}</p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{tile.body}</p>
@@ -745,7 +749,7 @@ function Intro({ onStart }: { onStart: () => void }) {
         <button
           type="button"
           onClick={onStart}
-          className="inline-flex h-11 items-center rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          className="inline-flex h-12 items-center rounded-full bg-primary px-7 text-base font-semibold text-primary-foreground transition-colors hover:bg-primary-deep"
         >
           {t("Work out my plan")}
         </button>
@@ -910,10 +914,7 @@ function Results({
       params.set("usePension", "1");
       for (const [k, v] of Object.entries(pensionToParams(pension))) params.set(k, v);
     }
-    const href = `${window.location.pathname}?${params.toString()}`;
-    if (`${window.location.pathname}${window.location.search}` !== href) {
-      void router.navigate({ href, replace: true, resetScroll: false });
-    }
+    scheduleUrlReplace(router, `${window.location.pathname}?${params.toString()}`);
     if (ownUrl) {
       try {
         window.sessionStorage.setItem(OWN_URL_KEY, `?${params.toString()}`);
@@ -972,6 +973,7 @@ function Results({
   const reachedAge = months === null ? null : months === 0 ? plan.age : Math.round(plan.age + months / 12);
   const potAtStop = projectPotAtStop(effProfile, effAssumptions);
   const gap = isFinite(target) ? target - potAtStop : Infinity;
+  const readiness = isFinite(target) && target > 0 ? Math.max(0, Math.min(1, potAtStop / target)) : null;
 
   // Milestone 2: when the pot also covers what's left on the mortgage (Mortgage tab, if filled in).
   const milestones = retirementMilestones(effProfile, effAssumptions, schedule, targetAt);
@@ -1077,25 +1079,27 @@ function Results({
 
   return (
     <div className="space-y-8">
+      <Panel variant="hero" className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
+          <Eyebrow onInk>{t("Your plan at a glance")}</Eyebrow>
           {alreadyFunded ? (
-            <h1 className="text-[clamp(1.75rem,4vw,2.5rem)] font-semibold leading-tight tracking-tight text-primary">
+            <h1 className="mt-3 text-[clamp(1.75rem,4vw,2.5rem)] font-semibold leading-tight tracking-tight text-ink-accent">
               {t("You could stop working now.")}
             </h1>
           ) : unreachable ? (
-            <h1 className="text-[clamp(1.75rem,4vw,2.5rem)] font-semibold leading-tight tracking-tight">
+            <h1 className="mt-3 text-[clamp(1.75rem,4vw,2.5rem)] font-semibold leading-tight tracking-tight">
               {t("On this path, you don't reach your number.")}
             </h1>
           ) : early ? (
             <>
-              <h1 className="text-[clamp(1.75rem,4vw,2.5rem)] font-semibold leading-tight tracking-tight text-primary">
+              <h1 className="mt-3 text-[clamp(1.75rem,4vw,2.5rem)] font-semibold leading-tight tracking-tight text-ink-accent">
                 {t("You can stop working at {age} — {years} early.", {
                   age: reachedAge ?? levers.stop,
                   years: count(yearsEarly, "year"),
                 })}
               </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-muted">
                 {t("That's ahead of your target of {stop}. Keep going until {stop} and you'd have about {v} more than your number.", {
                   stop: levers.stop,
                   v: money(surplusAtStop),
@@ -1103,15 +1107,15 @@ function Results({
               </p>
             </>
           ) : onTrack ? (
-            <h1 className="text-[clamp(1.75rem,4vw,2.5rem)] font-semibold leading-tight tracking-tight text-primary">
+            <h1 className="mt-3 text-[clamp(1.75rem,4vw,2.5rem)] font-semibold leading-tight tracking-tight text-ink-accent">
               {t("You're on track to stop working at {stop}.", { stop: levers.stop })}
             </h1>
           ) : (
             <>
-              <h1 className="text-[clamp(1.75rem,4vw,2.5rem)] font-semibold leading-tight tracking-tight">
+              <h1 className="mt-3 text-[clamp(1.75rem,4vw,2.5rem)] font-semibold leading-tight tracking-tight">
                 {t("At this rate, you can stop working at {age}.", { age: reachedAge ?? levers.stop })}
               </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-muted">
                 {t("{years} later than your target of {stop}. At {stop} you'd have about {v} — around {gap} short.", {
                   years: count((reachedAge ?? 0) - levers.stop, "year"),
                   stop: levers.stop,
@@ -1122,7 +1126,7 @@ function Results({
             </>
           )}
           {owesAtReached && (
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-muted">
               {debtFreeAge !== null
                 ? t("You'd still owe {d} on the mortgage at {age}. Keep going until {age2} to clear it.", {
                     d: money(milestones.owedAtLiving),
@@ -1140,14 +1144,14 @@ function Results({
           <button
             type="button"
             onClick={() => window.print()}
-            className="rounded-full border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            className="rounded-full border border-ink-foreground/25 px-4 py-2 text-sm font-medium text-ink-foreground transition-colors hover:bg-ink-foreground/10"
           >
             {t("Save as PDF")}
           </button>
           <button
             type="button"
             onClick={onEdit}
-            className="rounded-full border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            className="rounded-full border border-ink-foreground/25 px-4 py-2 text-sm font-medium text-ink-foreground transition-colors hover:bg-ink-foreground/10"
           >
             {t("Edit answers")}
           </button>
@@ -1157,7 +1161,7 @@ function Results({
       {(phaseParts.length > 0 || earlyStopCut) && (
         <div className="-mt-3 space-y-1.5">
           {phaseParts.length > 0 && (
-            <p className="flex max-w-2xl flex-wrap items-center gap-x-2 gap-y-1 text-sm leading-relaxed text-muted-foreground">
+            <p className="flex max-w-2xl flex-wrap items-center gap-x-2 gap-y-1 text-sm leading-relaxed text-ink-muted">
               {phaseParts.map((part, i) => (
                 <span key={i} className="flex items-center gap-2">
                   {i > 0 && <span aria-hidden="true">→</span>}
@@ -1167,7 +1171,7 @@ function Results({
             </p>
           )}
           {earlyStopCut && (
-            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            <p className="max-w-2xl text-sm leading-relaxed text-ink-muted">
               {earlyStopCut.reduced <= 0
                 ? t("Stopping at {stop} means you won't qualify for a state pension (fewer than 20 insured years).", {
                     stop: levers.stop,
@@ -1182,14 +1186,13 @@ function Results({
         </div>
       )}
 
-      <Panel>
-        <div className="grid gap-6 sm:grid-cols-3">
+        <div className="grid gap-6 border-t border-ink-foreground/10 pt-6 sm:grid-cols-3">
           <div className="min-w-0">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">{t("Your target")}</p>
+            <p className="text-xs uppercase tracking-wide text-ink-muted">{t("Your target")}</p>
             <p className="tnum mt-1.5 whitespace-nowrap text-[clamp(1.25rem,1.85vw,2rem)] font-semibold leading-tight tracking-tight">
               {isFinite(target) ? money(target) : "—"}
             </p>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            <p className="mt-1 text-xs leading-relaxed text-ink-muted">
               {link
                 ? t("Covers your {v} a year of spending until your pensions start, then what they leave uncovered — in today's money.", {
                     v: money(levers.spend * 12),
@@ -1201,13 +1204,13 @@ function Results({
             </p>
           </div>
           <div className="min-w-0">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            <p className="text-xs uppercase tracking-wide text-ink-muted">
               {t("Projected at {stop}", { stop: levers.stop })}
             </p>
             <p className="tnum mt-1.5 whitespace-nowrap text-[clamp(1.25rem,1.85vw,2rem)] font-semibold leading-tight tracking-tight">
               {money(potAtStop)}
             </p>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            <p className="mt-1 text-xs leading-relaxed text-ink-muted">
               {effProfile.saveCash > 0 || plan.cash > 0
                 ? t("{a} a month invested at {p} + {b} saved at {q}, in today's money", {
                     a: money(effProfile.saveInvest),
@@ -1222,15 +1225,39 @@ function Results({
             </p>
           </div>
           <div className="min-w-0">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">{t("The gap")}</p>
+            <p className="text-xs uppercase tracking-wide text-ink-muted">{t("The gap")}</p>
             <p className="tnum mt-1.5 whitespace-nowrap text-[clamp(1.25rem,1.85vw,2rem)] font-semibold leading-tight tracking-tight">
               {gap <= 0 ? t("Covered") : isFinite(gap) ? money(gap) : "—"}
             </p>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            <p className="mt-1 text-xs leading-relaxed text-ink-muted">
               {gap <= 0 ? t("You're ahead of your number") : t("What the projection is missing")}
             </p>
           </div>
         </div>
+
+        {readiness !== null && (
+          <div>
+            <div
+              className="flex h-3 overflow-hidden rounded-full bg-ink-foreground/10"
+              role="img"
+              aria-label={t("{p} of your number by {stop}", {
+                p: percent(readiness * 100),
+                stop: levers.stop,
+              })}
+            >
+              <div
+                className={readiness >= 1 ? "bg-accent" : "bg-warning"}
+                style={{ width: `${readiness * 100}%` }}
+              />
+            </div>
+            <p className="mt-2 text-sm text-ink-muted">
+              {t("{p} of your number by {stop}", {
+                p: percent(readiness * 100),
+                stop: levers.stop,
+              })}
+            </p>
+          </div>
+        )}
       </Panel>
 
       <Panel title={t("Getting there")}>

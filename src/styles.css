@@ -175,6 +175,11 @@
 @media print {
   :root {
     color-scheme: light;
+    /* Browsers drop backgrounds when printing, so the ink surface flips to dark-on-white. */
+    --ink: #ffffff;
+    --ink-foreground: #14201a;
+    --ink-muted: #5c6862;
+    --ink-accent: #176b45;
   }
 
   header,

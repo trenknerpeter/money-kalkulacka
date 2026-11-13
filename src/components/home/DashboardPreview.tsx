@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
+import { LifeTimeline } from "@/components/LifeTimeline";
 import { useCurrency, useCurrencyScale, useFormatters } from "@/lib/currency";
 import { deriveMetrics, loadDashboard, loadInvest, loadMortgage } from "@/lib/dashboard";
 import { useT } from "@/lib/i18n";
-import { PENSION_KEY, loadPension, resolvePlanPension, retirementSummary } from "@/lib/pension";
+import { lifeMarkers, type LifeMarker } from "@/lib/lifeline";
+import { loadPension, resolvePlanPension, retirementSummary } from "@/lib/pension";
 import { pensionLinkFrom } from "@/lib/phased";
-import { PLAN_KEY, loadPlan } from "@/lib/plan";
+import { loadPlan } from "@/lib/plan";
 import { SALARY_KEY, calcSalary, formatCzk, parseSalaryStore } from "@/lib/salary";
+import { DATA_TABS, readFilledTabs } from "@/lib/tabs";
 import { cn } from "@/lib/utils";
-
-type Marker = { age: number; label: string; className: string };
 
 type View = {
   example: boolean;
@@ -19,22 +20,8 @@ type View = {
   savingsRate: number | null;
   independenceAge: number | null;
   filled: number;
-  markers: Marker[];
+  markers: LifeMarker[];
 };
-
-const FILL_KEYS = [SALARY_KEY, PENSION_KEY, "finbuddy.invest", "finbuddy.mortgage", PLAN_KEY];
-
-/** Drops markers that would sit on top of each other, keeping the earlier one. */
-function spread(markers: Marker[], lo: number, hi: number): Marker[] {
-  const span = Math.max(1, hi - lo);
-  const out: Marker[] = [];
-  for (const m of [...markers].sort((a, b) => a.age - b.age)) {
-    const prev = out[out.length - 1];
-    if (prev && ((m.age - prev.age) / span) * 100 < 16) continue;
-    out.push(m);
-  }
-  return out;
-}
 
 /**
  * A small version of the Dashboard for the home page. It reads what is already stored in this
@@ -67,7 +54,7 @@ export function DashboardPreview() {
         income: loadDashboard().income,
         salaryGross: salary?.gross ?? null,
         salaryNet: salary ? calcSalary(salary).payout : null,
-        filled: FILL_KEYS.filter((k) => window.localStorage.getItem(k) !== null).length,
+        filled: readFilledTabs().size,
       });
     } catch {
       setStored(null);
@@ -86,12 +73,7 @@ export function DashboardPreview() {
         savingsRate: 0.18,
         independenceAge: 58,
         filled: 3,
-        markers: [
-          { age: 35, label: "today", className: "bg-white border-2 border-accent" },
-          { age: 52, label: "debt-free", className: "bg-info" },
-          { age: 58, label: "independent", className: "bg-accent" },
-          { age: 67, label: "retirement", className: "bg-warning" },
-        ],
+        markers: lifeMarkers({ age: 35, debtFreeAge: 52, livingAge: 58, pensionAge: 67 }),
       };
     }
     const year = new Date().getFullYear();
@@ -105,22 +87,7 @@ export function DashboardPreview() {
       return p ? pensionLinkFrom(p, { currentYear: year, salaryGross }) : null;
     })();
     const m = deriveMetrics({ invest, mortgage, plan, income, pension: link });
-    const markers: Marker[] = [];
-    if (m.age !== null)
-      markers.push({ age: m.age, label: "today", className: "bg-white border-2 border-accent" });
-    if (m.debtFreeAge !== null)
-      markers.push({ age: m.debtFreeAge, label: "debt-free", className: "bg-info" });
-    if (m.livingAge !== null)
-      markers.push({ age: m.livingAge, label: "independent", className: "bg-accent" });
-    if (pension) {
-      const sum = retirementSummary(pension, { currentYear: year, salaryGross });
-      if (sum.pension.eligible)
-        markers.push({
-          age: Math.round(sum.pension.startMonths / 12),
-          label: "retirement",
-          className: "bg-warning",
-        });
-    }
+    const sum = pension ? retirementSummary(pension, { currentYear: year, salaryGross }) : null;
     return {
       example: false,
       netWorth: m.netWorth,
@@ -128,7 +95,12 @@ export function DashboardPreview() {
       savingsRate: m.savingsRate,
       independenceAge: m.livingAge,
       filled,
-      markers: markers.length >= 2 ? markers : [],
+      markers: lifeMarkers({
+        age: m.age,
+        debtFreeAge: m.debtFreeAge,
+        livingAge: m.livingAge,
+        pensionAge: sum && sum.pension.eligible ? Math.round(sum.pension.startMonths / 12) : null,
+      }),
     };
   }, [stored, scale, currency]);
 
@@ -137,16 +109,8 @@ export function DashboardPreview() {
 
   if (!view) return <div className={cn(shell, "min-h-[420px]")} aria-hidden="true" />;
 
-  const ages = view.markers.map((m) => m.age);
-  const lo = Math.min(...ages, Infinity);
-  const hi = Math.max(...ages, -Infinity);
-  const pad = Math.max(2, (hi - lo) * 0.08);
-  const from = lo - pad;
-  const to = hi + pad;
-  const shown = view.markers.length ? spread(view.markers, from, to) : [];
-  const at = (age: number) => ((age - from) / (to - from)) * 100;
-  const todayAge = view.markers.find((m) => m.label === "today")?.age;
   const circ = 2 * Math.PI * 14;
+  const total = DATA_TABS.length;
 
   return (
     <div className={shell}>
@@ -156,7 +120,7 @@ export function DashboardPreview() {
         </p>
         <div className="flex items-center gap-2 text-xs text-ink-muted">
           {view.example && (
-            <span className="rounded-full bg-white/10 px-2.5 py-1 font-semibold text-ink-foreground">
+            <span className="rounded-full bg-ink-foreground/10 px-2.5 py-1 font-semibold text-ink-foreground">
               {t("Example")}
             </span>
           )}
@@ -166,7 +130,8 @@ export function DashboardPreview() {
               cy="18"
               r="14"
               fill="none"
-              stroke="rgba(255,255,255,0.15)"
+              stroke="currentColor"
+              strokeOpacity="0.15"
               strokeWidth="4"
             />
             <circle
@@ -177,13 +142,11 @@ export function DashboardPreview() {
               stroke="var(--accent)"
               strokeWidth="4"
               strokeLinecap="round"
-              strokeDasharray={`${(view.filled / 5) * circ} ${circ}`}
+              strokeDasharray={`${(view.filled / total) * circ} ${circ}`}
               transform="rotate(-90 18 18)"
             />
           </svg>
-          <span className="tnum">
-            {t("{n} of {total} tabs filled", { n: view.filled, total: 5 })}
-          </span>
+          <span className="tnum">{t("{n} of {total} tabs filled", { n: view.filled, total })}</span>
         </div>
       </div>
 
@@ -214,7 +177,7 @@ export function DashboardPreview() {
         ].map((tile) => (
           <div
             key={tile.label}
-            className="flex min-w-0 items-baseline justify-between gap-3 rounded-xl bg-white/[0.07] px-3.5 py-2.5 sm:block sm:py-3"
+            className="flex min-w-0 items-baseline justify-between gap-3 rounded-xl bg-ink-foreground/[0.07] px-3.5 py-2.5 sm:block sm:py-3"
           >
             <p className="text-xs text-ink-muted sm:truncate sm:text-[11px]">{tile.label}</p>
             <p className="tnum text-[15px] font-semibold sm:mt-1 sm:truncate">{tile.value}</p>
@@ -222,40 +185,7 @@ export function DashboardPreview() {
         ))}
       </div>
 
-      {shown.length > 0 && (
-        <div className="mt-7" role="img" aria-label={t("Timeline of your money milestones")}>
-          <div className="relative h-1.5 rounded-full bg-white/15">
-            {todayAge !== undefined && (
-              <div
-                className="absolute inset-y-0 left-0 rounded-full bg-accent"
-                style={{ width: `${at(todayAge)}%` }}
-              />
-            )}
-            {shown.map((m) => (
-              <span
-                key={m.label}
-                className={cn(
-                  "absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full",
-                  m.className,
-                )}
-                style={{ left: `${at(m.age)}%` }}
-              />
-            ))}
-          </div>
-          <div className="relative mt-3 h-11 text-[11px] text-ink-muted">
-            {shown.map((m) => (
-              <span
-                key={m.label}
-                className="absolute -translate-x-1/2 text-center leading-tight"
-                style={{ left: `${Math.min(92, Math.max(8, at(m.age)))}%` }}
-              >
-                <strong className="tnum block text-[13px] text-ink-foreground">{m.age}</strong>
-                {t(m.label)}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      <LifeTimeline markers={view.markers} className="mt-7" />
 
       <Link
         to="/dashboard"
