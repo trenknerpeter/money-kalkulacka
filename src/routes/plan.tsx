@@ -46,6 +46,7 @@ import {
 } from "@/lib/phased";
 import { ageAt, mortgageSchedule, realBalanceAt, retirementMilestones } from "@/lib/retirement";
 import { cn } from "@/lib/utils";
+import { scheduleUrlReplace } from "@/lib/urlSync";
 import { useT } from "@/lib/i18n";
 import { canonical, faqLd, webAppLd } from "@/lib/seo";
 import { SEO_CONTENT } from "@/lib/seoContent";
@@ -910,10 +911,7 @@ function Results({
       params.set("usePension", "1");
       for (const [k, v] of Object.entries(pensionToParams(pension))) params.set(k, v);
     }
-    const href = `${window.location.pathname}?${params.toString()}`;
-    if (`${window.location.pathname}${window.location.search}` !== href) {
-      void router.navigate({ href, replace: true, resetScroll: false });
-    }
+    scheduleUrlReplace(router, `${window.location.pathname}?${params.toString()}`);
     if (ownUrl) {
       try {
         window.sessionStorage.setItem(OWN_URL_KEY, `?${params.toString()}`);
