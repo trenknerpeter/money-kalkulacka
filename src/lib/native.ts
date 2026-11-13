@@ -1,12 +1,14 @@
 import { useEffect } from "react";
 import { Capacitor } from "@capacitor/core";
+import { installTapHaptics } from "./haptics";
 
 /** True only inside the iOS/Android shell built with `npm run build:ios`; false on the web. */
 export const isNative = () => Capacitor.isNativePlatform();
 
 /**
  * Native-only glue for the Capacitor shell: keeps the status bar text readable
- * against the current theme and hides the launch screen once React is up.
+ * against the current theme, hides the launch screen once React is up, and turns on
+ * tap haptics.
  * A no-op on the web.
  */
 export function useNativeShell() {
@@ -14,6 +16,7 @@ export function useNativeShell() {
     if (!isNative()) return;
     let cancelled = false;
     let observer: MutationObserver | undefined;
+    const removeHaptics = installTapHaptics();
 
     void (async () => {
       const [{ StatusBar, Style }, { SplashScreen }] = await Promise.all([
@@ -40,6 +43,7 @@ export function useNativeShell() {
     return () => {
       cancelled = true;
       observer?.disconnect();
+      removeHaptics();
     };
   }, []);
 }

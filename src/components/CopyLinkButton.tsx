@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Check, Link2 } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { track } from "@/lib/analytics";
+import { haptic } from "@/lib/haptics";
 import { flushUrlSync } from "@/lib/urlSync";
 
 export function CopyLinkButton() {
@@ -13,6 +14,7 @@ export function CopyLinkButton() {
     const url = flushUrlSync();
     try {
       await navigator.clipboard.writeText(url);
+      haptic.success();
     } catch {
       /* ignore */
     }
@@ -23,6 +25,7 @@ export function CopyLinkButton() {
   return (
     <button
       type="button"
+      data-haptic="none"
       onClick={copy}
       className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
     >

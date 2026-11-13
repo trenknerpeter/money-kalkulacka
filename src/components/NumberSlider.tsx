@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import { Slider } from "@/components/ui/slider";
+import { haptic } from "@/lib/haptics";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -92,7 +93,11 @@ export function NumberSlider({
         max={max}
         step={step}
         disabled={disabled}
-        onValueChange={(v) => onChange(v[0] ?? 0)}
+        onValueChange={(v) => {
+          const next = v[0] ?? 0;
+          if (next !== sliderValue) haptic.tick();
+          onChange(next);
+        }}
         aria-label={`${label} slider`}
       />
       {presets && presets.length > 0 && (
