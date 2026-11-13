@@ -9,7 +9,9 @@ import {
 } from "@/components/ui/accordion";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { NumberSlider } from "@/components/NumberSlider";
-import { Panel } from "@/components/Panel";
+import { Eyebrow, Panel } from "@/components/Panel";
+import { PageHeader } from "@/components/PageHeader";
+import { RetirementVisual } from "@/components/home/Illustrations";
 import { SeoArticle } from "@/components/SeoArticle";
 import { Switch } from "@/components/ui/switch";
 import { useCurrency } from "@/lib/currency";
@@ -25,6 +27,7 @@ import {
   type PotProjection,
 } from "@/lib/pension";
 import { SALARY_KEY, formatCzk, parseSalaryStore } from "@/lib/salary";
+import { useCountUp } from "@/lib/useCountUp";
 import { canonical, faqLd, webAppLd } from "@/lib/seo";
 import { SEO_CONTENT } from "@/lib/seoContent";
 import { useScenario } from "@/lib/useScenario";
@@ -92,8 +95,8 @@ function YearField({
     setText((prev) => (parseInt(prev, 10) === value ? prev : String(value)));
   }, [value]);
   return (
-    <div className="flex items-baseline justify-between gap-3">
-      <label className="text-sm text-muted-foreground">{label}</label>
+    <div className="flex items-center justify-between gap-3">
+      <label className="text-sm font-medium text-foreground">{label}</label>
       <input
         inputMode="numeric"
         value={text}
@@ -105,7 +108,7 @@ function YearField({
         }}
         onBlur={() => setText(String(value))}
         aria-label={label}
-        className="tnum w-24 rounded-md border border-border bg-transparent px-2.5 py-1.5 text-right text-sm font-medium tabular-nums outline-none focus:border-primary"
+        className="tnum h-10 w-28 rounded-lg border border-input bg-card px-3 text-right text-base font-semibold tabular-nums outline-none transition-[border-color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20"
       />
     </div>
   );
@@ -138,6 +141,7 @@ function Duchod() {
     [s, salaryGross],
   );
   const p = sum.pension;
+  const heroValue = useCountUp(p.eligible ? p.monthly : 0);
   const { earlyMax, earlyMonths } = sum;
 
   const hasDps = s.dpsBalance > 0 || s.dpsOwn > 0 || s.dpsEmployer > 0;
@@ -167,13 +171,19 @@ function Duchod() {
     ? t("Not available: you don't qualify for a state pension yet.")
     : p.delayed
       ? t("Not available when your pension already starts later than the statutory age.")
-      : t("Needs at least 40 insured years at the early start. You have {n} at the statutory age.", {
-          n: p.insuredYears,
-        });
+      : t(
+          "Needs at least 40 insured years at the early start. You have {n} at the statutory age.",
+          {
+            n: p.insuredYears,
+          },
+        );
 
   const potBlock = (name: string, pot: PotProjection) => {
     const rows = [
-      { label: t("Already saved"), value: pot.atOpen - pot.paidIn - pot.employer - pot.state - pot.growth },
+      {
+        label: t("Already saved"),
+        value: pot.atOpen - pot.paidIn - pot.employer - pot.state - pot.growth,
+      },
       { label: t("You paid in"), value: pot.paidIn },
       { label: t("Employer paid in"), value: pot.employer },
       ...(name === "DPS" ? [{ label: t("State contributions"), value: pot.state }] : []),
@@ -239,7 +249,7 @@ function Duchod() {
         {kind === "dps" && (
           <div>
             <p className="mb-2 text-sm text-muted-foreground">{t("Fund strategy")}</p>
-            <div className="flex rounded-md border border-border p-0.5">
+            <div className="flex rounded-lg border border-border bg-card p-0.5">
               {STRATEGIES.map((st) => (
                 <button
                   key={st.ret}
@@ -248,7 +258,7 @@ function Duchod() {
                   className={cn(
                     "min-h-9 flex-1 rounded px-2 py-1.5 text-sm leading-tight transition-colors",
                     s.dpsRet === st.ret
-                      ? "bg-secondary font-medium text-foreground"
+                      ? "bg-accent-soft font-semibold text-primary-deep"
                       : "text-muted-foreground hover:text-foreground",
                   )}
                 >
@@ -273,8 +283,8 @@ function Duchod() {
 
   return (
     <div className="grid gap-10 lg:grid-cols-[380px_1fr]">
-      <div className="lg:sticky lg:top-32 lg:-mx-1 lg:max-h-[calc(100dvh-9.5rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:px-1 lg:pb-1">
-        <Panel className="space-y-6">
+      <div className="lg:sticky lg:top-24 lg:-mx-1 lg:max-h-[calc(100dvh-7.5rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:px-1 lg:pb-1">
+        <Panel variant="input" className="space-y-6">
           <YearField
             label={t("Year of birth")}
             value={s.birthYear}
@@ -406,15 +416,14 @@ function Duchod() {
 
       <div className="space-y-8">
         <div className="space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-xl font-semibold tracking-tight">{t("Retirement")}</h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {t("Your state pension and pension savings. Everything is in today's money.")}
-              </p>
-            </div>
+          <PageHeader
+            title={t("Retirement")}
+            subtitle={t("Your state pension and pension savings. Everything is in today's money.")}
+            Visual={RetirementVisual}
+            tone="amber"
+          >
             <CopyLinkButton />
-          </div>
+          </PageHeader>
           {currency !== "CZK" && (
             <div
               role="note"
@@ -431,56 +440,96 @@ function Duchod() {
           )}
         </div>
 
-        <Panel>
-          <p className="text-sm text-muted-foreground">{t("Retirement age")}</p>
-          <p className="tnum mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-            {t("You can retire at {age} — in {year}.", {
-              age: ageLabel(headlineMonths),
-              year: yearOf(headlineMonths),
-            })}
+        <Panel variant="hero">
+          <Eyebrow onInk>{t("State pension (estimate)")}</Eyebrow>
+          <p className="tnum mt-3 text-[clamp(2.5rem,6vw,4rem)] font-semibold leading-none tracking-tight">
+            {formatCzk(heroValue)}
           </p>
-          <p className="mt-2 text-xs text-muted-foreground">
+          <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-muted">
+            {p.eligible
+              ? t("About {v} a month, in today's money.", { v: formatCzk(p.monthly) })
+              : t("No state pension with the current inputs.")}{" "}
+            <span className="text-ink-foreground">
+              {t("You can retire at {age} — in {year}.", {
+                age: ageLabel(headlineMonths),
+                year: yearOf(headlineMonths),
+              })}
+            </span>
+          </p>
+          <p className="mt-3 text-xs text-ink-muted">
             {t(
               "Statutory retirement age under act 155/1995 Sb. as amended, based on your year of birth.",
             )}
           </p>
-          {p.eligible && p.delayed && (
-            <div className="mt-4 flex items-start gap-3 rounded-md border border-negative/30 bg-negative/5 p-4 text-sm text-negative">
-              <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-              <p>
-                {t(
-                  "With {n} insured years (35 are needed) your pension starts 5 years later than the statutory age ({age}).",
-                  { n: p.insuredYears, age: ageLabel(statutory) },
-                )}
-              </p>
-            </div>
-          )}
-          {!p.eligible && (
-            <div className="mt-4 flex items-start gap-3 rounded-md border border-negative/30 bg-negative/5 p-4 text-sm text-negative">
-              <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-              <p>
-                {t(
-                  "Not eligible: with {n} insured years you don't reach the 20 needed for an old-age pension.",
-                  { n: p.insuredYears },
-                )}
+          {hasSavings && sum.totalMonthly > 0 && (
+            <div className="mt-6">
+              <div
+                className="flex h-3 overflow-hidden rounded-full bg-ink-foreground/10"
+                role="img"
+                aria-label={t("Together {v} a month in retirement.", {
+                  v: formatCzk(sum.totalMonthly),
+                })}
+              >
+                <div
+                  className="bg-warning"
+                  style={{ width: `${Math.min(100, (p.monthly / sum.totalMonthly) * 100)}%` }}
+                />
+                <div
+                  className="bg-ink-foreground/55"
+                  style={{ width: `${Math.max(0, (sum.drawdown / sum.totalMonthly) * 100)}%` }}
+                />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-ink-muted">
+                <span className="flex items-center gap-2">
+                  <span className="size-2.5 rounded-sm bg-warning" />
+                  {t("State pension")}{" "}
+                  <span className="tnum font-medium text-ink-foreground">{formatCzk(p.monthly)}</span>
+                </span>
+                <span className="flex items-center gap-2">
+                  <span className="size-2.5 rounded-sm bg-ink-foreground/55" />
+                  {t("Pension savings (DPS + DIP)")}{" "}
+                  <span className="tnum font-medium text-ink-foreground">
+                    {formatCzk(sum.drawdown)}
+                  </span>
+                </span>
+              </div>
+              <p className="mt-3 text-sm text-ink-muted">
+                {t("Together {v} a month in retirement.", { v: formatCzk(sum.totalMonthly) })}
               </p>
             </div>
           )}
         </Panel>
 
-        <Panel>
-          <p className="text-sm text-muted-foreground">{t("State pension (estimate)")}</p>
-          <p className="tnum mt-1 text-4xl font-semibold tracking-tight">
-            {p.eligible ? formatCzk(p.monthly) : formatCzk(0)}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {p.eligible
-              ? t("About {v} a month, in today's money.", { v: formatCzk(p.monthly) })
-              : t("No state pension with the current inputs.")}
-          </p>
+        {(!p.eligible || p.delayed) && (
+          <Panel className="space-y-4">
+            {p.eligible && p.delayed && (
+              <div className="flex items-start gap-3 rounded-lg border border-negative/30 bg-negative-soft p-4 text-sm text-negative">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                <p>
+                  {t(
+                    "With {n} insured years (35 are needed) your pension starts 5 years later than the statutory age ({age}).",
+                    { n: p.insuredYears, age: ageLabel(statutory) },
+                  )}
+                </p>
+              </div>
+            )}
+            {!p.eligible && (
+              <div className="flex items-start gap-3 rounded-lg border border-negative/30 bg-negative-soft p-4 text-sm text-negative">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                <p>
+                  {t(
+                    "Not eligible: with {n} insured years you don't reach the 20 needed for an old-age pension.",
+                    { n: p.insuredYears },
+                  )}
+                </p>
+              </div>
+            )}
+          </Panel>
+        )}
 
+        <Panel title={t("State pension")}>
           {p.eligible && (
-            <Accordion type="single" collapsible className="mt-4 border-t border-border">
+            <Accordion type="single" collapsible className="-mt-2 border-t border-border">
               <AccordionItem value="breakdown" className="border-none">
                 <AccordionTrigger className="text-sm font-semibold hover:no-underline">
                   {t("How it is calculated")}
@@ -595,7 +644,9 @@ function Duchod() {
                 </p>
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
-                {t("DPS and DIP open at 60, after 120 months of saving (60 for DPS from before 2024).")}
+                {t(
+                  "DPS and DIP open at 60, after 120 months of saving (60 for DPS from before 2024).",
+                )}
               </p>
             </>
           ) : (
@@ -607,7 +658,7 @@ function Duchod() {
 
         <Panel>
           <p className="text-sm text-muted-foreground">{t("Total monthly income in retirement")}</p>
-          <p className="tnum mt-1 text-3xl font-semibold tracking-tight">
+          <p className="tnum mt-1.5 text-4xl font-semibold tracking-tight text-primary-deep">
             {formatCzk(sum.totalMonthly)}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">

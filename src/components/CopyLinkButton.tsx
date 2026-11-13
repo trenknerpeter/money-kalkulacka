@@ -22,8 +22,9 @@ export function CopyLinkButton() {
 
   return (
     <button
+      type="button"
       onClick={copy}
-      className="inline-flex h-9 items-center gap-1.5 rounded-md px-2.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+      className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
     >
       {copied ? <Check className="size-4 text-primary" /> : <Link2 className="size-4" />}
       {copied ? t("Copied") : t("Copy link")}

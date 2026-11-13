@@ -142,3 +142,56 @@ export function RetirementVisual() {
     </svg>
   );
 }
+
+/** Four tiles waiting to be filled: the dashboard before any numbers exist. */
+export function EmptyDashboardVisual() {
+  return (
+    <svg viewBox="0 0 200 120" className="h-full w-full" aria-hidden="true">
+      <rect
+        x="5"
+        y="5"
+        width="190"
+        height="110"
+        rx="16"
+        className="fill-none stroke-border"
+        strokeWidth="2"
+        strokeDasharray="6 6"
+      />
+      {/* salary / invest: rising bars */}
+      <rect x="18" y="18" width="78" height="40" rx="10" className="fill-accent" opacity="0.22" />
+      <rect x="30" y="38" width="9" height="12" rx="2" className="fill-accent" opacity="0.6" />
+      <rect x="44" y="32" width="9" height="18" rx="2" className="fill-accent" opacity="0.8" />
+      <rect x="58" y="26" width="9" height="24" rx="2" className="fill-accent" />
+      {/* retirement: a clock */}
+      <rect x="104" y="18" width="78" height="40" rx="10" className="fill-warning" opacity="0.22" />
+      <circle cx="143" cy="38" r="12" className="fill-none stroke-warning" strokeWidth="3" />
+      <path d="M143 31 V38 L148 41" className="fill-none stroke-warning" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      {/* mortgage: a roof */}
+      <rect x="18" y="66" width="78" height="38" rx="10" className="fill-info" opacity="0.22" />
+      <path d="M44 88 L57 76 L70 88 M48 86 V94 H66 V86" className="fill-none stroke-info" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      {/* the plan: a target that is still empty */}
+      <rect x="104" y="66" width="78" height="38" rx="10" className="fill-none stroke-border" strokeWidth="2" strokeDasharray="5 5" />
+      <path d="M143 78 V92 M136 85 H150" className="fill-none stroke-muted-foreground" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** The dashboard once it is filled in: four tiles, one per topic. */
+export function DashboardVisual() {
+  return (
+    <svg viewBox="0 0 160 96" className="h-full w-full" aria-hidden="true">
+      <rect x="10" y="10" width="64" height="34" rx="8" className="fill-accent" opacity="0.28" />
+      <rect x="22" y="30" width="7" height="8" rx="2" className="fill-accent" opacity="0.6" />
+      <rect x="33" y="24" width="7" height="14" rx="2" className="fill-accent" opacity="0.8" />
+      <rect x="44" y="18" width="7" height="20" rx="2" className="fill-accent" />
+      <rect x="86" y="10" width="64" height="34" rx="8" className="fill-warning" opacity="0.28" />
+      <circle cx="118" cy="27" r="10" className="fill-none stroke-warning" strokeWidth="3" />
+      <path d="M118 21 V27 L122 30" className="fill-none stroke-warning" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="10" y="52" width="64" height="34" rx="8" className="fill-info" opacity="0.28" />
+      <path d="M32 72 L42 63 L52 72 M35 70 V78 H49 V70" className="fill-none stroke-info" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="86" y="52" width="64" height="34" rx="8" className="fill-foreground" opacity="0.14" />
+      <path d="M98 76 C108 76 112 66 122 66 S136 60 140 58" className="fill-none stroke-foreground" strokeWidth="3" strokeLinecap="round" />
+      <circle cx="140" cy="58" r="3.5" className="fill-foreground" />
+    </svg>
+  );
+}

@@ -9,10 +9,13 @@ import {
 } from "@/components/ui/accordion";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { NumberSlider } from "@/components/NumberSlider";
-import { Panel } from "@/components/Panel";
+import { Eyebrow, Panel } from "@/components/Panel";
+import { PageHeader } from "@/components/PageHeader";
+import { SalaryVisual } from "@/components/home/Illustrations";
 import { Switch } from "@/components/ui/switch";
 import { useCurrency } from "@/lib/currency";
 import { useT } from "@/lib/i18n";
+import { useCountUp } from "@/lib/useCountUp";
 import {
   CZ_2026,
   SALARY_DEFAULTS,
@@ -83,6 +86,7 @@ function Mzda() {
   const { currency } = useCurrency();
   const { t } = useT();
   const r = useMemo(() => calcSalary(s), [s]);
+  const heroValue = useCountUp(r.owed > 0 ? -r.owed : r.payout);
 
   // The bar splits gross, so its net segment leaves out the child bonus.
   const parts = [
@@ -90,15 +94,15 @@ function Mzda() {
       key: "net",
       label: t("Net"),
       value: Math.max(0, r.net - r.childBenefit.bonus),
-      className: "bg-primary",
+      className: "bg-accent",
     },
     {
       key: "insurance",
       label: t("Insurance"),
       value: r.social + r.health,
-      className: "bg-primary/40",
+      className: "bg-white/55",
     },
-    { key: "tax", label: t("Tax"), value: r.tax, className: "bg-foreground/70" },
+    { key: "tax", label: t("Tax"), value: r.tax, className: "bg-white/25" },
   ];
   const partsTotal = Math.max(
     1,
@@ -129,8 +133,8 @@ function Mzda() {
 
   return (
     <div className="grid gap-10 lg:grid-cols-[380px_1fr]">
-      <div className="lg:sticky lg:top-32 lg:-mx-1 lg:max-h-[calc(100dvh-9.5rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:px-1 lg:pb-1">
-        <Panel className="space-y-6">
+      <div className="lg:sticky lg:top-24 lg:-mx-1 lg:max-h-[calc(100dvh-7.5rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:px-1 lg:pb-1">
+        <Panel variant="input" className="space-y-6">
           <NumberSlider
             label={t("Gross monthly salary")}
             value={s.gross}
@@ -139,6 +143,7 @@ function Mzda() {
             max={300000}
             step={500}
             suffix="Kč"
+            presets={[30000, 50000, 80000, 120000].map((v) => ({ value: v }))}
           />
 
           <div>
@@ -189,7 +194,7 @@ function Mzda() {
               <AccordionContent className="space-y-4">
                 <div>
                   <p className="mb-2 text-sm text-muted-foreground">{t("Disability pension")}</p>
-                  <div className="flex rounded-md border border-border p-0.5">
+                  <div className="flex rounded-lg border border-border bg-card p-0.5">
                     {DISABILITY_OPTIONS.map((opt) => (
                       <button
                         key={opt.value}
@@ -198,7 +203,7 @@ function Mzda() {
                         className={cn(
                           "min-h-9 flex-1 rounded px-3 py-1.5 text-sm leading-tight transition-colors",
                           s.disability === opt.value
-                            ? "bg-secondary font-medium text-foreground"
+                            ? "bg-accent-soft font-semibold text-primary-deep"
                             : "text-muted-foreground hover:text-foreground",
                         )}
                       >
@@ -242,15 +247,13 @@ function Mzda() {
 
       <div className="space-y-8">
         <div className="space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-xl font-semibold tracking-tight">{t("Net salary")}</h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {t("Gross to net for Czech employees, 2026 rules.")}
-              </p>
-            </div>
+          <PageHeader
+            title={t("Net salary")}
+            subtitle={t("Gross to net for Czech employees, 2026 rules.")}
+            Visual={SalaryVisual}
+          >
             <CopyLinkButton />
-          </div>
+          </PageHeader>
           {currency !== "CZK" && (
             <div
               role="note"
@@ -267,10 +270,23 @@ function Mzda() {
           )}
         </div>
 
-        <Panel>
-          <p className="tnum text-4xl font-semibold tracking-tight">{formatCzk(r.payout)}</p>
+        <Panel variant="hero">
+          <Eyebrow onInk>{r.owed > 0 ? t("You owe") : t("Net salary")}</Eyebrow>
+          <p className="tnum mt-3 text-[clamp(2.5rem,6vw,4rem)] font-semibold leading-none tracking-tight">
+            {formatCzk(heroValue)}
+          </p>
+          <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-muted">
+            {t("From {gross} gross, {ins} goes to insurance and {tax} to tax.", {
+              gross: formatCzk(r.gross),
+              ins: formatCzk(r.social + r.health),
+              tax: formatCzk(r.tax),
+            })}
+            {r.childBenefit.bonus > 0 && (
+              <> {t("including child bonus {v}", { v: formatCzk(r.childBenefit.bonus) })}.</>
+            )}
+          </p>
           {r.owed > 0 && (
-            <div className="mt-3 flex items-start gap-3 rounded-md border border-negative/30 bg-negative/5 p-4 text-sm text-negative">
+            <div className="mt-4 flex items-start gap-3 rounded-lg bg-white/10 p-4 text-sm">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
               <p>
                 {t(
@@ -280,13 +296,8 @@ function Mzda() {
               </p>
             </div>
           )}
-          {r.childBenefit.bonus > 0 && (
-            <p className="mt-1 text-sm text-muted-foreground">
-              {t("including child bonus {v}", { v: formatCzk(r.childBenefit.bonus) })}
-            </p>
-          )}
 
-          <div className="mt-6 flex h-3 overflow-hidden rounded-full bg-secondary">
+          <div className="mt-6 flex h-3 overflow-hidden rounded-full bg-white/10">
             {parts.map((p) => (
               <div
                 key={p.key}
@@ -295,16 +306,19 @@ function Mzda() {
               />
             ))}
           </div>
-          <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
+          <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-ink-muted">
             {parts.map((p) => (
-              <span key={p.key} className="flex items-center gap-1.5">
-                <span className={cn("size-2 rounded-full", p.className)} />
-                {p.label} <span className="tnum">{formatCzk(p.value)}</span>
+              <span key={p.key} className="flex items-center gap-2">
+                <span className={cn("size-2.5 rounded-sm", p.className)} />
+                {p.label}{" "}
+                <span className="tnum font-medium text-ink-foreground">{formatCzk(p.value)}</span>
               </span>
             ))}
           </div>
+        </Panel>
 
-          <dl className="mt-6 divide-y divide-border text-sm">
+        <Panel title={t("Breakdown")}>
+          <dl className="-mt-1 divide-y divide-border text-sm">
             {rows.map((row) => (
               <div key={row.label} className="flex justify-between py-2">
                 <dt className={row.strong ? "font-semibold" : "text-muted-foreground"}>

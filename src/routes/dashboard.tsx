@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import {
   Area,
   CartesianGrid,
@@ -12,8 +12,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Panel } from "@/components/Panel";
+import { pointLabel } from "@/components/chartLabels";
+import { LifeTimeline } from "@/components/LifeTimeline";
+import { Eyebrow, Panel } from "@/components/Panel";
+import { EmptyDashboardVisual, PlanVisual } from "@/components/home/Illustrations";
 import { SnapshotBar } from "@/components/dashboard/SnapshotBar";
+import { CROSSHAIR, TOOLTIP_BOX, gradientId } from "@/lib/chartStyle";
 import { useCurrency, useFormatters } from "@/lib/currency";
 import {
   deriveMetrics,
@@ -26,10 +30,14 @@ import {
   type PathRow,
 } from "@/lib/dashboard";
 import { useT } from "@/lib/i18n";
+import { lifeMarkers } from "@/lib/lifeline";
 import { loadPension, resolveGross, resolvePlanPension, retirementSummary } from "@/lib/pension";
 import { pensionLinkFrom } from "@/lib/phased";
 import { loadPlan } from "@/lib/plan";
 import { SALARY_KEY, calcSalary, formatCzk, parseSalaryStore } from "@/lib/salary";
+import { DATA_TABS, readFilledTabs } from "@/lib/tabs";
+import { TONE } from "@/lib/tone";
+import { useCountUp } from "@/lib/useCountUp";
 import { cn } from "@/lib/utils";
 import { canonical } from "@/lib/seo";
 
@@ -77,7 +85,7 @@ function Kpi({
         ? "text-[clamp(1.2rem,2vw,1.7rem)]"
         : "text-[clamp(1.4rem,2.4vw,2rem)]";
   return (
-    <div className="rounded-lg border border-border bg-card p-5 print:p-3">
+    <div className="rounded-xl border border-border bg-card p-5 shadow-card print:p-3">
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
       <p
         className={cn(
@@ -105,11 +113,19 @@ function RetirementPathChart({ m }: { m: DashboardMetrics }) {
       ? path.find((r) => r.age === debtFreeAge)
       : undefined;
   const labelStyle = { fill: "var(--muted-foreground)", fontSize: 12 };
+  const uid = useId();
+  const potFill = gradientId("pot", uid);
 
   return (
     <div className="h-[300px] w-full print:h-[170px]">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={path} margin={{ top: 24, right: 8, left: 0, bottom: 0 }}>
+          <defs>
+            <linearGradient id={potFill} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.45} />
+              <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.04} />
+            </linearGradient>
+          </defs>
           <CartesianGrid vertical={false} stroke="var(--border)" />
           <XAxis
             dataKey="age"
@@ -129,17 +145,17 @@ function RetirementPathChart({ m }: { m: DashboardMetrics }) {
             tickFormatter={(v: number) => compact(v)}
           />
           <Tooltip
-            cursor={{ stroke: "var(--border)" }}
+            cursor={CROSSHAIR}
             content={({ active, payload, label }) => {
               if (!active || !payload?.length) return null;
               const p = payload[0]?.payload as PathRow;
               return (
-                <div className="rounded-md border border-border bg-card p-3 text-xs">
+                <div className={TOOLTIP_BOX}>
                   <p className="mb-2 font-semibold">{t("Age {n}", { n: String(label) })}</p>
                   <dl className="tnum space-y-1">
                     <div className="flex justify-between gap-6">
                       <dt className="text-muted-foreground">{t("Pot")}</dt>
-                      <dd className="font-medium text-primary">{money(p.pot)}</dd>
+                      <dd className="font-medium text-primary-deep">{money(p.pot)}</dd>
                     </div>
                     {target !== null && (
                       <div className="flex justify-between gap-6">
@@ -162,9 +178,9 @@ function RetirementPathChart({ m }: { m: DashboardMetrics }) {
             type="monotone"
             dataKey="pot"
             stroke="var(--accent)"
-            strokeWidth={2}
-            fill="var(--accent)"
-            fillOpacity={0.15}
+            strokeWidth={2.5}
+            fill={`url(#${potFill})`}
+            fillOpacity={1}
             animationDuration={200}
           />
           {showDebt && (
@@ -185,6 +201,12 @@ function RetirementPathChart({ m }: { m: DashboardMetrics }) {
               stroke="var(--muted-foreground)"
               strokeDasharray="6 4"
               ifOverflow="extendDomain"
+              label={{
+                value: t("Your number — {v}", { v: money(target) }),
+                position: "insideBottomLeft",
+                fill: "var(--muted-foreground)",
+                fontSize: 12,
+              }}
             />
           )}
           <ReferenceLine
@@ -201,6 +223,34 @@ function RetirementPathChart({ m }: { m: DashboardMetrics }) {
               );
             }}
           />
+          {path.length > 0 && (
+            <ReferenceDot
+              x={path[path.length - 1]!.age}
+              y={path[path.length - 1]!.pot}
+              r={0}
+              ifOverflow="extendDomain"
+              label={pointLabel(`${t("Your pot")} ${compact(path[path.length - 1]!.pot)}`, {
+                fill: "var(--primary-deep)",
+                dy: -10,
+                weight: 700,
+              })}
+            />
+          )}
+          {showDebt && (
+            <ReferenceDot
+              x={path[0]!.age}
+              y={path[0]!.need}
+              r={0}
+              ifOverflow="extendDomain"
+              label={pointLabel(t("Your number + mortgage left"), {
+                fill: "var(--muted-foreground)",
+                anchor: "start",
+                dx: 6,
+                dy: -8,
+                weight: 500,
+              })}
+            />
+          )}
           {target !== null && living && living.age > path[0]!.age && (
             <ReferenceDot
               x={living.age}
@@ -257,15 +307,179 @@ function RetirementPathChart({ m }: { m: DashboardMetrics }) {
   );
 }
 
-function Stat({ label, value, caption }: { label: string; value: string; caption?: string | undefined }) {
+function Stat({
+  label,
+  value,
+  caption,
+  onInk = false,
+}: {
+  label: string;
+  value: string;
+  caption?: string | undefined;
+  onInk?: boolean;
+}) {
+  const muted = onInk ? "text-ink-muted" : "text-muted-foreground";
   return (
     <div className="min-w-0">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={cn("text-xs font-medium uppercase tracking-wide", muted)}>{label}</p>
       <p className="tnum mt-1.5 whitespace-nowrap text-[clamp(1.25rem,2vw,1.75rem)] font-semibold leading-tight tracking-tight">
         {value}
       </p>
-      {caption && <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{caption}</p>}
+      {caption && <p className={cn("mt-1 text-xs leading-relaxed", muted)}>{caption}</p>}
     </div>
+  );
+}
+
+/** The page's one ink surface: net worth, how complete the picture is, and the life timeline. */
+function NetWorthHero({
+  m,
+  pensionAge,
+  filled,
+}: {
+  m: DashboardMetrics;
+  pensionAge: number | null;
+  filled: Set<string>;
+}) {
+  const { money } = useFormatters();
+  const { t } = useT();
+  const value = useCountUp(m.netWorth);
+  const total = DATA_TABS.length;
+  const done = DATA_TABS.filter((tab) => filled.has(tab.to)).length;
+  const missing = DATA_TABS.filter((tab) => !filled.has(tab.to));
+  const circ = 2 * Math.PI * 22;
+  const parts = [
+    { key: "home", label: t("Your home"), value: m.homeValue, className: "bg-ink-foreground/55" },
+    { key: "invest", label: t("Investments"), value: m.invested, className: "bg-accent" },
+    { key: "cash", label: t("Savings account"), value: m.cash, className: "bg-ink-accent" },
+  ].filter((p) => p.value > 0);
+  const partsTotal = parts.reduce((sum, p) => sum + p.value, 0);
+  const markers = lifeMarkers({
+    age: m.age,
+    debtFreeAge: m.debtFreeAge,
+    livingAge: m.livingAge,
+    pensionAge,
+  });
+
+  return (
+    <Panel variant="hero" className="break-inside-avoid print:p-3">
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <Eyebrow onInk>{t("Net worth")}</Eyebrow>
+          <p className="tnum mt-3 whitespace-nowrap text-[clamp(2.25rem,6vw,4rem)] font-semibold leading-none tracking-tight">
+            {money(value)}
+          </p>
+          <p className="mt-4 max-w-xl text-sm leading-relaxed text-ink-muted sm:text-base">
+            {m.homeValue > 0
+              ? t("Home {h} · Investments {a} · Savings {b} · Mortgage −{d}", {
+                  h: money(m.homeValue),
+                  a: money(m.invested),
+                  b: money(m.cash),
+                  d: money(m.mortgageBalance),
+                })
+              : m.mortgageBalance > 0
+                ? t("Excluding your home")
+                : t("Invested {a} · Savings {b}", { a: money(m.invested), b: money(m.cash) })}
+            {m.homeValue === 0 && m.mortgageBalance > 0 && (
+              <>
+                {" "}
+                <Link
+                  to="/mortgage"
+                  className="font-semibold text-ink-accent hover:underline print:hidden"
+                >
+                  {t("Add your home's value →")}
+                </Link>
+              </>
+            )}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 sm:flex-col sm:items-end sm:gap-2">
+          <svg
+            width="64"
+            height="64"
+            viewBox="0 0 56 56"
+            role="img"
+            aria-label={t("{n} of {total} tabs filled", { n: done, total })}
+          >
+            <circle
+              cx="28"
+              cy="28"
+              r="22"
+              fill="none"
+              stroke="currentColor"
+              strokeOpacity="0.15"
+              strokeWidth="6"
+            />
+            <circle
+              cx="28"
+              cy="28"
+              r="22"
+              fill="none"
+              stroke="var(--accent)"
+              strokeWidth="6"
+              strokeLinecap="round"
+              strokeDasharray={`${(done / total) * circ} ${circ}`}
+              transform="rotate(-90 28 28)"
+            />
+            <text
+              x="28"
+              y="33"
+              textAnchor="middle"
+              fontSize="15"
+              fontWeight="700"
+              fill="currentColor"
+              className="tnum"
+            >
+              {done}/{total}
+            </text>
+          </svg>
+          <p className="text-sm text-ink-muted sm:text-right">
+            {done === total ? t("Every tab is filled in") : t("Still to fill in")}
+          </p>
+        </div>
+      </div>
+
+      {missing.length > 0 && (
+        <ul className="mt-4 flex flex-wrap gap-2 sm:justify-end print:hidden">
+          {missing.map((tab) => (
+            <li key={tab.to}>
+              <Link
+                to={tab.to}
+                className="inline-flex h-8 items-center gap-1.5 rounded-full bg-ink-foreground/10 px-3 text-sm font-medium transition-colors hover:bg-ink-foreground/20"
+              >
+                <span className={cn("size-2 rounded-full", TONE[tab.tone].dot)} aria-hidden="true" />
+                {t(tab.label)}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {partsTotal > 0 && (
+        <div className="mt-6">
+          <div className="flex h-3 overflow-hidden rounded-full bg-ink-foreground/10">
+            {parts.map((p) => (
+              <div
+                key={p.key}
+                className={p.className}
+                style={{ width: `${(p.value / partsTotal) * 100}%` }}
+              />
+            ))}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-ink-muted">
+            {parts.map((p) => (
+              <span key={p.key} className="flex items-center gap-2">
+                <span className={cn("size-2.5 rounded-sm", p.className)} />
+                {p.label}{" "}
+                <span className="tnum font-medium text-ink-foreground">{money(p.value)}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <LifeTimeline markers={markers} className="mt-7 border-t border-ink-foreground/10 pt-6" />
+    </Panel>
   );
 }
 
@@ -290,14 +504,14 @@ function Headline({ m, spend }: { m: DashboardMetrics; spend: number }) {
         : undefined;
 
   return (
-    <section className="break-inside-avoid rounded-lg border border-border bg-card p-6 print:p-3">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+    <section className="break-inside-avoid rounded-xl border border-border bg-card p-6 shadow-card sm:p-8 print:p-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
         {t("Where you're headed")}
       </p>
       <h2
         className={cn(
-          "mt-2 max-w-3xl text-[clamp(1.4rem,3vw,2rem)] font-semibold leading-tight tracking-tight",
-          m.livingAge !== null && "text-primary",
+          "mt-3 max-w-3xl text-[clamp(1.6rem,3.5vw,2.5rem)] font-semibold leading-tight tracking-tight",
+          m.livingAge !== null && "text-primary-deep",
         )}
       >
         {m.livingAge === null
@@ -305,7 +519,7 @@ function Headline({ m, spend }: { m: DashboardMetrics; spend: number }) {
           : t("From {a} you could live on {v} a month.", { a: m.livingAge, v: money(spend) })}
       </h2>
       {owes && (
-        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
           {m.debtFreeAge !== null
             ? t("You'd still owe {d} on the mortgage at {age}. Keep going until {age2} to clear it.", {
                 d: money(m.owedAtLiving),
@@ -376,7 +590,7 @@ function BalanceBars({
       </div>
       <span className="tnum text-right font-medium">{compact(assets)}</span>
       <div className="h-3.5 w-full overflow-hidden rounded-full bg-muted">
-        {debt > 0.5 && <div className="h-full rounded-full bg-destructive/70" style={{ width: pct(debt) }} />}
+        {debt > 0.5 && <div className="h-full rounded-full bg-info" style={{ width: pct(debt) }} />}
       </div>
       <span className="tnum text-right text-muted-foreground">
         {debt > 0.5 ? `−${compact(debt)}` : t("No debt")}
@@ -443,7 +657,7 @@ function WhatYouOwn({ m }: { m: DashboardMetrics }) {
             ))}
             {showDebt && (
               <span className="flex items-center gap-1.5">
-                <span className="size-2.5 rounded-sm bg-destructive/70" />
+                <span className="size-2.5 rounded-sm bg-info" />
                 {t("Mortgage")}
               </span>
             )}
@@ -503,7 +717,7 @@ function WhatYouOwn({ m }: { m: DashboardMetrics }) {
               <tr>
                 <td className="py-1.5">
                   <span className="flex items-center gap-2 text-muted-foreground">
-                    <span className="size-2.5 shrink-0 rounded-sm bg-destructive/70" />
+                    <span className="size-2.5 shrink-0 rounded-sm bg-info" />
                     {t("Mortgage")}
                   </span>
                 </td>
@@ -560,6 +774,7 @@ function Dashboard() {
   const { currency } = useCurrency();
   const [salaryNet, setSalaryNet] = useState<number | null>(null);
   const [salaryGross, setSalaryGross] = useState<number | null>(null);
+  const [filled, setFilled] = useState<Set<string>>(() => new Set());
   const [storedPension, setStoredPension] = useState<ReturnType<typeof loadPension>>(null);
   const [saved, setSaved] = useState<{
     invest: ReturnType<typeof loadInvest>;
@@ -574,6 +789,7 @@ function Dashboard() {
     setSalaryNet(salary ? calcSalary(salary).payout : null);
     setSalaryGross(salary?.gross ?? null);
     setStoredPension(loadPension());
+    setFilled(readFilledTabs());
     setHydrated(true);
   }, []);
 
@@ -642,61 +858,56 @@ function Dashboard() {
       <SnapshotBar canPrint={hasAnyData} />
 
       {showEmpty ? (
-        <Panel className="py-14 text-center">
-          <p className="text-base font-semibold">{t("Nothing here yet")}</p>
-          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
+        <Panel className="px-6 py-12 text-center sm:py-16">
+          <div className="mx-auto h-28 w-48">
+            <EmptyDashboardVisual />
+          </div>
+          <p className="mt-6 font-display text-2xl font-semibold tracking-tight">
+            {t("Nothing here yet")}
+          </p>
+          <p className="mx-auto mt-2 max-w-md text-[15px] leading-relaxed text-muted-foreground">
             {t(
               "Fill in your numbers in Mzda, Invest, Mortgage and Independence — the dashboard brings them together here.",
             )}
           </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-3 text-sm font-medium">
-            <Link to="/mzda" className="text-primary hover:underline">
-              {t("Calculate your net salary →")}
-            </Link>
-            <Link to="/invest" className="text-primary hover:underline">
-              {t("Set up your investments →")}
-            </Link>
-            <Link to="/mortgage" className="text-primary hover:underline">
-              {t("Set up your mortgage →")}
-            </Link>
-            <Link to="/plan" className="text-primary hover:underline">
-              {t("Start your independence plan →")}
-            </Link>
-          </div>
+          <ul className="mt-7 flex flex-wrap justify-center gap-2">
+            {DATA_TABS.map((tab) => (
+              <li key={tab.to}>
+                <Link
+                  to={tab.to}
+                  className={cn(
+                    "inline-flex h-10 items-center rounded-full px-4 text-sm font-semibold transition-opacity hover:opacity-80",
+                    TONE[tab.tone].pill,
+                  )}
+                >
+                  {t(tab.label)}
+                  <span className="ml-1.5" aria-hidden="true">
+                    →
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </Panel>
       ) : (
         <>
+          <NetWorthHero
+            m={m}
+            pensionAge={
+              retirement?.sum.pension.eligible
+                ? Math.round(retirement.sum.pension.startMonths / 12)
+                : null
+            }
+            filled={filled}
+          />
+
           {/* Where you're headed: the headline numbers */}
           {m.path.length > 0 && <Headline m={m} spend={plan?.spend ?? 0} />}
 
           {/* Where you stand */}
           <section>
             <h2 className="mb-3 text-sm font-semibold tracking-tight">{t("Where you stand")}</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 print:grid-cols-4 print:gap-2">
-              <Kpi
-                label={t("Net worth")}
-                value={money(m.netWorth)}
-                caption={
-                  m.homeValue > 0
-                    ? t("Home {h} · Investments {a} · Savings {b} · Mortgage −{d}", {
-                        h: money(m.homeValue),
-                        a: money(m.invested),
-                        b: money(m.cash),
-                        d: money(m.mortgageBalance),
-                      })
-                    : m.mortgageBalance > 0
-                      ? t("Excluding your home")
-                      : t("Invested {a} · Savings {b}", { a: money(m.invested), b: money(m.cash) })
-                }
-                action={
-                  m.homeValue === 0 && m.mortgageBalance > 0 ? (
-                    <Link to="/mortgage" className="text-primary hover:underline">
-                      {t("Add your home's value →")}
-                    </Link>
-                  ) : undefined
-                }
-                accent={m.netWorth >= 0}
-              />
+            <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(15rem,1fr))] print:grid-cols-3 print:gap-2">
               <Kpi
                 label={t("Savings rate")}
                 value={m.savingsRate !== null ? percent(m.savingsRate * 100) : "—"}
@@ -800,7 +1011,7 @@ function Dashboard() {
                 <>
                   <div className="flex h-4 w-full overflow-hidden rounded-full">
                     <div
-                      className="bg-foreground"
+                      className="bg-info"
                       style={{ width: `${Math.min(100, (m.mortgagePayment / m.income) * 100)}%` }}
                     />
                     <div
@@ -816,7 +1027,7 @@ function Dashboard() {
                   <dl className="tnum mt-4 space-y-2 text-sm">
                     <div className="flex items-center justify-between gap-4">
                       <dt className="flex items-center gap-2 text-muted-foreground">
-                        <span className="size-2.5 rounded-sm bg-foreground" />
+                        <span className="size-2.5 rounded-sm bg-info" />
                         {t("Mortgage payment")}
                       </dt>
                       <dd className="font-medium">{money(m.mortgagePayment)}</dd>
@@ -855,35 +1066,24 @@ function Dashboard() {
               {m.path.length > 0 ? (
                 <>
                   <RetirementPathChart m={m} />
-                  <div className="mt-4 flex flex-wrap items-center gap-5 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-2">
-                      <span className="size-2.5 rounded-sm bg-primary/30 ring-1 ring-primary" />{" "}
-                      {t("Your pot")}
-                    </span>
-                    {m.target !== null && (
-                      <span className="flex items-center gap-2">
-                        <span className="h-0 w-3 border-t-2 border-dashed border-muted-foreground" />{" "}
-                        {t("Your number — {v}", { v: money(m.target) })}
-                      </span>
-                    )}
-                    {m.path.some((r) => r.debt > 0.5) && (
-                      <span className="flex items-center gap-2">
-                        <span className="h-0 w-3 border-t-2 border-dotted border-muted-foreground" />{" "}
-                        {t("Your number + mortgage left")}
-                      </span>
-                    )}
-                  </div>
+                  <p className="sr-only">
+                    {t("Your pot")}: {money(m.path[m.path.length - 1]!.pot)}.
+                    {m.target !== null && <> {t("Your number — {v}", { v: money(m.target) })}.</>}
+                  </p>
                 </>
               ) : (
-                <div className="py-10 text-center">
-                  <p className="mx-auto max-w-sm text-sm leading-relaxed text-muted-foreground">
+                <div className="py-8 text-center">
+                  <div className="mx-auto flex h-20 w-28 items-center justify-center rounded-2xl bg-accent-soft px-3 py-3">
+                    <PlanVisual />
+                  </div>
+                  <p className="mx-auto mt-5 max-w-sm text-sm leading-relaxed text-muted-foreground">
                     {t(
                       "Start your independence plan to see when you can stop working — and when the mortgage is cleared too.",
                     )}
                   </p>
                   <Link
                     to="/plan"
-                    className="mt-4 inline-block text-sm font-medium text-primary hover:underline"
+                    className="mt-5 inline-flex h-10 items-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-deep"
                   >
                     {t("Start your independence plan →")}
                   </Link>

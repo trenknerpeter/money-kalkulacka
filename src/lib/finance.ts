@@ -174,3 +174,15 @@ export function buildScenario(
     balanceByYear,
   };
 }
+
+/**
+ * First year in which what the investment earns beats what you paid in that year.
+ * Rows run from year 0; null if growth never overtakes the deposits in the horizon.
+ */
+export function growthCrossoverYear(rows: InvestYear[]): number | null {
+  for (let i = 1; i < rows.length; i++) {
+    const gain = rows[i]!.growth - rows[i - 1]!.growth;
+    if (rows[i]!.contributedThisYear > 0 && gain > rows[i]!.contributedThisYear) return rows[i]!.year;
+  }
+  return null;
+}
