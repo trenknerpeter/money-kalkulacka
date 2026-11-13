@@ -3,6 +3,7 @@ import { ChevronDown, House } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { CURRENCIES, isCurrency, useCurrency } from "@/lib/currency";
 import { cn } from "@/lib/utils";
+import { track } from "@/lib/analytics";
 import { isLangValue, useLang, useT } from "@/lib/i18n";
 
 function HeaderSelect({ className, children, ...props }: ComponentProps<"select">) {
@@ -28,7 +29,11 @@ function LangSelect() {
   return (
     <HeaderSelect
       value={lang}
-      onChange={(e) => isLangValue(e.target.value) && setLang(e.target.value)}
+      onChange={(e) => {
+        if (!isLangValue(e.target.value)) return;
+        track("language_changed", { from: lang, to: e.target.value });
+        setLang(e.target.value);
+      }}
       aria-label={t("Language")}
     >
       <option value="en">EN</option>
@@ -43,7 +48,11 @@ function CurrencySelect() {
   return (
     <HeaderSelect
       value={currency}
-      onChange={(e) => isCurrency(e.target.value) && setCurrency(e.target.value)}
+      onChange={(e) => {
+        if (!isCurrency(e.target.value)) return;
+        track("currency_changed", { from: currency, to: e.target.value });
+        setCurrency(e.target.value);
+      }}
       aria-label={t("Currency")}
     >
       {CURRENCIES.map((c) => (

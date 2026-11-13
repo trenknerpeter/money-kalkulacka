@@ -15,6 +15,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CurrencyProvider } from "../lib/currency";
 import { LanguageProvider } from "../lib/i18n";
 import { AppShell } from "../components/AppShell";
+import { AnalyticsProvider, trackError } from "../lib/analytics";
 
 function NotFoundComponent() {
   return (
@@ -43,6 +44,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    trackError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
   return (
@@ -139,15 +141,17 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <LanguageProvider>
-        <CurrencyProvider>
-          <AppShell>
-            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-            <Outlet />
-          </AppShell>
-        </CurrencyProvider>
-      </LanguageProvider>
-    </QueryClientProvider>
+    <AnalyticsProvider>
+      <QueryClientProvider client={queryClient}>
+        <LanguageProvider>
+          <CurrencyProvider>
+            <AppShell>
+              {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+              <Outlet />
+            </AppShell>
+          </CurrencyProvider>
+        </LanguageProvider>
+      </QueryClientProvider>
+    </AnalyticsProvider>
   );
 }

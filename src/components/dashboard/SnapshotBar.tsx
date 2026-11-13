@@ -30,6 +30,7 @@ import { useFormatters } from "@/lib/currency";
 import { snapshotMetrics } from "@/lib/dashboard";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { track, trackError } from "@/lib/analytics";
 import {
   MAX_SNAPSHOTS,
   applyData,
@@ -81,7 +82,11 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
   useEffect(() => {
     refresh();
     const code = new URLSearchParams(window.location.search).get("s");
-    if (code) setShared(decodeSnapshot(code));
+    if (code) {
+      const snap = decodeSnapshot(code);
+      setShared(snap);
+      track("shared_scenario_opened", { valid: snap !== null });
+    }
   }, []);
 
   const active = list.find((s) => s.id === activeId) ?? null;
@@ -89,7 +94,16 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
 
   const switchTo = (s: Snapshot) => {
     if (s.id === activeId && !dirty) return;
-    if ((dirty || !active) && !window.confirm(t("Switching replaces the numbers in every tab with this snapshot. Unsaved changes will be lost. Continue?"))) return;
+    if (
+      (dirty || !active) &&
+      !window.confirm(
+        t(
+          "Switching replaces the numbers in every tab with this snapshot. Unsaved changes will be lost. Continue?",
+        ),
+      )
+    )
+      return;
+    track("scenario_switched", { had_unsaved_changes: dirty });
     applyData(s.data);
     setActiveId(s.id);
     reloadDashboard();
@@ -97,15 +111,24 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
 
   const submitName = () => {
     if (!naming) return;
-    if (naming.mode === "new" && !full) saveSnapshot(naming.value);
-    else if (active) renameSnapshot(active.id, naming.value);
+    if (naming.mode === "new" && !full) {
+      saveSnapshot(naming.value);
+      track("scenario_saved", { scenario_count: list.length + 1 });
+    } else if (active) {
+      renameSnapshot(active.id, naming.value);
+      track("scenario_renamed");
+    }
     setNaming(null);
     refresh();
   };
 
   const copyLink = async () => {
-    const code = encodeSnapshot({ name: active?.name ?? t("Financial snapshot"), data: captureData() });
+    const code = encodeSnapshot({
+      name: active?.name ?? t("Financial snapshot"),
+      data: captureData(),
+    });
     const url = `${window.location.origin}/dashboard?s=${code}`;
+    track("scenario_share_link_copied", { has_saved_scenario: active !== null });
     try {
       await navigator.clipboard.writeText(url);
     } catch {
@@ -116,7 +139,12 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
   };
 
   const download = () => {
-    const snap = { name: active?.name ?? t("Financial snapshot"), savedAt: new Date().toISOString(), data: captureData() };
+    track("scenario_downloaded");
+    const snap = {
+      name: active?.name ?? t("Financial snapshot"),
+      savedAt: new Date().toISOString(),
+      data: captureData(),
+    };
     const blob = new Blob([JSON.stringify(snap, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -129,15 +157,19 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
     setError(null);
     try {
       const snap = parseSnapshot(JSON.parse(await file.text()));
-      if (!snap) throw new Error();
+      if (!snap) throw new Error("Invalid snapshot file");
       setShared(snap);
-    } catch {
+      track("scenario_file_imported", { valid: true });
+    } catch (err) {
+      track("scenario_file_imported", { valid: false });
+      trackError(err, { context: "snapshot_import" });
       setError(t("That file isn't from Money Kalkulačka."));
     }
   };
 
   const loadShared = () => {
     if (!shared) return;
+    track("shared_scenario_loaded", { slots_full: full });
     applyData(shared.data);
     // With every slot taken it loads as the unsaved current situation.
     if (full) setActiveId(null);
@@ -177,15 +209,24 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
             </DropdownMenuLabel>
             {list.length === 0 && (
               <p className="px-2 pb-1.5 text-xs text-muted-foreground">
-                {t("Save your whole situation — every tab at once — and come back to it, compare, or share it.")}
+                {t(
+                  "Save your whole situation — every tab at once — and come back to it, compare, or share it.",
+                )}
               </p>
             )}
             {list.map((s) => {
               const m = snapshotMetrics(s.data);
               return (
-                <DropdownMenuItem key={s.id} onSelect={() => switchTo(s)} className="items-start gap-2">
+                <DropdownMenuItem
+                  key={s.id}
+                  onSelect={() => switchTo(s)}
+                  className="items-start gap-2"
+                >
                   <Check
-                    className={cn("mt-0.5 size-4 shrink-0 text-primary", s.id !== activeId && "invisible")}
+                    className={cn(
+                      "mt-0.5 size-4 shrink-0 text-primary",
+                      s.id !== activeId && "invisible",
+                    )}
                   />
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-medium">{s.name}</span>
@@ -203,6 +244,7 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
                 className={item}
                 onSelect={() => {
                   saveSnapshot(active.name, captureData(), active.id);
+                  track("scenario_updated");
                   refresh();
                 }}
               >
@@ -216,7 +258,9 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
               onSelect={() => setNaming({ mode: "new", value: "" })}
             >
               <Plus className="size-4" />
-              {full ? t("All {max} slots used", { max: MAX_SNAPSHOTS }) : t("Save as new scenario…")}
+              {full
+                ? t("All {max} slots used", { max: MAX_SNAPSHOTS })
+                : t("Save as new scenario…")}
             </DropdownMenuItem>
             {active && (
               <>
@@ -232,6 +276,7 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
                   onSelect={() => {
                     if (window.confirm(t("Delete “{name}”?", { name: active.name }))) {
                       deleteSnapshot(active.id);
+                      track("scenario_deleted", { scenario_count: list.length - 1 });
                       refresh();
                     }
                   }}
@@ -243,7 +288,13 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
             )}
             <DropdownMenuSeparator />
             {canPrint && (
-              <DropdownMenuItem className={item} onSelect={() => window.print()}>
+              <DropdownMenuItem
+                className={item}
+                onSelect={() => {
+                  track("dashboard_pdf_saved");
+                  window.print();
+                }}
+              >
                 <FileText className="size-4" />
                 {t("Save as PDF")}
               </DropdownMenuItem>
@@ -281,10 +332,16 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
             {t("Someone shared a financial snapshot with you: {name}", { name: shared.name })}
           </p>
           <p className="mt-1 text-muted-foreground">
-            {t("Loading it replaces the numbers in every tab. Save your own first if you want to keep them.")}
+            {t(
+              "Loading it replaces the numbers in every tab. Save your own first if you want to keep them.",
+            )}
           </p>
           <div className="mt-3 flex gap-2">
-            <button type="button" onClick={loadShared} className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground">
+            <button
+              type="button"
+              onClick={loadShared}
+              className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground"
+            >
               {t("Load and save")}
             </button>
             <button
