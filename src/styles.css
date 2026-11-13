@@ -88,7 +88,8 @@
 /* Print / Save-as-PDF: strip app chrome, keep the plan summary clean. */
 @media print {
   header,
-  nav {
+  nav,
+  footer {
     display: none !important;
   }
 
