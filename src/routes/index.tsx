@@ -46,6 +46,16 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
+/**
+ * How a card sits in the bento (large screens, 6 columns):
+ *  - tall:  Salary, the start. Half the width, two rows high.
+ *  - stack: Retirement and Invest, stacked beside it, picture left and text right.
+ *  - small: Mortgage, a third of the last row.
+ *  - wide:  Financial independence, the finale: two thirds of the last row, in ink.
+ * The cards read 1 to 5 from top-left to bottom-right, and keyboard order matches.
+ */
+type Layout = "tall" | "stack" | "small" | "wide";
+
 type Card = {
   step: number;
   to: "/mzda" | "/duchod" | "/invest" | "/mortgage" | "/plan";
@@ -53,13 +63,9 @@ type Card = {
   subtitle: string;
   Visual: ComponentType;
   tone: Tone;
-  /** The two large tiles take half the row; the other three a third each. */
-  large?: boolean;
-  /** The ink tile where the other four come together. */
-  featured?: boolean;
+  layout: Layout;
 };
 
-// Listed in reading order, so keyboard order matches what you see.
 const CARDS: Card[] = [
   {
     step: 1,
@@ -68,17 +74,7 @@ const CARDS: Card[] = [
     subtitle: "Turn your gross salary into net pay: tax, insurance and child benefit, 2026 rules.",
     Visual: SalaryVisual,
     tone: "green",
-    large: true,
-  },
-  {
-    step: 5,
-    to: "/plan",
-    title: "Financial independence",
-    subtitle: "Answer a few quick questions and find out when you can realistically stop working.",
-    Visual: PlanVisual,
-    tone: "green",
-    large: true,
-    featured: true,
+    layout: "tall",
   },
   {
     step: 2,
@@ -87,6 +83,7 @@ const CARDS: Card[] = [
     subtitle: "When you'll retire, your state pension and what DPS and DIP add.",
     Visual: RetirementVisual,
     tone: "amber",
+    layout: "stack",
   },
   {
     step: 3,
@@ -96,6 +93,7 @@ const CARDS: Card[] = [
       "See how monthly contributions compound over time — and what they're worth in today's money.",
     Visual: InvestVisual,
     tone: "green",
+    layout: "stack",
   },
   {
     step: 4,
@@ -104,8 +102,45 @@ const CARDS: Card[] = [
     subtitle: "Compare your current rate against a what-if rate and see what it really costs.",
     Visual: MortgageVisual,
     tone: "blue",
+    layout: "small",
+  },
+  {
+    step: 5,
+    to: "/plan",
+    title: "Financial independence",
+    subtitle: "Answer a few quick questions and find out when you can realistically stop working.",
+    Visual: PlanVisual,
+    tone: "green",
+    layout: "wide",
   },
 ];
+
+const LAYOUT: Record<Layout, { card: string; visual: string; art: string; title: string }> = {
+  tall: {
+    card: "md:col-span-2 lg:col-span-3 lg:row-span-2",
+    visual: "h-48 lg:h-auto lg:min-h-56 lg:flex-1",
+    art: "max-h-40 max-w-[260px]",
+    title: "text-3xl",
+  },
+  stack: {
+    card: "lg:col-span-3 lg:flex-row",
+    visual: "h-40 lg:h-auto lg:w-[40%]",
+    art: "max-h-28 max-w-[180px]",
+    title: "text-2xl",
+  },
+  small: {
+    card: "lg:col-span-2",
+    visual: "h-40",
+    art: "max-h-32 max-w-[220px]",
+    title: "text-2xl",
+  },
+  wide: {
+    card: "lg:col-span-4 lg:flex-row",
+    visual: "h-44 lg:h-auto lg:w-[42%]",
+    art: "max-h-32 max-w-[220px]",
+    title: "text-3xl",
+  },
+};
 
 const JOURNEY: { label: string; tone: Tone; to: Card["to"] | "/dashboard" }[] = [
   { label: "Salary", tone: "green", to: "/mzda" },
@@ -118,14 +153,16 @@ const JOURNEY: { label: string; tone: Tone; to: Card["to"] | "/dashboard" }[] = 
 
 function CalculatorCard({ card }: { card: Card }) {
   const { t } = useT();
-  const { step, to, title, subtitle, Visual, tone, large, featured } = card;
+  const { step, to, title, subtitle, Visual, tone, layout } = card;
+  const L = LAYOUT[layout];
+  const ink = layout === "wide";
   return (
     <Link
       to={to}
       className={cn(
         "group flex flex-col overflow-hidden rounded-3xl border shadow-card transition-all hover:-translate-y-0.5 hover:shadow-hero focus-visible:outline-2 focus-visible:outline-primary",
-        large ? "lg:col-span-3" : "lg:col-span-2",
-        featured
+        L.card,
+        ink
           ? "border-transparent bg-ink text-ink-foreground"
           : "border-border bg-card text-foreground",
       )}
@@ -133,8 +170,8 @@ function CalculatorCard({ card }: { card: Card }) {
       <div
         className={cn(
           "relative flex shrink-0 items-center justify-center px-8 py-6",
-          large ? "h-48" : "h-40",
-          featured
+          L.visual,
+          ink
             ? "bg-ink-foreground/[0.06] [--muted-foreground:var(--ink-muted)] [--primary:var(--accent)]"
             : TONE[tone].tile,
         )}
@@ -142,12 +179,12 @@ function CalculatorCard({ card }: { card: Card }) {
         <span
           className={cn(
             "absolute left-4 top-4 flex h-7 items-center justify-center rounded-full px-2.5 text-xs font-semibold shadow-sm",
-            featured ? "bg-ink-foreground/15 text-ink-foreground" : cn("bg-card", TONE[tone].text),
+            ink ? "bg-ink-foreground/15 text-ink-foreground" : cn("bg-card", TONE[tone].text),
           )}
         >
           {t("Step {n}", { n: step })}
         </span>
-        <div className={cn("w-full max-w-[220px]", large ? "h-full max-h-36" : "h-full max-h-32")}>
+        <div className={cn("h-full w-full", L.art)}>
           <Visual />
         </div>
       </div>
@@ -155,14 +192,14 @@ function CalculatorCard({ card }: { card: Card }) {
         <h2
           className={cn(
             "flex items-center justify-between gap-3 font-semibold tracking-tight",
-            large ? "text-3xl" : "text-2xl",
+            L.title,
           )}
         >
           {t(title)}
           <ArrowRight
             className={cn(
               "size-5 shrink-0 transition-transform group-hover:translate-x-1",
-              featured ? "text-ink-accent" : "text-muted-foreground group-hover:text-primary",
+              ink ? "text-ink-accent" : "text-muted-foreground group-hover:text-primary",
             )}
             aria-hidden="true"
           />
@@ -170,12 +207,12 @@ function CalculatorCard({ card }: { card: Card }) {
         <p
           className={cn(
             "mt-2 text-[15px] leading-relaxed",
-            featured ? "text-ink-muted" : "text-muted-foreground",
+            ink ? "text-ink-muted" : "text-muted-foreground",
           )}
         >
           {t(subtitle)}
         </p>
-        {featured && (
+        {ink && (
           <p className="mt-4 text-sm font-semibold text-ink-accent">
             {t("Where the other four come together")}
           </p>
