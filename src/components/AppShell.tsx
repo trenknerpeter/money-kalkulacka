@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ChevronDown, House } from "lucide-react";
+import { ChevronDown, House, Shield } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { CURRENCIES, isCurrency, useCurrency } from "@/lib/currency";
 import { cn } from "@/lib/utils";
@@ -126,6 +126,16 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
       <main className="mx-auto max-w-[1200px] px-5 py-10">{children}</main>
+      <footer className="mt-4 border-t border-border">
+        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-center gap-x-2 gap-y-1 px-5 py-6 text-center text-xs text-muted-foreground">
+          <Shield className="size-3.5 shrink-0 text-primary" aria-hidden="true" />
+          <span className="font-medium text-foreground">{t("100% private")}</span>
+          <span aria-hidden="true">·</span>
+          <span>
+            {t("All calculations stay on your device, never sent to any server.")}
+          </span>
+        </div>
+      </footer>
     </div>
   );
 }
