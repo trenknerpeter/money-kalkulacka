@@ -259,7 +259,7 @@ function Duchod() {
                   type="button"
                   onClick={() => patch({ dpsRet: st.ret })}
                   className={cn(
-                    "min-h-9 flex-1 rounded px-2 py-1.5 text-sm leading-tight transition-colors",
+                    "min-h-9 flex-1 rounded-[calc(var(--radius)-3px)] px-2 py-1.5 text-sm leading-tight transition-colors",
                     s.dpsRet === st.ret
                       ? "bg-accent-soft font-semibold text-primary-deep"
                       : "text-muted-foreground hover:text-foreground",
