@@ -142,12 +142,29 @@ function SettingsChip() {
 }
 
 function Logomark() {
+  // A banknote with a calculator keypad where the portrait would be. The note stays white
+  // and the key gold in both themes; the tile and keypad follow the primary colour.
+  // Master artwork: design/logo/mark-small.svg
   return (
     <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true" className="shrink-0">
       <rect width="30" height="30" rx="9" className="fill-primary" />
-      <rect x="7" y="16" width="4" height="7" rx="1.5" fill="#fff" opacity="0.55" />
-      <rect x="13" y="11" width="4" height="12" rx="1.5" fill="#fff" opacity="0.8" />
-      <rect x="19" y="6" width="4" height="17" rx="1.5" fill="#fff" />
+      <rect x="2.5" y="6.5" width="25" height="17" rx="3" fill="#fff" />
+      <g className="fill-primary" opacity="0.35">
+        <circle cx="6" cy="10.2" r="1.1" />
+        <circle cx="24" cy="10.2" r="1.1" />
+        <circle cx="6" cy="19.8" r="1.1" />
+        <circle cx="24" cy="19.8" r="1.1" />
+      </g>
+      <rect x="10" y="8.2" width="10" height="13.6" rx="2.4" className="fill-primary" />
+      <rect x="11.6" y="9.8" width="6.8" height="2" rx="0.7" fill="#fff" opacity="0.8" />
+      <g fill="#fff">
+        <rect x="11.6" y="13.4" width="2" height="2" rx="0.6" />
+        <rect x="14.1" y="13.4" width="2" height="2" rx="0.6" />
+        <rect x="16.6" y="13.4" width="1.8" height="2" rx="0.6" />
+        <rect x="11.6" y="16.2" width="2" height="2" rx="0.6" />
+        <rect x="14.1" y="16.2" width="2" height="2" rx="0.6" />
+      </g>
+      <rect x="16.6" y="16.2" width="1.8" height="2" rx="0.6" fill="#f2c94c" />
     </svg>
   );
 }
