@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useCurrency } from "./currency";
 import { track } from "./analytics";
+import { scheduleUrlReplace } from "./urlSync";
 import { fillUnowned, resolveDefaults, type ScenarioDefaults } from "./scenarioDefaults";
 
 type Scalar = number | boolean;
@@ -71,10 +72,7 @@ export function useScenario<T extends Record<string, Scalar>>(
       params.set(key, typeof value === "boolean" ? (value ? "1" : "0") : String(value));
     }
     params.set("currency", currency);
-    const href = `${window.location.pathname}?${params.toString()}`;
-    if (`${window.location.pathname}${window.location.search}` !== href) {
-      void router.navigate({ href, replace: true, resetScroll: false });
-    }
+    scheduleUrlReplace(router, `${window.location.pathname}?${params.toString()}`);
     try {
       window.localStorage.setItem(storageKey, JSON.stringify(state));
     } catch {

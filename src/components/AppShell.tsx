@@ -5,6 +5,7 @@ import {
   Globe,
   House,
   LayoutGrid,
+  Shield,
   Target,
   TrendingUp,
   Wallet,
@@ -235,6 +236,7 @@ function NavPills({ pathname, filled }: { pathname: string; filled: Set<string> 
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const { t } = useT();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const filled = useFilledTabs(pathname);
 
@@ -268,6 +270,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
       <main className="mx-auto max-w-[1200px] px-5 py-8 sm:py-10">{children}</main>
+      <footer className="mt-4 border-t border-border">
+        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-center gap-x-2 gap-y-1 px-5 py-6 text-center text-xs text-muted-foreground">
+          <Shield className="size-3.5 shrink-0 text-primary-deep" aria-hidden="true" />
+          <span className="font-medium text-foreground">{t("100% private")}</span>
+          <span aria-hidden="true">·</span>
+          <span>{t("All calculations stay on your device, never sent to any server.")}</span>
+        </div>
+      </footer>
     </div>
   );
 }

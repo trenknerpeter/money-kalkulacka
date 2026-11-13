@@ -183,7 +183,8 @@
   }
 
   header,
-  nav {
+  nav,
+  footer {
     display: none !important;
   }
 
