@@ -2,6 +2,9 @@
 export const SITE_URL = "https://moneykalkulacka.lovable.app";
 export const SITE_NAME = "Money Kalkulačka";
 
+/** Link-preview image (1200×630, public/og-image.png). Must be an absolute URL for crawlers. */
+export const OG_IMAGE = `${SITE_URL}/og-image.png`;
+
 const urlFor = (path: string) => `${SITE_URL}${path === "/" ? "/" : path}`;
 
 /**
