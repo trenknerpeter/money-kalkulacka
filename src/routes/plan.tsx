@@ -441,7 +441,7 @@ function Questionnaire({
           onClick={() => stepIdx > 0 && goTo(stepIdx - 1)}
           aria-label={t("Back")}
           className={cn(
-            "flex size-11 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:text-foreground",
+            "flex size-11 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:text-foreground",
             stepIdx === 0 && "pointer-events-none opacity-0",
           )}
         >
@@ -498,7 +498,7 @@ function Questionnaire({
               <button
                 type="button"
                 onClick={useInvest}
-                className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground"
+                className="h-9 rounded-full bg-primary px-3 text-sm font-medium text-primary-foreground"
               >
                 {t("Use these")}
               </button>
@@ -516,7 +516,7 @@ function Questionnaire({
                   aria-pressed={usePension}
                   onClick={togglePension}
                   className={cn(
-                    "inline-flex h-9 items-center gap-1 rounded-md px-3 text-sm font-medium",
+                    "inline-flex h-9 items-center gap-1 rounded-full px-3 text-sm font-medium",
                     usePension
                       ? "border border-primary text-primary"
                       : "bg-primary text-primary-foreground",
@@ -536,7 +536,7 @@ function Questionnaire({
                       // A first visit has nothing saved yet: keep the answers for the way back.
                       if (!initial) saveDraft(answers);
                     }}
-                    className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground"
+                    className="inline-flex h-9 items-center rounded-full bg-primary px-3 text-sm font-medium text-primary-foreground"
                   >
                     {t("Open the Retirement tab")}
                   </Link>
@@ -635,7 +635,7 @@ function Questionnaire({
 
         <button
           type="submit"
-          className="mt-10 inline-flex h-11 items-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          className="mt-10 inline-flex h-11 items-center rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           {stepIdx === steps.length - 1 ? t("See my plan") : t("Continue")}
         </button>
@@ -745,7 +745,7 @@ function Intro({ onStart }: { onStart: () => void }) {
         <button
           type="button"
           onClick={onStart}
-          className="inline-flex h-11 items-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          className="inline-flex h-11 items-center rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           {t("Work out my plan")}
         </button>
@@ -1140,14 +1140,14 @@ function Results({
           <button
             type="button"
             onClick={() => window.print()}
-            className="rounded-md border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            className="rounded-full border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             {t("Save as PDF")}
           </button>
           <button
             type="button"
             onClick={onEdit}
-            className="rounded-md border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            className="rounded-full border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             {t("Edit answers")}
           </button>

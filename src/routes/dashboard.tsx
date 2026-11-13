@@ -77,7 +77,7 @@ function Kpi({
         ? "text-[clamp(1.2rem,2vw,1.7rem)]"
         : "text-[clamp(1.4rem,2.4vw,2rem)]";
   return (
-    <div className="rounded-lg border border-border bg-card p-5 print:p-3">
+    <div className="rounded-xl border border-border bg-card p-5 shadow-card print:p-3">
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
       <p
         className={cn(
@@ -257,14 +257,25 @@ function RetirementPathChart({ m }: { m: DashboardMetrics }) {
   );
 }
 
-function Stat({ label, value, caption }: { label: string; value: string; caption?: string | undefined }) {
+function Stat({
+  label,
+  value,
+  caption,
+  onInk = false,
+}: {
+  label: string;
+  value: string;
+  caption?: string | undefined;
+  onInk?: boolean;
+}) {
+  const muted = onInk ? "text-ink-muted" : "text-muted-foreground";
   return (
     <div className="min-w-0">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={cn("text-xs font-medium uppercase tracking-wide", muted)}>{label}</p>
       <p className="tnum mt-1.5 whitespace-nowrap text-[clamp(1.25rem,2vw,1.75rem)] font-semibold leading-tight tracking-tight">
         {value}
       </p>
-      {caption && <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{caption}</p>}
+      {caption && <p className={cn("mt-1 text-xs leading-relaxed", muted)}>{caption}</p>}
     </div>
   );
 }
@@ -290,14 +301,14 @@ function Headline({ m, spend }: { m: DashboardMetrics; spend: number }) {
         : undefined;
 
   return (
-    <section className="break-inside-avoid rounded-lg border border-border bg-card p-6 print:p-3">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+    <section className="break-inside-avoid rounded-2xl bg-ink p-6 text-ink-foreground shadow-hero sm:p-8 print:bg-white print:p-3 print:text-foreground">
+      <p className="text-xs font-semibold uppercase tracking-[0.1em] text-ink-accent">
         {t("Where you're headed")}
       </p>
       <h2
         className={cn(
-          "mt-2 max-w-3xl text-[clamp(1.4rem,3vw,2rem)] font-semibold leading-tight tracking-tight",
-          m.livingAge !== null && "text-primary",
+          "mt-3 max-w-3xl text-[clamp(1.6rem,3.5vw,2.5rem)] font-semibold leading-tight tracking-tight",
+          m.livingAge !== null && "text-ink-accent",
         )}
       >
         {m.livingAge === null
@@ -305,7 +316,7 @@ function Headline({ m, spend }: { m: DashboardMetrics; spend: number }) {
           : t("From {a} you could live on {v} a month.", { a: m.livingAge, v: money(spend) })}
       </h2>
       {owes && (
-        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-ink-muted">
           {m.debtFreeAge !== null
             ? t("You'd still owe {d} on the mortgage at {age}. Keep going until {age2} to clear it.", {
                 d: money(m.owedAtLiving),
@@ -318,9 +329,10 @@ function Headline({ m, spend }: { m: DashboardMetrics; spend: number }) {
               })}
         </p>
       )}
-      <div className="mt-6 grid gap-6 border-t border-border pt-5 sm:grid-cols-3 print:mt-3 print:grid-cols-3 print:pt-3">
+      <div className="mt-6 grid gap-6 border-t border-white/10 pt-5 sm:grid-cols-3 print:mt-3 print:grid-cols-3 print:pt-3">
         {m.target !== null && (
           <Stat
+            onInk
             label={t("Your number")}
             value={money(m.target)}
             caption={t("The pot that pays {v} a month", { v: money(spend) })}
@@ -328,6 +340,7 @@ function Headline({ m, spend }: { m: DashboardMetrics; spend: number }) {
         )}
         {m.target !== null && owes && (
           <Stat
+            onInk
             label={t("Your number + mortgage left")}
             value={money(m.target + m.owedAtLiving)}
             caption={t("What you'd need at {a} to stop work and clear the mortgage", {
@@ -337,6 +350,7 @@ function Headline({ m, spend }: { m: DashboardMetrics; spend: number }) {
         )}
         {o && (
           <Stat
+            onInk
             label={t("Net worth at {age}", { age: o.age })}
             value={money(o.netWorth)}
             caption={outlookCaption}

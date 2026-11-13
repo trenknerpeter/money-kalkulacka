@@ -5,17 +5,20 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Money Kalkulačka design system — minimal, light, editorial.
- * White page, near-black text, a single green accent used sparingly.
- * All colors in oklch. No drop shadows anywhere.
+ * Money Kalkulačka design system.
+ * Warm off-white page, white cards with a soft shadow, one ink surface per page
+ * for the headline number. Green is the brand and the interactive colour; blue
+ * marks debt, amber marks pension and warnings. Dark palette follows the system.
  */
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
+  --radius-sm: calc(var(--radius) - 6px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
   --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque", Inter, ui-sans-serif, system-ui, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -24,6 +27,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-deep: var(--primary-deep);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -33,38 +37,103 @@
   --color-accent-soft: var(--accent-soft);
   --color-neutral-fill: var(--neutral-fill);
   --color-negative: var(--negative);
+  --color-negative-soft: var(--negative-soft);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-ink: var(--ink);
+  --color-ink-foreground: var(--ink-foreground);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-accent: var(--ink-accent);
+  --color-info: var(--info);
+  --color-info-deep: var(--info-deep);
+  --color-info-soft: var(--info-soft);
+  --color-warning: var(--warning);
+  --color-warning-deep: var(--warning-deep);
+  --color-warning-soft: var(--warning-soft);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
+  --shadow-card: 0 1px 2px rgba(20, 32, 26, 0.04), 0 8px 24px -16px rgba(20, 32, 26, 0.12);
+  --shadow-hero: 0 1px 2px rgba(20, 32, 26, 0.06), 0 16px 40px -20px rgba(20, 32, 26, 0.45);
 }
 
 :root {
-  --radius: 0.875rem; /* 14px cards */
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.182 0.008 285);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.182 0.008 285);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.182 0.008 285);
-  --primary: oklch(0.63 0.135 162);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.968 0.003 264);
-  --secondary-foreground: oklch(0.182 0.008 285);
-  --muted: oklch(0.968 0.003 264);
-  --muted-foreground: oklch(0.551 0.027 264.364);
-  --accent: oklch(0.63 0.135 162);
-  --accent-foreground: oklch(1 0 0);
-  --accent-soft: oklch(0.977 0.024 162);
-  --neutral-fill: oklch(0.92 0.004 264);
-  --negative: oklch(0.577 0.245 27.325);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.925 0.003 150);
-  --input: oklch(0.925 0.003 150);
-  --ring: oklch(0.63 0.135 162);
+  color-scheme: light dark;
+  --radius: 1rem; /* 16px cards, 14px inputs, 20px hero */
+  --background: #f7f6f2;
+  --foreground: #1c2521;
+  --card: #ffffff;
+  --card-foreground: #1c2521;
+  --popover: #ffffff;
+  --popover-foreground: #1c2521;
+  --primary: #1b7f51; /* buttons, links: 4.8:1 with white text */
+  --primary-foreground: #ffffff;
+  --primary-deep: #176b45; /* green text on light surfaces */
+  --secondary: #efede6;
+  --secondary-foreground: #1c2521;
+  --muted: #efede6;
+  --muted-foreground: #5c6862;
+  --accent: #2da56e; /* data green: chart fills, bars, dots */
+  --accent-foreground: #ffffff;
+  --accent-soft: #ddf1e6;
+  --neutral-fill: #dad8d0;
+  --negative: #c43d2f;
+  --negative-soft: #fadddb;
+  --destructive: #c43d2f;
+  --destructive-foreground: #ffffff;
+  --ink: #14201a;
+  --ink-foreground: #ffffff;
+  --ink-muted: rgba(255, 255, 255, 0.72);
+  --ink-accent: #8ed8b3;
+  --info: #2e63c9;
+  --info-deep: #2558b8;
+  --info-soft: #e3ecfa;
+  --warning: #d98b1e;
+  --warning-deep: #8a5309;
+  --warning-soft: #fbeeda;
+  --border: #e7e5df;
+  --input: #e7e5df;
+  --ring: #1b7f51;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #121715;
+    --foreground: #edf1ee;
+    --card: #1a211d;
+    --card-foreground: #edf1ee;
+    --popover: #1a211d;
+    --popover-foreground: #edf1ee;
+    --primary: #3dba80;
+    --primary-foreground: #0b1a12;
+    --primary-deep: #8ed8b3;
+    --secondary: #222b26;
+    --secondary-foreground: #edf1ee;
+    --muted: #222b26;
+    --muted-foreground: #a0aba4;
+    --accent: #3dba80;
+    --accent-foreground: #0b1a12;
+    --accent-soft: #1b3528;
+    --neutral-fill: #3b463f;
+    --negative: #e5705e;
+    --negative-soft: #3d1f1a;
+    --destructive: #e5705e;
+    --destructive-foreground: #ffffff;
+    --ink: #0a1f15;
+    --ink-foreground: #ffffff;
+    --ink-muted: rgba(255, 255, 255, 0.72);
+    --ink-accent: #8ed8b3;
+    --info: #6b9bef;
+    --info-deep: #a9c4f5;
+    --info-soft: #1b2a45;
+    --warning: #e9a23b;
+    --warning-deep: #f2c57c;
+    --warning-soft: #3a2a12;
+    --border: #2b3530;
+    --input: #2b3530;
+    --ring: #3dba80;
+  }
 }
 
 @layer base {
@@ -78,6 +147,23 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
 @utility tnum {
@@ -87,6 +173,10 @@
 
 /* Print / Save-as-PDF: strip app chrome, keep the plan summary clean. */
 @media print {
+  :root {
+    color-scheme: light;
+  }
+
   header,
   nav {
     display: none !important;

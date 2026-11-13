@@ -67,7 +67,7 @@ export function PaymentBreakdownChart({ rows }: { rows: MortgageYear[] }) {
           <Bar
             dataKey="interestPaid"
             name="Interest"
-            fill="var(--foreground)"
+            fill="var(--info)"
             radius={[2, 2, 0, 0]}
             animationDuration={200}
           />

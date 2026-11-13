@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Slider } from "@/components/ui/slider";
+import { cn } from "@/lib/utils";
 
 type Props = {
   label: string;
@@ -24,6 +25,7 @@ export function NumberSlider({
   suffixPosition = "right",
   disabled = false,
 }: Props) {
+  const id = useId();
   const [text, setText] = useState(String(value));
   // While the user types, keep their text even if the parent clamps the value
   // (e.g. "6" on the way to "67" must not snap to a minimum); blur shows the real value.
@@ -44,16 +46,19 @@ export function NumberSlider({
 
   return (
     <div
-      className={disabled ? "space-y-3 opacity-50" : "space-y-3"}
+      className={cn("space-y-2", disabled && "opacity-50")}
       aria-disabled={disabled || undefined}
     >
-      <div className="flex items-baseline justify-between gap-3">
-        <label className="text-sm text-muted-foreground">{label}</label>
-        <div className="flex items-center gap-1 rounded-md border border-border px-2.5 py-1.5 focus-within:border-primary">
+      <div className="flex items-center justify-between gap-3">
+        <label htmlFor={id} className="text-sm font-medium text-foreground">
+          {label}
+        </label>
+        <div className="flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-input bg-card px-3 transition-[border-color,box-shadow] focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
           {suffix && suffixPosition === "left" && (
             <span className="text-sm text-muted-foreground">{suffix}</span>
           )}
           <input
+            id={id}
             inputMode="decimal"
             value={text}
             onChange={(e) => commit(e.target.value)}
@@ -62,7 +67,7 @@ export function NumberSlider({
               setEditing(false);
               setText(String(value));
             }}
-            className="tnum w-24 bg-transparent text-right text-sm font-medium tabular-nums outline-none"
+            className="tnum w-24 bg-transparent text-right text-base font-semibold tabular-nums outline-none"
             aria-label={label}
             disabled={disabled}
           />

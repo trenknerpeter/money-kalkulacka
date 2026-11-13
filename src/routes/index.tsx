@@ -88,7 +88,14 @@ const CARDS: {
   },
 ];
 
-const JOURNEY = ["Salary", "Retirement", "Invest", "Mortgage", "Financial independence", "Dashboard"] as const;
+const JOURNEY = [
+  "Salary",
+  "Retirement",
+  "Invest",
+  "Mortgage",
+  "Financial independence",
+  "Dashboard",
+] as const;
 
 function Home() {
   const { t } = useT();
@@ -96,8 +103,11 @@ function Home() {
   return (
     <div className="space-y-12">
       <section className="max-w-2xl">
-        <p className="text-sm font-medium text-primary">{t("Your money, in one picture")}</p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+        <p className="inline-flex h-8 items-center gap-2 rounded-full bg-accent-soft px-3 text-sm font-semibold text-primary-deep">
+          <span className="size-2 rounded-full bg-accent" />
+          {t("Your money, in one picture")}
+        </p>
+        <h1 className="mt-3 text-[2.75rem] font-semibold leading-[1.02] tracking-tight text-foreground sm:text-6xl">
           {t("See where your money is heading.")}
         </h1>
         <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
@@ -108,7 +118,7 @@ function Home() {
         <div className="mt-6 flex flex-wrap items-center gap-4">
           <Link
             to="/mzda"
-            className="inline-flex h-11 items-center gap-2 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex h-12 items-center gap-2 rounded-full bg-primary px-6 text-base font-semibold text-primary-foreground transition-colors hover:bg-primary-deep"
           >
             {t("Start with Salary")}
             <ArrowRight className="size-4" />
@@ -146,10 +156,10 @@ function Home() {
             <Link
               key={to}
               to={to}
-              className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-primary"
+              className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-card transition-all hover:-translate-y-0.5 hover:shadow-hero focus-visible:outline-2 focus-visible:outline-primary"
             >
               <div className="relative h-40 bg-accent-soft px-8 py-6">
-                <span className="absolute left-4 top-4 flex size-7 items-center justify-center rounded-full bg-card text-xs font-semibold text-foreground shadow-sm">
+                <span className="absolute left-4 top-4 flex h-7 items-center justify-center rounded-full bg-card px-2.5 text-xs font-semibold text-primary-deep shadow-sm">
                   {step}
                 </span>
                 <Visual />

@@ -340,7 +340,7 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
             <button
               type="button"
               onClick={loadShared}
-              className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground"
+              className="h-9 rounded-full bg-primary px-3 text-sm font-medium text-primary-foreground"
             >
               {t("Load and save")}
             </button>
@@ -386,7 +386,7 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
               <button
                 type="submit"
                 disabled={!naming?.value.trim()}
-                className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                className="h-9 rounded-full bg-primary px-3 text-sm font-medium text-primary-foreground disabled:opacity-50"
               >
                 {t("Save")}
               </button>

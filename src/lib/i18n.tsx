@@ -627,6 +627,17 @@ const CS: Record<string, string> = {
   "Your DPS + DIP contributions also cut your income tax by about {v} a year (info only, not added to your savings).": "Vaše vklady do DPS a DIP také snižují daň z příjmu přibližně o {v} ročně (jen informativně, k úsporám se nepřičítá).",
   "Want to stop working before this? See your path to financial independence": "Chcete přestat pracovat dřív? Podívejte se na svou cestu k finanční nezávislosti",
   "Valid for {year} · an educational estimate, not pension advice.": "Platí pro rok {year} · vzdělávací odhad, ne důchodové poradenství.",
+  // Design refresh (phase 1)
+  "Language and currency": "Jazyk a měna",
+  "{n} of {total} tabs filled": "Vyplněno {n} z {total} záložek",
+  "Has your numbers": "Obsahuje vaše čísla",
+  "In {years} you'll have": "Za {years} budete mít",
+  "In today's money that's about {real}. You put in {c}; the remaining {g} is growth.": "V dnešních cenách to je zhruba {real}. Vložíte {c}, zbylých {g} udělá výnos.",
+  "From {gross} gross, {ins} goes to insurance and {tax} to tax.": "Z hrubé mzdy {gross} jde {ins} na pojištění a {tax} na daň.",
+  Breakdown: "Rozpis",
+  "State pension": "Státní důchod",
+  "Over {years} you'll pay {interest} in interest, {total} in total.": "Za {years} zaplatíte {interest} na úrocích, celkem {total}.",
+  "{p} of what you pay is interest": "{p} z toho, co zaplatíte, jsou úroky",
 };
 
 type Vars = Record<string, string | number>;

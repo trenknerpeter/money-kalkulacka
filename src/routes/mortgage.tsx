@@ -8,7 +8,9 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { NumberSlider } from "@/components/NumberSlider";
-import { Panel } from "@/components/Panel";
+import { Eyebrow, Panel } from "@/components/Panel";
+import { PageHeader } from "@/components/PageHeader";
+import { MortgageVisual } from "@/components/home/Illustrations";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { BalanceChart } from "@/components/mortgage/BalanceChart";
 import { PaymentBreakdownChart } from "@/components/mortgage/PaymentBreakdownChart";
@@ -135,6 +137,11 @@ function Mortgage() {
 
   const interestSaved = Math.max(0, current.totalInterest - withExtra.totalInterest);
   const monthsSaved = Math.max(0, current.months - withExtra.months);
+  const termLabel = count(
+    Number((solved.months / 12).toFixed(solved.months % 12 === 0 ? 0 : 1)),
+    "year",
+  );
+  const interestShare = current.totalPaid > 0 ? current.totalInterest / current.totalPaid : 0;
 
   const delta = (a: number, b: number) => {
     const d = b - a;
@@ -153,11 +160,11 @@ function Mortgage() {
 
   return (
     <div className="grid gap-10 lg:grid-cols-[380px_1fr]">
-      <div className="lg:sticky lg:top-32 lg:-mx-1 lg:max-h-[calc(100dvh-9.5rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:px-1 lg:pb-1">
-        <Panel className="space-y-6">
+      <div className="lg:sticky lg:top-24 lg:-mx-1 lg:max-h-[calc(100dvh-7.5rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:px-1 lg:pb-1">
+        <Panel variant="input" className="space-y-6">
           <div>
-            <p className="mb-2 text-sm text-muted-foreground">{t("Solve for")}</p>
-            <div className="flex rounded-md border border-border p-0.5">
+            <p className="mb-2 text-sm font-medium">{t("Solve for")}</p>
+            <div className="flex rounded-lg border border-border bg-card p-0.5">
               {[
                 { label: "Monthly payment", value: false },
                 { label: "Remaining term", value: true },
@@ -168,7 +175,7 @@ function Mortgage() {
                   className={cn(
                     "min-h-9 flex-1 rounded px-3 py-1.5 text-sm leading-tight transition-colors",
                     s.solveTerm === opt.value
-                      ? "bg-secondary font-medium text-foreground"
+                      ? "bg-accent-soft font-semibold text-primary-deep"
                       : "text-muted-foreground hover:text-foreground",
                   )}
                 >
@@ -238,7 +245,7 @@ function Mortgage() {
               {t("What your home would sell for today. Counts towards your net worth on the Dashboard — never towards your retirement money.")}
             </p>
             {s.homeValue > 0 && (
-              <div className="rounded-md border border-border bg-secondary/40 p-4">
+              <div className="rounded-lg border border-border bg-card p-4">
                 <div className="flex min-h-11 items-center justify-between gap-4">
                   <label htmlFor="home-growth" className="text-sm font-semibold">
                     {t("Include price growth")}
@@ -270,7 +277,7 @@ function Mortgage() {
             )}
           </div>
 
-          <div className="rounded-md border border-border bg-secondary/40 p-4">
+          <div className="rounded-lg border border-border bg-card p-4">
             <div className="flex min-h-11 items-center justify-between gap-4">
               <label htmlFor="compare-rate" className="text-sm font-semibold">
                 {t("Compare another rate")}
@@ -297,7 +304,7 @@ function Mortgage() {
             )}
           </div>
 
-          <div className="rounded-md border border-border bg-secondary/40 p-4">
+          <div className="rounded-lg border border-border bg-card p-4">
             <div className="flex min-h-11 items-center justify-between gap-4">
               <label htmlFor="extra-payment" className="text-sm font-semibold">
                 {t("Extra one-time payment")}
@@ -348,17 +355,18 @@ function Mortgage() {
       </div>
 
       <div className="space-y-8">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">{t("Rate change impact")}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
+        <PageHeader
+          title={t("Rate change impact")}
+          subtitle={
+            <>
               {t("{v} left", { v: money(s.principal) })}
-              {!invalid && t(" over {years}", { years: count(Number((solved.months / 12).toFixed(solved.months % 12 === 0 ? 0 : 1)), "year") })}
-              .
-            </p>
-          </div>
+              {!invalid && t(" over {years}", { years: termLabel })}.
+            </>
+          }
+          Visual={MortgageVisual}
+        >
           <CopyLinkButton />
-        </div>
+        </PageHeader>
 
         {solved.warning && (
           <div className="flex items-start gap-3 rounded-md border border-negative/30 bg-negative/5 p-4 text-sm text-negative">
@@ -408,18 +416,35 @@ function Mortgage() {
                 </p>
               </Panel>
             ) : (
-              <Panel title={t("Your mortgage")}>
-                <div className="grid gap-5 sm:grid-cols-3">
-                  {[
-                    { label: "Monthly payment", value: current.monthly },
-                    { label: "Total interest", value: current.totalInterest },
-                    { label: "Total paid", value: current.totalPaid },
-                  ].map((item) => (
-                    <div key={item.label} className="border-t border-border pt-4">
-                      <p className="text-xs text-muted-foreground">{t(item.label)}</p>
-                      <p className="tnum mt-1 whitespace-nowrap text-xl font-semibold">{money(item.value)}</p>
-                    </div>
-                  ))}
+              <Panel variant="hero">
+                <Eyebrow onInk>{t("Monthly payment")}</Eyebrow>
+                <p className="tnum mt-3 text-[clamp(2.5rem,6vw,4rem)] font-semibold leading-none tracking-tight">
+                  {money(current.monthly)}
+                </p>
+                <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-muted">
+                  {t("Over {years} you'll pay {interest} in interest, {total} in total.", {
+                    years: termLabel,
+                    interest: money(current.totalInterest),
+                    total: money(current.totalPaid),
+                  })}
+                </p>
+                <div
+                  className="mt-6 flex h-3 overflow-hidden rounded-full bg-white/10"
+                  role="img"
+                  aria-label={t("{p} of what you pay is interest", { p: percent(interestShare * 100) })}
+                >
+                  <div className="bg-white/55" style={{ width: `${(1 - interestShare) * 100}%` }} />
+                  <div className="bg-info" style={{ width: `${interestShare * 100}%` }} />
+                </div>
+                <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-ink-muted">
+                  <span className="flex items-center gap-2">
+                    <span className="size-2.5 rounded-sm bg-white/55" />
+                    {t("Principal")} <span className="tnum font-medium text-ink-foreground">{money(s.principal)}</span>
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className="size-2.5 rounded-sm bg-info" />
+                    {t("Interest")} <span className="tnum font-medium text-ink-foreground">{money(current.totalInterest)}</span>
+                  </span>
                 </div>
               </Panel>
             )}
@@ -428,10 +453,10 @@ function Mortgage() {
               <PaymentBreakdownChart rows={withExtra.rows} />
               <div className="mt-4 flex items-center gap-5 text-xs text-muted-foreground">
                 <span className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-sm bg-primary" /> {t("Principal")}
+                  <span className="h-2.5 w-2.5 rounded-sm bg-accent" /> {t("Principal")}
                 </span>
                 <span className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-sm bg-foreground" /> {t("Interest")}
+                  <span className="h-2.5 w-2.5 rounded-sm bg-info" /> {t("Interest")}
                 </span>
               </div>
             </Panel>
@@ -528,7 +553,7 @@ function Mortgage() {
                   </AccordionTrigger>
                   <AccordionContent>
                     {s.compareRate && (
-                      <div className="mb-4 flex rounded-md border border-border p-0.5">
+                      <div className="mb-4 flex rounded-lg border border-border bg-card p-0.5">
                         {(["current", "whatIf"] as const).map((v) => (
                           <button
                             type="button"
@@ -537,7 +562,7 @@ function Mortgage() {
                             className={cn(
                               "h-8 flex-1 rounded text-xs transition-colors",
                               tableScenario === v
-                                ? "bg-secondary font-medium text-foreground"
+                                ? "bg-accent-soft font-semibold text-primary-deep"
                                 : "text-muted-foreground hover:text-foreground",
                             )}
                           >
