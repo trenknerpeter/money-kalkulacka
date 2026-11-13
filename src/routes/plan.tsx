@@ -1077,7 +1077,7 @@ function Results({
 
   return (
     <div className="space-y-8">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           {alreadyFunded ? (
             <h1 className="text-[clamp(1.75rem,4vw,2.5rem)] font-semibold leading-tight tracking-tight text-primary">
@@ -1136,7 +1136,7 @@ function Results({
             </p>
           )}
         </div>
-        <div className="flex shrink-0 items-center gap-2 print:hidden">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 print:hidden">
           <button
             type="button"
             onClick={() => window.print()}
