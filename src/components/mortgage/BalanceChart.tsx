@@ -1,15 +1,19 @@
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ReferenceDot,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { pointLabel } from "@/components/chartLabels";
 import { AXIS_TICK, CROSSHAIR, TOOLTIP_BOX } from "@/lib/chartStyle";
 import { useFormatters } from "@/lib/currency";
 import { useT } from "@/lib/i18n";
 
-export function BalanceChart({
-  current,
-  whatIf,
-}: {
-  current: number[];
-  whatIf: number[];
-}) {
+export function BalanceChart({ current, whatIf }: { current: number[]; whatIf: number[] }) {
   const { money, compact } = useFormatters();
   const { t } = useT();
   const length = Math.max(current.length, whatIf.length);
@@ -18,6 +22,10 @@ export function BalanceChart({
     current: current[i] ?? 0,
     whatIf: whatIf[i] ?? 0,
   }));
+
+  // Name both lines a little way in, the upper one above and the lower one below.
+  const at = data[Math.max(1, Math.floor(length * 0.4))];
+  const whatIfAbove = at ? at.whatIf >= at.current : true;
 
   return (
     <div className="h-[320px] w-full">
@@ -82,6 +90,30 @@ export function BalanceChart({
             activeDot={{ r: 5, stroke: "var(--card)", strokeWidth: 2 }}
             animationDuration={200}
           />
+          {at && (
+            <ReferenceDot
+              x={at.year}
+              y={at.current}
+              r={0}
+              label={pointLabel(t("Now"), {
+                fill: "var(--foreground)",
+                anchor: "middle",
+                dy: whatIfAbove ? 20 : -12,
+              })}
+            />
+          )}
+          {at && (
+            <ReferenceDot
+              x={at.year}
+              y={at.whatIf}
+              r={0}
+              label={pointLabel(t("What-if"), {
+                fill: "var(--info-deep)",
+                anchor: "middle",
+                dy: whatIfAbove ? -12 : 20,
+              })}
+            />
+          )}
         </LineChart>
       </ResponsiveContainer>
     </div>

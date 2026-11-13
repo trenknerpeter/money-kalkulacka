@@ -12,6 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { pointLabel } from "@/components/chartLabels";
 import { LifeTimeline } from "@/components/LifeTimeline";
 import { Eyebrow, Panel } from "@/components/Panel";
 import { EmptyDashboardVisual, PlanVisual } from "@/components/home/Illustrations";
@@ -200,6 +201,12 @@ function RetirementPathChart({ m }: { m: DashboardMetrics }) {
               stroke="var(--muted-foreground)"
               strokeDasharray="6 4"
               ifOverflow="extendDomain"
+              label={{
+                value: t("Your number — {v}", { v: money(target) }),
+                position: "insideBottomLeft",
+                fill: "var(--muted-foreground)",
+                fontSize: 12,
+              }}
             />
           )}
           <ReferenceLine
@@ -216,6 +223,34 @@ function RetirementPathChart({ m }: { m: DashboardMetrics }) {
               );
             }}
           />
+          {path.length > 0 && (
+            <ReferenceDot
+              x={path[path.length - 1]!.age}
+              y={path[path.length - 1]!.pot}
+              r={0}
+              ifOverflow="extendDomain"
+              label={pointLabel(`${t("Your pot")} ${compact(path[path.length - 1]!.pot)}`, {
+                fill: "var(--primary-deep)",
+                dy: -10,
+                weight: 700,
+              })}
+            />
+          )}
+          {showDebt && (
+            <ReferenceDot
+              x={path[0]!.age}
+              y={path[0]!.need}
+              r={0}
+              ifOverflow="extendDomain"
+              label={pointLabel(t("Your number + mortgage left"), {
+                fill: "var(--muted-foreground)",
+                anchor: "start",
+                dx: 6,
+                dy: -8,
+                weight: 500,
+              })}
+            />
+          )}
           {target !== null && living && living.age > path[0]!.age && (
             <ReferenceDot
               x={living.age}
@@ -1031,24 +1066,10 @@ function Dashboard() {
               {m.path.length > 0 ? (
                 <>
                   <RetirementPathChart m={m} />
-                  <div className="mt-4 flex flex-wrap items-center gap-5 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-2">
-                      <span className="size-2.5 rounded-sm bg-primary/30 ring-1 ring-primary" />{" "}
-                      {t("Your pot")}
-                    </span>
-                    {m.target !== null && (
-                      <span className="flex items-center gap-2">
-                        <span className="h-0 w-3 border-t-2 border-dashed border-muted-foreground" />{" "}
-                        {t("Your number — {v}", { v: money(m.target) })}
-                      </span>
-                    )}
-                    {m.path.some((r) => r.debt > 0.5) && (
-                      <span className="flex items-center gap-2">
-                        <span className="h-0 w-3 border-t-2 border-dotted border-muted-foreground" />{" "}
-                        {t("Your number + mortgage left")}
-                      </span>
-                    )}
-                  </div>
+                  <p className="sr-only">
+                    {t("Your pot")}: {money(m.path[m.path.length - 1]!.pot)}.
+                    {m.target !== null && <> {t("Your number — {v}", { v: money(m.target) })}.</>}
+                  </p>
                 </>
               ) : (
                 <div className="py-8 text-center">

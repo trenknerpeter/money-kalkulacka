@@ -26,6 +26,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { DashboardVisual } from "@/components/home/Illustrations";
 import { useFormatters } from "@/lib/currency";
 import { snapshotMetrics } from "@/lib/dashboard";
 import { useT } from "@/lib/i18n";
@@ -182,18 +183,26 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight">{t("Dashboard")}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("Based on what you've saved in the other tabs. Everything stays in your browser.")}
-          </p>
-          {active && (
-            <p className="mt-1 text-xs text-muted-foreground print:hidden">
-              {t("Scenario: {name}", { name: active.name })}
-              {dirty && <> · {t("Edited since saved")}</>}
+        <div className="flex min-w-0 items-start gap-4">
+          <div
+            className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-accent-soft px-2 py-3 print:hidden"
+            aria-hidden="true"
+          >
+            <DashboardVisual />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t("Dashboard")}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("Based on what you've saved in the other tabs. Everything stays in your browser.")}
             </p>
-          )}
-          {error && <p className="mt-1 text-xs text-negative">{error}</p>}
+            {active && (
+              <p className="mt-1 text-xs text-muted-foreground print:hidden">
+                {t("Scenario: {name}", { name: active.name })}
+                {dirty && <> · {t("Edited since saved")}</>}
+              </p>
+            )}
+            {error && <p className="mt-1 text-xs text-negative">{error}</p>}
+          </div>
         </div>
 
         <DropdownMenu>

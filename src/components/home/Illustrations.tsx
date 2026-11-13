@@ -175,3 +175,23 @@ export function EmptyDashboardVisual() {
     </svg>
   );
 }
+
+/** The dashboard once it is filled in: four tiles, one per topic. */
+export function DashboardVisual() {
+  return (
+    <svg viewBox="0 0 160 96" className="h-full w-full" aria-hidden="true">
+      <rect x="10" y="10" width="64" height="34" rx="8" className="fill-accent" opacity="0.28" />
+      <rect x="22" y="30" width="7" height="8" rx="2" className="fill-accent" opacity="0.6" />
+      <rect x="33" y="24" width="7" height="14" rx="2" className="fill-accent" opacity="0.8" />
+      <rect x="44" y="18" width="7" height="20" rx="2" className="fill-accent" />
+      <rect x="86" y="10" width="64" height="34" rx="8" className="fill-warning" opacity="0.28" />
+      <circle cx="118" cy="27" r="10" className="fill-none stroke-warning" strokeWidth="3" />
+      <path d="M118 21 V27 L122 30" className="fill-none stroke-warning" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="10" y="52" width="64" height="34" rx="8" className="fill-info" opacity="0.28" />
+      <path d="M32 72 L42 63 L52 72 M35 70 V78 H49 V70" className="fill-none stroke-info" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="86" y="52" width="64" height="34" rx="8" className="fill-foreground" opacity="0.14" />
+      <path d="M98 76 C108 76 112 66 122 66 S136 60 140 58" className="fill-none stroke-foreground" strokeWidth="3" strokeLinecap="round" />
+      <circle cx="140" cy="58" r="3.5" className="fill-foreground" />
+    </svg>
+  );
+}

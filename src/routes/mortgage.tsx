@@ -455,14 +455,6 @@ function Mortgage() {
 
             <Panel title={t("Payments over time")}>
               <PaymentBreakdownChart rows={withExtra.rows} />
-              <div className="mt-4 flex items-center gap-5 text-xs text-muted-foreground">
-                <span className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-sm bg-accent" /> {t("Principal")}
-                </span>
-                <span className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-sm bg-info" /> {t("Interest")}
-                </span>
-              </div>
             </Panel>
 
             {s.extraPayment && (
@@ -500,14 +492,6 @@ function Mortgage() {
             {s.compareRate && (
               <Panel title={t("Remaining balance over time")}>
                 <BalanceChart current={current.balanceByYear} whatIf={whatIf.balanceByYear} />
-                <div className="mt-4 flex items-center gap-5 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-2">
-                    <span className="h-0.5 w-5 bg-foreground" /> {t("Now")}
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <span className="h-0.5 w-5 border-t-2 border-dashed border-info" /> {t("What-if")}
-                  </span>
-                </div>
               </Panel>
             )}
 

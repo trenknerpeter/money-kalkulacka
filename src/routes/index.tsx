@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Check, Lock, Zap } from "lucide-react";
+import { ArrowRight, CalendarCheck, Check, Lock } from "lucide-react";
 import type { ComponentType } from "react";
 import { DashboardPreview } from "@/components/home/DashboardPreview";
 import {
@@ -53,11 +53,13 @@ type Card = {
   subtitle: string;
   Visual: ComponentType;
   tone: Tone;
-  /** Grid columns on large screens (of 6). */
-  span: "lg:col-span-2" | "lg:col-span-4";
+  /** The two large tiles take half the row; the other three a third each. */
+  large?: boolean;
+  /** The ink tile where the other four come together. */
   featured?: boolean;
 };
 
+// Listed in reading order, so keyboard order matches what you see.
 const CARDS: Card[] = [
   {
     step: 1,
@@ -66,7 +68,17 @@ const CARDS: Card[] = [
     subtitle: "Turn your gross salary into net pay: tax, insurance and child benefit, 2026 rules.",
     Visual: SalaryVisual,
     tone: "green",
-    span: "lg:col-span-2",
+    large: true,
+  },
+  {
+    step: 5,
+    to: "/plan",
+    title: "Financial independence",
+    subtitle: "Answer a few quick questions and find out when you can realistically stop working.",
+    Visual: PlanVisual,
+    tone: "green",
+    large: true,
+    featured: true,
   },
   {
     step: 2,
@@ -75,7 +87,6 @@ const CARDS: Card[] = [
     subtitle: "When you'll retire, your state pension and what DPS and DIP add.",
     Visual: RetirementVisual,
     tone: "amber",
-    span: "lg:col-span-2",
   },
   {
     step: 3,
@@ -85,7 +96,6 @@ const CARDS: Card[] = [
       "See how monthly contributions compound over time — and what they're worth in today's money.",
     Visual: InvestVisual,
     tone: "green",
-    span: "lg:col-span-2",
   },
   {
     step: 4,
@@ -94,17 +104,6 @@ const CARDS: Card[] = [
     subtitle: "Compare your current rate against a what-if rate and see what it really costs.",
     Visual: MortgageVisual,
     tone: "blue",
-    span: "lg:col-span-2",
-  },
-  {
-    step: 5,
-    to: "/plan",
-    title: "Financial independence",
-    subtitle: "Answer a few quick questions and find out when you can realistically stop working.",
-    Visual: PlanVisual,
-    tone: "green",
-    span: "lg:col-span-4",
-    featured: true,
   },
 ];
 
@@ -119,41 +118,46 @@ const JOURNEY: { label: string; tone: Tone; to: Card["to"] | "/dashboard" }[] = 
 
 function CalculatorCard({ card }: { card: Card }) {
   const { t } = useT();
-  const { step, to, title, subtitle, Visual, tone, span, featured } = card;
+  const { step, to, title, subtitle, Visual, tone, large, featured } = card;
   return (
     <Link
       to={to}
       className={cn(
-        "group flex overflow-hidden rounded-3xl border shadow-card transition-all hover:-translate-y-0.5 hover:shadow-hero focus-visible:outline-2 focus-visible:outline-primary",
-        span,
+        "group flex flex-col overflow-hidden rounded-3xl border shadow-card transition-all hover:-translate-y-0.5 hover:shadow-hero focus-visible:outline-2 focus-visible:outline-primary",
+        large ? "lg:col-span-3" : "lg:col-span-2",
         featured
-          ? "border-transparent bg-ink text-ink-foreground md:col-span-2 lg:flex-row"
-          : "flex-col border-border bg-card text-foreground",
-        featured && "flex-col",
+          ? "border-transparent bg-ink text-ink-foreground"
+          : "border-border bg-card text-foreground",
       )}
     >
       <div
         className={cn(
           "relative flex shrink-0 items-center justify-center px-8 py-6",
+          large ? "h-48" : "h-40",
           featured
-            ? "h-44 bg-white/[0.06] [--muted-foreground:var(--ink-muted)] [--primary:var(--accent)] lg:h-auto lg:w-[44%]"
-            : cn("h-40", TONE[tone].tile),
+            ? "bg-ink-foreground/[0.06] [--muted-foreground:var(--ink-muted)] [--primary:var(--accent)]"
+            : TONE[tone].tile,
         )}
       >
         <span
           className={cn(
             "absolute left-4 top-4 flex h-7 items-center justify-center rounded-full px-2.5 text-xs font-semibold shadow-sm",
-            featured ? "bg-white/15 text-ink-foreground" : cn("bg-card", TONE[tone].text),
+            featured ? "bg-ink-foreground/15 text-ink-foreground" : cn("bg-card", TONE[tone].text),
           )}
         >
           {t("Step {n}", { n: step })}
         </span>
-        <div className="h-full max-h-32 w-full max-w-[220px]">
+        <div className={cn("w-full max-w-[220px]", large ? "h-full max-h-36" : "h-full max-h-32")}>
           <Visual />
         </div>
       </div>
       <div className="flex flex-1 flex-col justify-center p-6 sm:p-7">
-        <h2 className="flex items-center justify-between gap-3 text-2xl font-semibold tracking-tight">
+        <h2
+          className={cn(
+            "flex items-center justify-between gap-3 font-semibold tracking-tight",
+            large ? "text-3xl" : "text-2xl",
+          )}
+        >
           {t(title)}
           <ArrowRight
             className={cn(
@@ -218,7 +222,7 @@ function Home() {
           <ul className="mt-7 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
             {[
               { Icon: Lock, label: "Nothing leaves your browser" },
-              { Icon: Zap, label: "Results in seconds" },
+              { Icon: CalendarCheck, label: "2026 rules" },
               { Icon: Check, label: "Free, no sign-up" },
             ].map(({ Icon, label }) => (
               <li key={label} className="flex items-center gap-2">

@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { pointLabel } from "@/components/chartLabels";
 import { growthCrossoverYear, type InvestYear } from "@/lib/finance";
 import { AXIS_TICK, CROSSHAIR, TOOLTIP_BOX, gradientId } from "@/lib/chartStyle";
 import { useFormatters } from "@/lib/currency";
@@ -30,6 +31,12 @@ export function InvestChart({ rows }: { rows: InvestYear[] }) {
   }));
   const last = data[data.length - 1];
   const crossover = growthCrossoverYear(rows);
+  // Names the green band where it is tall enough to hold the word.
+  const growthLabelAt = last
+    ? data.find(
+        (d) => d.year >= Math.round(last.year * 0.6) && d.growth / Math.max(1, last.total) > 0.1,
+      )
+    : undefined;
 
   return (
     <div className="h-[340px] w-full">
@@ -141,21 +148,40 @@ export function InvestChart({ rows }: { rows: InvestYear[] }) {
               stroke="var(--card)"
               strokeWidth={2}
               ifOverflow="extendDomain"
-              label={(props: { viewBox?: { x?: number; y?: number; width?: number } }) => {
-                const { x = 0, y = 0, width = 0 } = props.viewBox ?? {};
-                return (
-                  <text
-                    x={x + width / 2}
-                    y={y - 12}
-                    textAnchor="end"
-                    fill="var(--primary-deep)"
-                    fontSize={13}
-                    fontWeight={700}
-                  >
-                    {compact(last.total)}
-                  </text>
-                );
-              }}
+              label={pointLabel(`${t("Total")} ${compact(last.total)}`, {
+                fill: "var(--primary-deep)",
+                dy: -14,
+                size: 13,
+                weight: 700,
+              })}
+            />
+          )}
+          {last && last.growth / Math.max(1, last.total) > 0.08 && (
+            <ReferenceDot
+              x={last.year}
+              y={last.contributed}
+              r={4}
+              fill="var(--muted-foreground)"
+              stroke="var(--card)"
+              strokeWidth={2}
+              ifOverflow="extendDomain"
+              label={pointLabel(`${t("Money you put in")} ${compact(last.contributed)}`, {
+                fill: "var(--foreground)",
+                dy: -12,
+              })}
+            />
+          )}
+          {growthLabelAt && (
+            <ReferenceDot
+              x={growthLabelAt.year}
+              y={growthLabelAt.contributed + growthLabelAt.growth / 2}
+              r={0}
+              ifOverflow="extendDomain"
+              label={pointLabel(t("Growth"), {
+                fill: "var(--primary-deep)",
+                dy: 4,
+                anchor: "middle",
+              })}
             />
           )}
         </AreaChart>

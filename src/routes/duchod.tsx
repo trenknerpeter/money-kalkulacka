@@ -461,6 +461,43 @@ function Duchod() {
               "Statutory retirement age under act 155/1995 Sb. as amended, based on your year of birth.",
             )}
           </p>
+          {hasSavings && sum.totalMonthly > 0 && (
+            <div className="mt-6">
+              <div
+                className="flex h-3 overflow-hidden rounded-full bg-ink-foreground/10"
+                role="img"
+                aria-label={t("Together {v} a month in retirement.", {
+                  v: formatCzk(sum.totalMonthly),
+                })}
+              >
+                <div
+                  className="bg-warning"
+                  style={{ width: `${Math.min(100, (p.monthly / sum.totalMonthly) * 100)}%` }}
+                />
+                <div
+                  className="bg-ink-foreground/55"
+                  style={{ width: `${Math.max(0, (sum.drawdown / sum.totalMonthly) * 100)}%` }}
+                />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-ink-muted">
+                <span className="flex items-center gap-2">
+                  <span className="size-2.5 rounded-sm bg-warning" />
+                  {t("State pension")}{" "}
+                  <span className="tnum font-medium text-ink-foreground">{formatCzk(p.monthly)}</span>
+                </span>
+                <span className="flex items-center gap-2">
+                  <span className="size-2.5 rounded-sm bg-ink-foreground/55" />
+                  {t("Pension savings (DPS + DIP)")}{" "}
+                  <span className="tnum font-medium text-ink-foreground">
+                    {formatCzk(sum.drawdown)}
+                  </span>
+                </span>
+              </div>
+              <p className="mt-3 text-sm text-ink-muted">
+                {t("Together {v} a month in retirement.", { v: formatCzk(sum.totalMonthly) })}
+              </p>
+            </div>
+          )}
         </Panel>
 
         {(!p.eligible || p.delayed) && (

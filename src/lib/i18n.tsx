@@ -639,6 +639,9 @@ const CS: Record<string, string> = {
   "Over {years} you'll pay {interest} in interest, {total} in total.": "Za {years} zaplatíte {interest} na úrocích, celkem {total}.",
   "{p} of what you pay is interest": "{p} z toho, co zaplatíte, jsou úroky",
   // Design refresh (phase 2)
+  "Open your own dashboard": "Otevřít váš přehled",
+  "Together {v} a month in retirement.": "Dohromady {v} měsíčně v důchodu.",
+  "2026 rules": "Pravidla pro rok 2026",
   "Still to fill in": "Zbývá vyplnit",
   "Every tab is filled in": "Všechny záložky jsou vyplněné",
   "{p} of your number by {stop}": "{p} vašeho čísla do {stop} let",

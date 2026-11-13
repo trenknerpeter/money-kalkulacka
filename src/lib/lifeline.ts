@@ -18,7 +18,7 @@ export function lifeMarkers(input: {
   return out.length >= 2 ? out : [];
 }
 
-/** Which milestone wins when two land too close together. */
+/** Which milestone gives a shared dot its colour. */
 const PRIORITY: Record<MarkerKind, number> = {
   today: 4,
   independent: 3,
@@ -26,20 +26,38 @@ const PRIORITY: Record<MarkerKind, number> = {
   "debt-free": 1,
 };
 
+export type MarkerGroup = {
+  /** Position on the axis. */
+  age: number;
+  /** All milestones that land here, most meaningful first. */
+  kinds: MarkerKind[];
+  /** Label row: 0 on the line, 1 just below it, so close neighbours do not overprint. */
+  row: 0 | 1;
+};
+
 /**
- * Drops markers that would sit on top of each other (closer than `minShare` of the span).
- * Of two that collide, the more meaningful one stays (see PRIORITY).
+ * Lays every milestone out. Ones at (almost) the same age share a dot and a label;
+ * ones close together keep their own dot and alternate between two label rows.
  */
-export function spreadMarkers(markers: LifeMarker[], from: number, to: number, minShare = 0.16) {
+export function layoutMarkers(
+  markers: LifeMarker[],
+  from: number,
+  to: number,
+  closeShare = 0.16,
+  sameShare = 0.015,
+): MarkerGroup[] {
   const span = Math.max(1, to - from);
-  const out: LifeMarker[] = [];
+  const out: MarkerGroup[] = [];
   for (const m of [...markers].sort((a, b) => a.age - b.age)) {
     const prev = out[out.length - 1];
-    if (prev && (m.age - prev.age) / span < minShare) {
-      if (PRIORITY[m.kind] > PRIORITY[prev.kind]) out[out.length - 1] = m;
-      continue;
+    const gap = prev ? (m.age - prev.age) / span : Infinity;
+    if (prev && gap < sameShare) {
+      prev.kinds = [...prev.kinds, m.kind].sort((a, b) => PRIORITY[b] - PRIORITY[a]);
+    } else if (prev && gap < closeShare) {
+      out.push({ age: m.age, kinds: [m.kind], row: prev.row === 0 ? 1 : 0 });
+    } else {
+      out.push({ age: m.age, kinds: [m.kind], row: 0 });
     }
-    out.push(m);
   }
   return out;
 }

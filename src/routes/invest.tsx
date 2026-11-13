@@ -434,15 +434,10 @@ function Invest() {
 
             <Panel title={t("Growth over time")}>
               <InvestChart rows={result.rows} />
-              <div className="mt-4 flex items-center gap-5 text-xs text-muted-foreground">
-                <span className="flex items-center gap-2">
-                  <span className="size-2.5 rounded-sm bg-neutral-fill" /> {t("Money you put in")}
-                </span>
-                <span className="flex items-center gap-2">
-                  <span className="size-2.5 rounded-sm bg-primary/30 ring-1 ring-primary" />{" "}
-                  {t("Growth")}
-                </span>
-              </div>
+              <p className="sr-only">
+                {t("Total")} {money(result.finalValue)}. {t("Money you put in")}{" "}
+                {money(result.totalContributed)}. {t("Growth")} {money(result.totalGrowth)}.
+              </p>
             </Panel>
 
             {crossover !== null && crossover < Math.round(s.years) && (

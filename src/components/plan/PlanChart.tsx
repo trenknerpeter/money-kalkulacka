@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { pointLabel } from "@/components/chartLabels";
 import { CROSSHAIR, TOOLTIP_BOX, gradientId } from "@/lib/chartStyle";
 import { useFormatters } from "@/lib/currency";
 import { useT } from "@/lib/i18n";
@@ -29,7 +30,15 @@ type Props = {
   needAt?: ((age: number) => number) | undefined;
 };
 
-export function PlanChart({ rows, target, stopAge, reachedAge, debtFreeAge = null, markers = [], needAt }: Props) {
+export function PlanChart({
+  rows,
+  target,
+  stopAge,
+  reachedAge,
+  debtFreeAge = null,
+  markers = [],
+  needAt,
+}: Props) {
   const { money, compact } = useFormatters();
   const { t } = useT();
   const uid = useId();
@@ -40,7 +49,11 @@ export function PlanChart({ rows, target, stopAge, reachedAge, debtFreeAge = nul
     showDebt || needAt
       ? rows.map((r) => {
           const n = needAt ? needAt(r.age) : target;
-          return { ...r, ...(needAt ? { number: n } : {}), ...(showDebt ? { need: n + r.debt } : {}) };
+          return {
+            ...r,
+            ...(needAt ? { number: n } : {}),
+            ...(showDebt ? { need: n + r.debt } : {}),
+          };
         })
       : rows;
   const reachedRow = reachedAge !== null ? rows.find((r) => r.age === reachedAge) : undefined;
@@ -48,6 +61,26 @@ export function PlanChart({ rows, target, stopAge, reachedAge, debtFreeAge = nul
   const debtFreeRow =
     showDebt && debtFreeAge !== null && debtFreeAge !== reachedAge
       ? data.find((r) => r.age === debtFreeAge)
+      : undefined;
+
+  const first = data[0];
+  const last = data[data.length - 1];
+  // Name the green band where it is tall and clear of the other markers and end labels.
+  const avoid = [reachedAge, stopAge, debtFreeAge, ...markers.map((m) => m.age)].filter(
+    (a): a is number => typeof a === "number",
+  );
+  const span = last && first ? last.age - first.age : 0;
+  const growthLabelAt =
+    last && first
+      ? data
+          .filter(
+            (d) =>
+              d.age >= first.age + span * 0.45 &&
+              d.age <= last.age - 4 &&
+              avoid.every((a) => Math.abs(a - d.age) > 3) &&
+              d.growth / Math.max(1, last.balance) > 0.1,
+          )
+          .sort((a, b) => b.growth - a.growth)[0]
       : undefined;
 
   return (
@@ -79,7 +112,11 @@ export function PlanChart({ rows, target, stopAge, reachedAge, debtFreeAge = nul
             tickFormatter={(v: number) => compact(v)}
             domain={[
               0,
-              (dataMax: number) => Math.max(dataMax, showTarget && !needAt ? target + (showDebt ? (rows[0]?.debt ?? 0) : 0) : 0) * 1.05,
+              (dataMax: number) =>
+                Math.max(
+                  dataMax,
+                  showTarget && !needAt ? target + (showDebt ? (rows[0]?.debt ?? 0) : 0) : 0,
+                ) * 1.05,
             ]}
           />
           <Tooltip
@@ -185,7 +222,7 @@ export function PlanChart({ rows, target, stopAge, reachedAge, debtFreeAge = nul
               strokeDasharray="6 4"
               label={{
                 value: t("Your number — {v}", { v: money(target) }),
-                position: "insideTopRight",
+                position: "insideBottomLeft",
                 fill: "var(--muted-foreground)",
                 fontSize: 12,
               }}
@@ -228,10 +265,75 @@ export function PlanChart({ rows, target, stopAge, reachedAge, debtFreeAge = nul
                 value: t("{n} — you reach your number", { n: reachedRow.age }),
                 // Below the dot when the debt-free dot sits just above it.
                 position: debtFreeRow ? "bottom" : "top",
-                fill: "var(--accent)",
+                fill: "var(--primary-deep)",
                 fontSize: 12,
                 fontWeight: 600,
               }}
+            />
+          )}
+          {last && (
+            <ReferenceDot
+              x={last.age}
+              y={last.balance}
+              r={0}
+              ifOverflow="extendDomain"
+              label={pointLabel(`${t("Pot")} ${compact(last.balance)}`, {
+                fill: "var(--primary-deep)",
+                dy: -10,
+                weight: 700,
+              })}
+            />
+          )}
+          {last && last.growth / Math.max(1, last.balance) > 0.08 && (
+            <ReferenceDot
+              x={last.age}
+              y={last.contributed}
+              r={0}
+              ifOverflow="extendDomain"
+              label={pointLabel(`${t("Money you put in")} ${compact(last.contributed)}`, {
+                fill: "var(--foreground)",
+                dy: -8,
+              })}
+            />
+          )}
+          {growthLabelAt && (
+            <ReferenceDot
+              x={growthLabelAt.age}
+              y={growthLabelAt.contributed + growthLabelAt.growth / 2}
+              r={0}
+              label={pointLabel(t("Growth"), {
+                fill: "var(--primary-deep)",
+                anchor: "middle",
+                dy: 4,
+              })}
+            />
+          )}
+          {showTarget && needAt && last?.number !== undefined && (
+            <ReferenceDot
+              x={last.age}
+              y={last.number}
+              r={0}
+              ifOverflow="extendDomain"
+              label={pointLabel(t("Your number at each age"), {
+                fill: "var(--muted-foreground)",
+                dy: -8,
+                weight: 500,
+              })}
+            />
+          )}
+          {showDebt && first?.need !== undefined && (
+            <ReferenceDot
+              x={first.age}
+              y={first.need}
+              r={0}
+              ifOverflow="extendDomain"
+              label={pointLabel(t("Your number + mortgage left"), {
+                fill: "var(--muted-foreground)",
+                anchor: "start",
+                dx: 6,
+                dy: -8,
+                weight: 500,
+              })}
             />
           )}
           {debtFreeRow?.need !== undefined && (
