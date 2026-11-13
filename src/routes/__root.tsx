@@ -17,6 +17,7 @@ import { LanguageProvider } from "../lib/i18n";
 import { AppShell } from "../components/AppShell";
 import { AnalyticsProvider, trackError } from "../lib/analytics";
 import { THEME_BOOT } from "../lib/theme";
+import { OG_IMAGE } from "../lib/seo";
 import { useNativeShell } from "../lib/native";
 
 function NotFoundComponent() {
@@ -103,7 +104,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { name: "google-site-verification", content: "bDcknKlHIr0BbChNa-CRyvhWXIY15-I37vNKR1ZiCC4" },
       { property: "og:type", content: "website" },
+      { property: "og:image", content: OG_IMAGE },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:image:alt", content: "Money Kalkulačka" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: OG_IMAGE },
     ],
     links: [
       {
