@@ -303,14 +303,21 @@ function Duchod() {
             </div>
           )}
 
-          <NumberSlider
-            label={t("Children you raised")}
-            value={s.children}
-            onChange={(v) => patch({ children: Math.min(10, Math.round(v)) })}
-            min={0}
-            max={10}
-            step={1}
-          />
+          <div>
+            <NumberSlider
+              label={t("Children you raised")}
+              value={s.children}
+              onChange={(v) => patch({ children: Math.min(10, Math.round(v)) })}
+              min={0}
+              max={10}
+              step={1}
+            />
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              {t(
+                "Adds 500 Kč a month per child. Only one parent gets it — usually the mother; a father only if he mainly cared for the child. Otherwise leave 0.",
+              )}
+            </p>
+          </div>
 
           <div>
             <NumberSlider

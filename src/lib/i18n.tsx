@@ -154,7 +154,7 @@ const CS: Record<string, string> = {
   Language: "Jazyk",
   Invest: "Investice",
   Mortgage: "Hypotéka",
-  Independence: "Nezávislost",
+  "Financial independence": "Finanční nezávislost",
   "Start your independence plan →": "Začít plán nezávislosti →",
   Dashboard: "Přehled",
   Soon: "Brzy",
@@ -571,6 +571,8 @@ const CS: Record<string, string> = {
   "Year of birth": "Rok narození",
   "Woman (children lower your retirement age)": "Žena (děti snižují důchodový věk)",
   "Children you raised": "Vychované děti",
+  "Adds 500 Kč a month per child. Only one parent gets it — usually the mother; a father only if he mainly cared for the child. Otherwise leave 0.":
+    "Přidá 500 Kč měsíčně za každé dítě (výchovné). Dostává ho jen jeden z rodičů — obvykle matka, otec jen pokud dítě převážně vychovával. Jinak nechte 0.",
   "From your Salary tab": "Z vaší záložky Mzda",
   "Different from your Salary tab": "Jiná než v záložce Mzda",
   "reset": "obnovit",

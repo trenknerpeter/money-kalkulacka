@@ -82,13 +82,13 @@ const CARDS: {
   {
     step: 5,
     to: "/plan",
-    title: "Independence",
+    title: "Financial independence",
     subtitle: "Answer a few quick questions and find out when you can realistically stop working.",
     Visual: PlanVisual,
   },
 ];
 
-const JOURNEY = ["Salary", "Retirement", "Invest", "Mortgage", "Independence", "Dashboard"] as const;
+const JOURNEY = ["Salary", "Retirement", "Invest", "Mortgage", "Financial independence", "Dashboard"] as const;
 
 function Home() {
   const { t } = useT();

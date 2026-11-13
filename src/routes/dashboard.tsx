@@ -944,7 +944,7 @@ function Dashboard() {
                     : null,
                 },
                 {
-                  title: t("Independence"),
+                  title: t("Financial independence"),
                   rows: plan
                     ? [
                         [t("Age"), String(m.age ?? plan.age)],

@@ -25,10 +25,14 @@ export function NumberSlider({
   disabled = false,
 }: Props) {
   const [text, setText] = useState(String(value));
+  // While the user types, keep their text even if the parent clamps the value
+  // (e.g. "6" on the way to "67" must not snap to a minimum); blur shows the real value.
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
+    if (editing) return;
     setText((prev) => (parseFloat(prev) === value ? prev : String(value)));
-  }, [value]);
+  }, [value, editing]);
 
   const commit = (raw: string) => {
     setText(raw);
@@ -53,7 +57,11 @@ export function NumberSlider({
             inputMode="decimal"
             value={text}
             onChange={(e) => commit(e.target.value)}
-            onBlur={() => setText(String(value))}
+            onFocus={() => setEditing(true)}
+            onBlur={() => {
+              setEditing(false);
+              setText(String(value));
+            }}
             className="tnum w-24 bg-transparent text-right text-sm font-medium tabular-nums outline-none"
             aria-label={label}
             disabled={disabled}
