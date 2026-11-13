@@ -25,6 +25,10 @@ const CS: Record<string, string> = {
     "Odpovězte na pár rychlých otázek a zjistěte, kdy můžete reálně přestat pracovat.",
   "Your numbers carry across tabs and come together on the":
     "Vaše čísla se přenášejí mezi záložkami a spojují se v záložce",
+  // Privacy badge (footer)
+  "100% private": "100% soukromé",
+  "All calculations stay on your device, never sent to any server.":
+    "Veškeré výpočty probíhají ve vašem zařízení a neodesílají se na žádný server.",
   // Two-pot plan
   "How much do you invest each month?": "Kolik měsíčně investujete?",
   "Regular contributions to funds, ETFs or a pension — whatever you're actually managing now.":
