@@ -278,12 +278,6 @@ function Invest() {
           />
 
           <div className="border-t border-border pt-6">
-            <IndexDepositsSwitch
-              id="index-deposits"
-              checked={s.indexDeposits}
-              onChange={(v) => patch({ indexDeposits: v })}
-              className="mb-6"
-            />
             <NumberSlider
               label={t("Inflation rate")}
               value={s.inflation}
@@ -296,6 +290,12 @@ function Invest() {
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
               {t("Results are shown in today's money, so you can compare them with the other tabs.")}
             </p>
+            <IndexDepositsSwitch
+              id="index-deposits"
+              checked={s.indexDeposits}
+              onChange={(v) => patch({ indexDeposits: v })}
+              className="mt-6"
+            />
           </div>
         </Panel>
 
