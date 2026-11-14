@@ -703,7 +703,7 @@ const CS: Record<string, string> = {
   "Your net salary feeds retirement and investing, the mortgage adds your debt, and the Dashboard puts it all into one net worth and one timeline.": "Čistá mzda se promítne do důchodu i investic, hypotéka přidá dluh a Přehled to všechno složí do jednoho čistého jmění a jedné časové osy.",
   cautious: "opatrně",
   typical: "běžně",
-  bold: "odvážně",
+  bold: "ostře",
   "Year {n}: growth passes deposits": "{n}. rok: výnos převýší vklady",
   "From year {n}, growth adds more each year than you pay in.": "Od {n}. roku vám výnos ročně přidá víc, než sami vložíte.",
   "Until then, how much you send matters most. After that, compounding does more of the work every year.": "Do té doby rozhoduje hlavně to, kolik posíláte. Potom odvádí víc práce složené úročení.",

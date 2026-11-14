@@ -33,7 +33,7 @@ export function AdvancedSettings({
     >
       <CollapsibleTrigger className="group flex min-h-11 w-full items-center justify-between gap-4 text-sm font-semibold tracking-tight">
         {t("Advanced settings")}
-        <ChevronDown className="size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+        <ChevronDown strokeWidth={2.5} className="size-5 text-foreground transition-transform group-data-[state=open]:rotate-180" />
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-6 pt-4">{children}</CollapsibleContent>
     </Collapsible>
