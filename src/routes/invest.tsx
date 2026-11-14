@@ -24,6 +24,7 @@ import { SEO_CONTENT } from "@/lib/seoContent";
 import { SeoArticle } from "@/components/SeoArticle";
 import { TodaysMoney } from "@/components/TodaysMoney";
 import { IndexDepositsSwitch } from "@/components/IndexDepositsSwitch";
+import { AdvancedSettings } from "@/components/AdvancedSettings";
 import { loadPlan, planDiffersFromInvest, planFromInvest, savePlan, type SavedPlan } from "@/lib/plan";
 import { DATA_CHANGED_EVENT } from "@/lib/dataEvents";
 
@@ -239,7 +240,6 @@ function Invest() {
             step={500 * scale}
             suffix={symbol}
             suffixPosition="left"
-            presets={[0, 1000, 4000, 20000].map((v) => ({ value: v * scale }))}
           />
           <NumberSlider
             label={t("Monthly contribution")}
@@ -250,7 +250,6 @@ function Invest() {
             step={50 * scale}
             suffix={symbol}
             suffixPosition="left"
-            presets={[40, 120, 200, 400].map((v) => ({ value: v * scale }))}
           />
           <NumberSlider
             label={t("Expected annual return")}
@@ -277,26 +276,27 @@ function Invest() {
             presets={[10, 20, 30].map((v) => ({ value: v }))}
           />
 
-          <div className="border-t border-border pt-6">
-            <NumberSlider
-              label={t("Inflation rate")}
-              value={s.inflation}
-              onChange={(v) => patch({ inflation: v })}
-              min={0}
-              max={10}
-              step={0.1}
-              suffix="%"
-            />
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              {t("Results are shown in today's money, so you can compare them with the other tabs.")}
-            </p>
+          <AdvancedSettings active={s.inflation !== DEFAULTS.inflation || s.indexDeposits}>
+            <div>
+              <NumberSlider
+                label={t("Inflation rate")}
+                value={s.inflation}
+                onChange={(v) => patch({ inflation: v })}
+                min={0}
+                max={10}
+                step={0.1}
+                suffix="%"
+              />
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                {t("Results are shown in today's money, so you can compare them with the other tabs.")}
+              </p>
+            </div>
             <IndexDepositsSwitch
               id="index-deposits"
               checked={s.indexDeposits}
               onChange={(v) => patch({ indexDeposits: v })}
-              className="mt-6"
             />
-          </div>
+          </AdvancedSettings>
         </Panel>
 
         <Panel variant="input" className="space-y-6">
