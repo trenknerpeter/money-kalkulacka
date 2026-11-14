@@ -115,3 +115,42 @@ export function homeValueAt(
   if (!home.homeGrowth) return v;
   return v * Math.pow(1 + num(home.homeRate) / 100, Math.max(0, n) / 12);
 }
+
+/** A translatable sentence: an i18n key and its variables. */
+export type Sentence = { key: string; vars: Record<string, string | number> };
+
+/**
+ * Explains the mortgage still owed when you can stop work: whether the pot can clear it
+ * in one go (and from when), and when the regular payments would finish it anyway.
+ * Ages are whole years; `payoffAge` is when the payment schedule ends (null if it never does).
+ */
+export function mortgageOwedNote(o: {
+  livingAge: number;
+  debtFreeAge: number | null;
+  owed: string;
+  payoffAge: number | null;
+}): Sentence[] {
+  const { livingAge, debtFreeAge, owed, payoffAge } = o;
+  // Paying off in one go only matters if the pot gets there before the payments do.
+  const lumpAge = debtFreeAge !== null && (payoffAge === null || debtFreeAge < payoffAge) ? debtFreeAge : null;
+  const out: Sentence[] = [
+    lumpAge === null
+      ? { key: "You'd still owe {d} on the mortgage at {age}.", vars: { d: owed, age: livingAge } }
+      : lumpAge > livingAge
+        ? {
+            key: "At {age} you'd still owe {d} on the mortgage. From {age2} your pot covers that too, so you could pay it off in one go.",
+            vars: { d: owed, age: livingAge, age2: lumpAge },
+          }
+        : {
+            key: "At {age} you'd still owe {d} on the mortgage. Around the same time your pot would cover paying it off in one go too.",
+            vars: { d: owed, age: livingAge },
+          },
+  ];
+  if (payoffAge !== null && payoffAge > livingAge) {
+    out.push({
+      key: lumpAge === null ? "Your regular payments finish it at {age}." : "Otherwise your regular payments finish it at {age}.",
+      vars: { age: payoffAge },
+    });
+  }
+  return out;
+}

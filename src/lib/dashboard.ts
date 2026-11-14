@@ -2,7 +2,7 @@ import { num } from "./finance";
 import { loadPension, resolvePlanPension } from "./pension";
 import { phasedTarget, type PensionLink, pensionLinkFrom, withPensionAge } from "./phased";
 import { loadPlan, potsAfterMonths, startPot, type SavedPlan } from "./plan";
-import { SALARY_KEY, parseSalaryStore } from "./salary";
+import { SALARY_KEY, calcSalary, parseSalaryStore } from "./salary";
 import {
   ageAt,
   homeValueAt,
@@ -10,6 +10,15 @@ import {
   realBalanceAt,
   retirementMilestones,
 } from "./retirement";
+
+/**
+ * Monthly net income for the dashboard: what the user typed, otherwise the Mzda tab's net pay
+ * (Czech payroll, so CZK only). 0 when neither is known.
+ */
+export function incomeFor(stored: number, salaryNet: number | null, currency: string): number {
+  if (num(stored) > 0) return num(stored);
+  return currency === "CZK" && salaryNet !== null && salaryNet > 0 ? salaryNet : 0;
+}
 
 export type InvestScenario = {
   initial: number;
@@ -293,6 +302,13 @@ export function snapshotMetrics(data: Record<string, string>): DashboardMetrics 
     invest: loadInvest(get),
     mortgage: loadMortgage(get),
     plan,
-    income: loadDashboard(get).income,
+    income: incomeFor(
+      loadDashboard(get).income,
+      (() => {
+        const salary = parseSalaryStore(get(SALARY_KEY));
+        return salary ? calcSalary(salary).payout : null;
+      })(),
+      get("finbuddy.currency") ?? "CZK",
+    ),
   });
 }

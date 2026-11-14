@@ -1,3 +1,5 @@
+import { notifyDataChanged } from "./dataEvents";
+
 /**
  * Master snapshots: one named bundle of every tab's saved state
  * (Mzda, Invest, Mortgage, Independence, Dashboard income, currency). Stored locally.
@@ -46,6 +48,7 @@ export function applyData(data: Record<string, string>) {
     if (typeof v === "string") window.localStorage.setItem(k, v);
     else if (k !== "finbuddy.currency") window.localStorage.removeItem(k);
   }
+  notifyDataChanged();
 }
 
 export function listSnapshots(): Snapshot[] {

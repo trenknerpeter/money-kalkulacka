@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { monthsToTarget, targetPotFor } from "./plan";
 import { monthsToPhasedTarget, phaseSegments, phasedTarget, type PhaseValues } from "./phased";
-import { retirementMilestones } from "./retirement";
+import { mortgageOwedNote, retirementMilestones } from "./retirement";
+import { incomeFor } from "./dashboard";
 
 const a = { ret: 7, cashRet: 3, wd: 4, infl: 2 };
 
@@ -114,6 +115,7 @@ describe("dashboard with a pension", () => {
   const half: PensionLink = {
     birthYear: 1990,
     at: () => ({ pensionMonthly: 20000, pensionAge: 67, savingsAge: 60, savingsPot: 0 }),
+    delayAt: () => null,
   };
   const base = { invest: null, mortgage: null, income: 0 };
 
@@ -197,10 +199,56 @@ describe("dashboard uses the Retirement birth year as the age (C1)", () => {
     const link: PensionLink = {
       birthYear: year - 35,
       at: () => ({ pensionMonthly: 20000, pensionAge: 67, savingsAge: 60, savingsPot: 0 }),
+      delayAt: () => null,
     };
     const m = deriveMetrics({ invest: null, mortgage: null, plan, income: 0, pension: link });
     expect(m.age).toBe(35);
     expect(m.path[0]!.age).toBe(35);
     expect(deriveMetrics({ invest: null, mortgage: null, plan, income: 0, pension: null }).age).toBe(50);
+  });
+});
+
+describe("pensionLinkFrom.delayAt", () => {
+  // Born 1991, 9 insured years at 35 (2026): stopping at 60 leaves 34 years, one short of 35.
+  const s = { ...pensionDefaults(2026), birthYear: 1991, yearsWorked: 9, gross: 48967 };
+  const link = pensionLinkFrom(s, { currentYear: 2026, salaryGross: null });
+  it("34 insured years delays the pension 5 years and names the stop age that avoids it", () => {
+    const d = link.delayAt(60);
+    expect(d).not.toBeNull();
+    expect(d!.insuredYears).toBe(34);
+    expect(d!.statutoryAge).toBe(67);
+    expect(d!.startAge).toBe(72);
+    expect(d!.onTimeStop).toBe(61);
+    expect(link.at(60).pensionAge).toBe(72);
+  });
+  it("35 insured years → on time, no delay", () => {
+    expect(link.delayAt(61)).toBeNull();
+    expect(link.at(61).pensionAge).toBe(67);
+  });
+});
+
+describe("mortgageOwedNote", () => {
+  const keys = (o: Parameters<typeof mortgageOwedNote>[0]) => mortgageOwedNote(o).map((s) => s.key);
+  it("same rounded age → no 'keep going until the same age'; names the payment payoff", () => {
+    const k = keys({ livingAge: 60, debtFreeAge: 60, owed: "1", payoffAge: 62 });
+    expect(k[0]).toContain("Around the same time");
+    expect(k[1]).toBe("Otherwise your regular payments finish it at {age}.");
+  });
+  it("pot clears it later than you stop", () => {
+    const n = mortgageOwedNote({ livingAge: 55, debtFreeAge: 57, owed: "1", payoffAge: 62 });
+    expect(n[0]!.vars["age2"]).toBe(57);
+  });
+  it("payments finish first → no lump-sum suggestion", () => {
+    const k = keys({ livingAge: 58, debtFreeAge: 63, owed: "1", payoffAge: 62 });
+    expect(k).toEqual(["You'd still owe {d} on the mortgage at {age}.", "Your regular payments finish it at {age}."]);
+  });
+});
+
+describe("incomeFor", () => {
+  it("typed income wins, else Mzda net in CZK, else 0", () => {
+    expect(incomeFor(50000, 40000, "CZK")).toBe(50000);
+    expect(incomeFor(0, 40000, "CZK")).toBe(40000);
+    expect(incomeFor(0, 40000, "EUR")).toBe(0);
+    expect(incomeFor(0, null, "CZK")).toBe(0);
   });
 });

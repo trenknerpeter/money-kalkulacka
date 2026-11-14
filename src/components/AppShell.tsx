@@ -27,6 +27,7 @@ import { track } from "@/lib/analytics";
 import { isLangValue, useLang, useT } from "@/lib/i18n";
 import { useTheme, type Theme } from "@/lib/theme";
 import { PENSION_KEY } from "@/lib/pension";
+import { DATA_CHANGED_EVENT } from "@/lib/dataEvents";
 import { PLAN_KEY } from "@/lib/plan";
 import { SALARY_KEY } from "@/lib/salary";
 
@@ -211,12 +212,12 @@ function useFilledTabs(pathname: string) {
   useEffect(() => {
     const read = () => {
       try {
-        setFilled(
-          new Set(
-            TABS.filter(
-              (t) => t.storageKey && window.localStorage.getItem(t.storageKey) !== null,
-            ).map((t) => t.to),
-          ),
+        const next = TABS.filter(
+          (t) => t.storageKey && window.localStorage.getItem(t.storageKey) !== null,
+        ).map((t) => t.to);
+        // Saves fire on every edit: keep the same Set unless the filled tabs actually changed.
+        setFilled((prev) =>
+          prev.size === next.length && next.every((to) => prev.has(to)) ? prev : new Set(next),
         );
       } catch {
         /* ignore */
@@ -224,7 +225,11 @@ function useFilledTabs(pathname: string) {
     };
     read();
     window.addEventListener("storage", read);
-    return () => window.removeEventListener("storage", read);
+    window.addEventListener(DATA_CHANGED_EVENT, read);
+    return () => {
+      window.removeEventListener("storage", read);
+      window.removeEventListener(DATA_CHANGED_EVENT, read);
+    };
   }, [pathname]);
   return filled;
 }
