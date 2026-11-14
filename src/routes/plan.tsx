@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { IndexDepositsSwitch } from "@/components/IndexDepositsSwitch";
 import { TodaysMoney } from "@/components/TodaysMoney";
 import { ArrowLeft, Check } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -885,6 +886,7 @@ function Results({
     cashRet: plan.cashRet,
     wd: plan.wd,
     infl: plan.infl,
+    indexDeposits: Boolean(plan.indexDeposits),
   });
   const planSave = monthlyTotal(plan);
   const [schedule] = useState(() => {
@@ -924,6 +926,7 @@ function Results({
       wd: String(assumptions.wd),
       infl: String(assumptions.infl),
     });
+    if (assumptions.indexDeposits) params.set("indexDeposits", "1");
     if (pension) {
       params.set("usePension", "1");
       for (const [k, v] of Object.entries(pensionToParams(pension))) params.set(k, v);
@@ -1263,7 +1266,7 @@ function Results({
                     p: percent(levers.ret),
                   })}
             </p>
-            <TodaysMoney inflation={assumptions.infl} onInk className="mt-2" />
+            <TodaysMoney inflation={assumptions.infl} indexDeposits={Boolean(assumptions.indexDeposits)} onInk className="mt-2" />
           </div>
           <div className="min-w-0">
             <p className="text-xs uppercase tracking-wide text-ink-muted">{t("The gap")}</p>
@@ -1450,6 +1453,12 @@ function Results({
                   suffix="%"
                 />
               </div>
+              <IndexDepositsSwitch
+                id="plan-index"
+                checked={Boolean(assumptions.indexDeposits)}
+                onChange={(v) => setAssumptions((a) => ({ ...a, indexDeposits: v }))}
+                className="mt-6"
+              />
               <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
                 {t("Take out 4% of the pot in your first year and adjust for inflation after that, and the money has historically lasted 30 years or more. It's a rule of thumb, not a guarantee.")}
               </p>
@@ -1599,9 +1608,11 @@ function PlanPage() {
         draft={shown === null ? draft : null}
         onDone={(p, usePension) => {
           const { wd, infl } = plan ?? DEFAULT_ASSUMPTIONS;
+          // A new plan takes the Invest tab's deposit setting; an edited one keeps its own.
+          const indexDeposits = plan ? Boolean(plan.indexDeposits) : Boolean(loadInvest()?.indexDeposits);
           clearDraft();
           setDraft(null);
-          setPlan({ ...p, wd, infl, usePension });
+          setPlan({ ...p, wd, infl, indexDeposits, usePension });
           setStoredPension(loadPension());
           setEdited(true);
           setEditing(false);

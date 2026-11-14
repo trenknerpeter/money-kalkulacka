@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { computeInvest } from "./finance";
 import {
   DEFAULT_ASSUMPTIONS,
+  normalisePlan,
   planDiffersFromInvest,
   planFromInvest,
   potsAfterMonths,
@@ -79,5 +80,56 @@ describe("plan vs Invest tab", () => {
     const next = planFromInvest(plan, { ...inv, savings: false });
     expect(next.cash).toBe(plan.cash);
     expect(next.saveCash).toBe(plan.saveCash);
+  });
+});
+
+describe("deposits rising with inflation (optional)", () => {
+  const a = { ...DEFAULT_ASSUMPTIONS, ret: 8, cashRet: 3.5, infl: 2 };
+  it("plan and Invest tab still agree when the switch is on", () => {
+    const pots = potsAfterMonths(profile, { ...a, indexDeposits: true }, 240);
+    const inv = computeInvest({
+      initial: 800_000,
+      monthly: 20_000,
+      rate: 8,
+      years: 20,
+      inflation: 2,
+      indexDeposits: true,
+    });
+    const sav = computeInvest({
+      initial: 1_100_000,
+      monthly: 30_000,
+      rate: 3.5,
+      years: 20,
+      inflation: 2,
+      indexDeposits: true,
+    });
+    expect(pots.invest).toBeCloseTo(inv.realValue, 2);
+    expect(pots.savings).toBeCloseTo(sav.realValue, 2);
+  });
+  it("gives more than fixed deposits, and deposits grow year by year", () => {
+    const fixed = computeInvest({ initial: 0, monthly: 50_000, rate: 8, years: 20, inflation: 2 });
+    const idx = computeInvest({
+      initial: 0,
+      monthly: 50_000,
+      rate: 8,
+      years: 20,
+      inflation: 2,
+      indexDeposits: true,
+    });
+    expect(idx.realValue).toBeGreaterThan(fixed.realValue);
+    expect(idx.totalContributed).toBeGreaterThan(14_000_000);
+    expect(idx.rows[20]!.contributedThisYear).toBeGreaterThan(
+      idx.rows[1]!.contributedThisYear * 1.4,
+    );
+    expect(fixed.rows[20]!.contributedThisYear).toBeCloseTo(600_000, 4);
+  });
+  it("indexed deposits keep their value in today's money", () => {
+    expect(realDeposits(50_000, 2, 240, true)).toBeGreaterThan(11_900_000);
+  });
+  it("normalisePlan reads the switch from storage or a link", () => {
+    expect(normalisePlan({ age: 30, stop: 50, indexDeposits: "1" } as never).indexDeposits).toBe(
+      true,
+    );
+    expect(normalisePlan({ age: 30, stop: 50 }).indexDeposits).toBe(false);
   });
 });

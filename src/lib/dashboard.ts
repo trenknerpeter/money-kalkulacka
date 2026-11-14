@@ -27,6 +27,7 @@ export type InvestScenario = {
   years: number;
   inflation: number;
   real: boolean;
+  indexDeposits: boolean;
   withdrawRate: number;
   savings: boolean;
   sInitial: number;
@@ -79,6 +80,7 @@ export function loadInvest(get?: Source): InvestScenario | null {
     years: num(p.years, 20),
     inflation: num(p.inflation, 2),
     real: Boolean(p.real),
+    indexDeposits: Boolean(p.indexDeposits),
     withdrawRate: num(p.withdrawRate, 4),
     savings: Boolean(p.savings),
     sInitial: num(p.sInitial),

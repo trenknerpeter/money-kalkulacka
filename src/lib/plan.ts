@@ -1,5 +1,5 @@
 import { notifyDataChanged } from "./dataEvents";
-import { num } from "./finance";
+import { futureValue, monthlyGrowth, num } from "./finance";
 
 /** Two pots: investments (`invested` + `saveInvest`) and savings (`cash` + `saveCash`). */
 export type PlanProfile = {
@@ -18,6 +18,8 @@ export type PlanAssumptions = {
   cashRet: number;
   wd: number;
   infl: number;
+  /** Monthly deposits rise with inflation. Off (default): they stay the same amount. */
+  indexDeposits?: boolean;
 };
 
 export type SavedPlan = PlanProfile & PlanAssumptions & { usePension: boolean };
@@ -34,6 +36,8 @@ export const monthlyTotal = (p: Pick<PlanProfile, "saveInvest" | "saveCash">) =>
  * Normalises a stored or URL-supplied plan. Older plans had a single `pot`/`save`
  * growing at one rate: that money is treated as invested.
  */
+const isTrue = (v: unknown) => v === true || v === 1 || v === "1" || v === "true";
+
 export function normalisePlan(p: Partial<SavedPlan> & { pot?: number; save?: number }): SavedPlan {
   const invested = typeof p.invested === "number" ? num(p.invested) : num(p.pot, 25000);
   const cash = typeof p.cash === "number" ? num(p.cash) : 0;
@@ -51,6 +55,7 @@ export function normalisePlan(p: Partial<SavedPlan> & { pot?: number; save?: num
     cashRet: num(p.cashRet, DEFAULT_ASSUMPTIONS.cashRet),
     wd: num(p.wd, DEFAULT_ASSUMPTIONS.wd),
     infl: num(p.infl, DEFAULT_ASSUMPTIONS.infl),
+    indexDeposits: isTrue(p.indexDeposits),
     usePension: (p.usePension as unknown) === true || (p.usePension as unknown) === 1 || (p.usePension as unknown) === "1",
   };
 }
@@ -88,6 +93,7 @@ export type InvestInputs = {
   sInitial: number;
   sMonthly: number;
   sRate: number;
+  indexDeposits?: boolean;
 };
 
 /** The plan with the Invest tab's amounts and rates copied in (savings only if that's switched on). */
@@ -98,6 +104,7 @@ export function planFromInvest(plan: SavedPlan, inv: InvestInputs): SavedPlan {
     saveInvest: num(inv.monthly),
     ret: num(inv.rate),
     infl: num(inv.inflation),
+    indexDeposits: Boolean(inv.indexDeposits),
     ...(inv.savings
       ? { cash: num(inv.sInitial), saveCash: num(inv.sMonthly), cashRet: num(inv.sRate) }
       : {}),
@@ -108,7 +115,10 @@ export function planFromInvest(plan: SavedPlan, inv: InvestInputs): SavedPlan {
 export function planDiffersFromInvest(plan: SavedPlan, inv: InvestInputs): boolean {
   const next = planFromInvest(plan, inv);
   const keys = ["invested", "saveInvest", "ret", "infl", "cash", "saveCash", "cashRet"] as const;
-  return keys.some((k) => Math.abs(num(next[k]) - num(plan[k])) > 0.005);
+  return (
+    Boolean(next.indexDeposits) !== Boolean(plan.indexDeposits) ||
+    keys.some((k) => Math.abs(num(next[k]) - num(plan[k])) > 0.005)
+  );
 }
 
 /** Real (today's-money) monthly rate from a nominal annual return and inflation. */
@@ -136,50 +146,45 @@ export function potAfterMonths(P0: number, PMT: number, r: number, n: number): n
 export type PotSplit = { invest: number; savings: number; total: number };
 
 /**
- * Today's-money value of a pot after n months when the monthly deposit stays fixed in
- * koruna (it does not rise with inflation). Compounds monthly at the nominal rate, then
- * removes inflation. Matches computeInvest's realValue for whole years.
+ * Today's-money value of a pot after n months. Monthly deposits stay the same amount
+ * unless `indexed`, when they rise with inflation. Compounds monthly at the nominal
+ * rate, then removes inflation. Matches computeInvest's realValue for whole years.
  */
-export function realPotFixedDeposits(
+export function realPot(
   P0: number,
   PMT: number,
   nominalAnnual: number,
   inflation: number,
   n: number,
+  indexed = false,
 ): number {
   const months = Math.max(0, Math.round(n));
-  const nominal = potAfterMonths(P0, PMT, num(nominalAnnual) / 100 / 12, months);
+  const g = indexed ? monthlyGrowth(inflation) : 0;
+  const nominal = futureValue(num(P0), num(PMT), num(nominalAnnual) / 100 / 12, g, months);
   return nominal / Math.pow(1 + num(inflation) / 100, months / 12);
 }
 
-/** Today's-money value of n fixed monthly deposits (each one worth a bit less than the last). */
-export function realDeposits(PMT: number, inflation: number, n: number): number {
+/** Today's-money value of n monthly deposits (fixed, or rising with inflation when `indexed`). */
+export function realDeposits(PMT: number, inflation: number, n: number, indexed = false): number {
   const months = Math.max(0, Math.round(n));
-  const d = Math.pow(1 + num(inflation) / 100, -1 / 12);
-  if (d === 1) return num(PMT) * months;
+  if (months === 0) return 0;
+  const g = monthlyGrowth(inflation);
+  // Deposit k (1..n) is paid in month k and deflated by (1+g)^k.
+  if (indexed) return (num(PMT) * months) / (1 + g); // each one keeps the same value
+  if (Math.abs(g) < 1e-12) return num(PMT) * months;
+  const d = 1 / (1 + g);
   return (num(PMT) * d * (1 - Math.pow(d, months))) / (1 - d);
 }
 
-/** Both pots after n months in today's money, each at its own return; deposits fixed in koruna. */
+/** Both pots after n months in today's money, each at its own return. */
 export function potsAfterMonths(
   profile: PlanProfile,
   assumptions: PlanAssumptions,
   n: number,
 ): PotSplit {
-  const invest = realPotFixedDeposits(
-    profile.invested,
-    profile.saveInvest,
-    assumptions.ret,
-    assumptions.infl,
-    n,
-  );
-  const savings = realPotFixedDeposits(
-    profile.cash,
-    profile.saveCash,
-    assumptions.cashRet,
-    assumptions.infl,
-    n,
-  );
+  const idx = Boolean(assumptions.indexDeposits);
+  const invest = realPot(profile.invested, profile.saveInvest, assumptions.ret, assumptions.infl, n, idx);
+  const savings = realPot(profile.cash, profile.saveCash, assumptions.cashRet, assumptions.infl, n, idx);
   return { invest, savings, total: invest + savings };
 }
 
@@ -285,7 +290,7 @@ export function planRows(
   for (let age = start; age <= end; age++) {
     const months = (age - start) * 12;
     const pots = potsAfterMonths(profile, assumptions, months);
-    const contributed = startPot(profile) + realDeposits(monthlyTotal(profile), assumptions.infl, months);
+    const contributed = startPot(profile) + realDeposits(monthlyTotal(profile), assumptions.infl, months, Boolean(assumptions.indexDeposits));
     rows.push({
       age,
       contributed,

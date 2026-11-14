@@ -23,32 +23,54 @@ export type InvestResult = {
   rows: InvestYear[];
 };
 
+/** Monthly growth that adds up to `annualPct` a year. */
+export const monthlyGrowth = (annualPct: number) => Math.pow(1 + num(annualPct) / 100, 1 / 12) - 1;
+
+/** Sum of n monthly deposits, the first PMT, each one g higher than the last. */
+export function depositsSum(PMT: number, g: number, months: number): number {
+  if (months <= 0) return 0;
+  if (Math.abs(g) < 1e-12) return PMT * months;
+  return (PMT * (Math.pow(1 + g, months) - 1)) / g;
+}
+
+/**
+ * Balance after n months: P0 plus monthly deposits (first PMT, each g higher than the
+ * last) at monthly rate r. With g = 0 the deposits stay the same.
+ */
+export function futureValue(P0: number, PMT: number, r: number, g: number, months: number): number {
+  if (months <= 0) return P0;
+  const grow = Math.pow(1 + r, months);
+  if (Math.abs(r - g) < 1e-12) return P0 * grow + PMT * months * Math.pow(1 + r, months - 1);
+  return P0 * grow + (PMT * (grow - Math.pow(1 + g, months))) / (r - g);
+}
+
 export function computeInvest(input: {
   initial: number;
   monthly: number;
   rate: number;
   years: number;
   inflation: number;
+  /** Raise the monthly deposit with inflation. Off: it stays the same amount. */
+  indexDeposits?: boolean;
 }): InvestResult {
   const P0 = num(input.initial);
   const PMT = num(input.monthly);
   const years = Math.max(0, Math.round(num(input.years)));
   const r = num(input.rate) / 100 / 12;
+  const g = input.indexDeposits ? monthlyGrowth(input.inflation) : 0;
   const n = years * 12;
 
-  const fvAt = (months: number) =>
-    r === 0
-      ? P0 + PMT * months
-      : P0 * Math.pow(1 + r, months) + PMT * ((Math.pow(1 + r, months) - 1) / r);
+  const fvAt = (months: number) => futureValue(P0, PMT, r, g, months);
+  const paidIn = (months: number) => P0 + depositsSum(PMT, g, months);
 
   const rows: InvestYear[] = [];
   for (let y = 0; y <= years; y++) {
     const months = y * 12;
     const balance = fvAt(months);
-    const totalContributed = P0 + PMT * months;
+    const totalContributed = paidIn(months);
     rows.push({
       year: y,
-      contributedThisYear: y === 0 ? P0 : PMT * 12,
+      contributedThisYear: y === 0 ? P0 : totalContributed - paidIn(months - 12),
       totalContributed,
       growth: balance - totalContributed,
       balance,
@@ -56,7 +78,7 @@ export function computeInvest(input: {
   }
 
   const finalValue = fvAt(n);
-  const totalContributed = P0 + PMT * n;
+  const totalContributed = paidIn(n);
   const totalGrowth = finalValue - totalContributed;
   const realValue = finalValue / Math.pow(1 + num(input.inflation) / 100, years);
 
