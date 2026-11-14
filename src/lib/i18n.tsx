@@ -726,6 +726,18 @@ const CS: Record<string, string> = {
     "Váš plán finanční nezávislosti počítá s jinými čísly ({a} investováno, {b} měsíčně při {p}). Přehled se řídí plánem.",
   "Use these numbers in the plan": "Použít tato čísla v plánu",
   "Open plan": "Otevřít plán",
+  "Raise deposits with inflation": "Navyšovat vklady o inflaci",
+  "Your independence plan raises deposits with inflation. The Dashboard follows the plan.":
+    "Váš plán finanční nezávislosti navyšuje vklady o inflaci. Přehled se řídí plánem.",
+  "Your independence plan keeps deposits the same every month. The Dashboard follows the plan.":
+    "Váš plán finanční nezávislosti počítá každý měsíc se stejným vkladem. Přehled se řídí plánem.",
+  "Your monthly deposits rise with inflation, so each keeps its value.":
+    "Měsíční vklady rostou s inflací, takže si každý drží svou hodnotu.",
+  "{a} + {n} deposits from {b}, rising with inflation": "{a} + {n} vkladů od {b}, rostoucích s inflací",
+  "Each month's deposit grows with inflation, so it keeps the same value in today's money.":
+    "Měsíční vklad roste s inflací, takže si v dnešních cenách drží stejnou hodnotu.",
+  "Off: you deposit the same amount every month, as most people do.":
+    "Vypnuto: každý měsíc vkládáte stejnou částku, jako většina lidí.",
 };
 
 type Vars = Record<string, string | number>;

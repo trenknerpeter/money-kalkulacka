@@ -10,10 +10,13 @@ import { cn } from "@/lib/utils";
  */
 export function TodaysMoney({
   inflation,
+  indexDeposits,
   onInk = false,
   className,
 }: {
   inflation?: number;
+  /** Whether deposits rise with inflation; leave out to skip that line. */
+  indexDeposits?: boolean;
   onInk?: boolean;
   className?: string;
 }) {
@@ -49,9 +52,13 @@ export function TodaysMoney({
             "We convert future amounts to what they would buy now, so you can compare them with today.",
           )}
         </p>
-        <p className="text-muted-foreground">
-          {t("Your monthly deposits stay the same amount. They don't rise with inflation.")}
-        </p>
+        {indexDeposits !== undefined && (
+          <p className="text-muted-foreground">
+            {indexDeposits
+              ? t("Your monthly deposits rise with inflation, so each keeps its value.")
+              : t("Your monthly deposits stay the same amount. They don't rise with inflation.")}
+          </p>
+        )}
       </PopoverContent>
     </Popover>
   );

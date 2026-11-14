@@ -23,6 +23,7 @@ import { canonical, faqLd, webAppLd } from "@/lib/seo";
 import { SEO_CONTENT } from "@/lib/seoContent";
 import { SeoArticle } from "@/components/SeoArticle";
 import { TodaysMoney } from "@/components/TodaysMoney";
+import { IndexDepositsSwitch } from "@/components/IndexDepositsSwitch";
 import { loadPlan, planDiffersFromInvest, planFromInvest, savePlan, type SavedPlan } from "@/lib/plan";
 import { DATA_CHANGED_EVENT } from "@/lib/dataEvents";
 
@@ -73,6 +74,7 @@ const DEFAULTS = {
   years: 20,
   inflation: 2,
   real: false,
+  indexDeposits: false,
   withdrawRate: 4,
   savings: false,
   sInitial: 5000,
@@ -153,8 +155,9 @@ function Invest() {
         rate: s.rate,
         years: s.years,
         inflation: s.inflation,
+        indexDeposits: s.indexDeposits,
       }),
-    [s.initial, s.monthly, s.rate, s.years, s.inflation],
+    [s.initial, s.monthly, s.rate, s.years, s.inflation, s.indexDeposits],
   );
 
   const savingsResult = useMemo(
@@ -165,8 +168,9 @@ function Invest() {
         rate: s.sRate,
         years: s.years,
         inflation: s.inflation,
+        indexDeposits: s.indexDeposits,
       }),
-    [s.sInitial, s.sMonthly, s.sRate, s.years, s.inflation],
+    [s.sInitial, s.sMonthly, s.sRate, s.years, s.inflation, s.indexDeposits],
   );
 
   // Combined view: investments plus the optional savings account, on the same horizon.
@@ -213,6 +217,9 @@ function Invest() {
     };
   }, []);
   const planDiffers = plan !== null && planDiffersFromInvest(plan, s);
+  // Only the deposit switch differs: say that rather than repeat matching amounts.
+  const onlySwitchDiffers =
+    plan !== null && !planDiffersFromInvest(plan, { ...s, indexDeposits: Boolean(plan.indexDeposits) });
 
   const emptyState = Math.round(s.years) <= 0;
   const heroValue = useCountUp(result.realValue);
@@ -271,6 +278,12 @@ function Invest() {
           />
 
           <div className="border-t border-border pt-6">
+            <IndexDepositsSwitch
+              id="index-deposits"
+              checked={s.indexDeposits}
+              onChange={(v) => patch({ indexDeposits: v })}
+              className="mb-6"
+            />
             <NumberSlider
               label={t("Inflation rate")}
               value={s.inflation}
@@ -359,11 +372,15 @@ function Invest() {
         {planDiffers && plan && (
           <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 text-sm sm:flex-row sm:items-center sm:justify-between sm:p-5">
             <p className="leading-relaxed text-muted-foreground">
-              {t("Your independence plan uses different numbers ({a} invested, {b} a month at {p}). The Dashboard follows the plan.", {
-                a: money(plan.invested),
-                b: money(plan.saveInvest),
-                p: percent(plan.ret),
-              })}
+              {onlySwitchDiffers
+                ? plan.indexDeposits
+                  ? t("Your independence plan raises deposits with inflation. The Dashboard follows the plan.")
+                  : t("Your independence plan keeps deposits the same every month. The Dashboard follows the plan.")
+                : t("Your independence plan uses different numbers ({a} invested, {b} a month at {p}). The Dashboard follows the plan.", {
+                    a: money(plan.invested),
+                    b: money(plan.saveInvest),
+                    p: percent(plan.ret),
+                  })}
             </p>
             <div className="flex shrink-0 gap-2">
               <button
@@ -396,7 +413,7 @@ function Invest() {
                 <Eyebrow onInk>
                   {t("In {years} you'll have", { years: count(Math.round(s.years), "year") })}
                 </Eyebrow>
-                <TodaysMoney inflation={s.inflation} onInk />
+                <TodaysMoney inflation={s.inflation} indexDeposits={s.indexDeposits} onInk />
               </div>
               <FitNumber value={money(heroValue)} max="4rem" className="mt-3" />
               <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-muted">
@@ -451,7 +468,7 @@ function Invest() {
               <StatTile
                 label={t("Total contributed")}
                 value={money(result.totalContributed)}
-                caption={t("{a} + {n} × {b}", {
+                caption={t(s.indexDeposits ? "{a} + {n} deposits from {b}, rising with inflation" : "{a} + {n} × {b}", {
                   a: money(s.initial + (s.savings ? s.sInitial : 0)),
                   n: Math.round(s.years) * 12,
                   b: money(s.monthly + (s.savings ? s.sMonthly : 0)),
@@ -505,7 +522,7 @@ function Invest() {
                       {t("Invested amount")}
                     </p>
                     <FitNumber value={money(result.realValue)} max="1.75rem" className="mt-1.5" />
-                    <TodaysMoney inflation={s.inflation} className="mt-2" />
+                    <TodaysMoney inflation={s.inflation} indexDeposits={s.indexDeposits} className="mt-2" />
                   </div>
                   <NumberSlider
                     label={t("Withdrawal rate")}
