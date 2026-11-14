@@ -783,6 +783,7 @@ function LeverCard({
   suffixPosition,
   caption,
   covered = false,
+  limitNote,
 }: {
   title: string;
   now: string;
@@ -798,6 +799,8 @@ function LeverCard({
   caption?: string | undefined;
   /** The plan already works: the solve is how far this could slip, not what it must reach. */
   covered?: boolean;
+  /** Covered and at the limit: what moving this lever further would do, in its own words. */
+  limitNote?: string;
 }) {
   const { t } = useT();
   const atSolve = solved !== null && Math.abs(value - solved) <= step / 2;
@@ -823,7 +826,7 @@ function LeverCard({
           ? solved === null
             ? t("No limit in this range.")
             : atSolve
-              ? t("Any further and the plan stops working.")
+              ? (limitNote ?? t("Any further and the plan stops working."))
               : t("How far this alone could go and still work")
           : solved === null
             ? t("This one can't close the gap on its own.")
@@ -1336,6 +1339,7 @@ function Results({
           <LeverCard
             title={covered ? t("Save less each month") : t("Save more each month")}
             covered={covered}
+            limitNote={t("Save any less and the plan no longer works.")}
             now={money(planSave)}
             solved={solveSave}
             solvedLabel={solveSave !== null ? money(solveSave) : "—"}
@@ -1351,6 +1355,7 @@ function Results({
           <LeverCard
             title={covered ? t("Stop earlier") : t("Work a bit longer")}
             covered={covered}
+            limitNote={t("Stop any earlier and the plan no longer works.")}
             now={`${plan.stop}`}
             solved={solveStop !== null && solveStop <= 85 ? solveStop : null}
             solvedLabel={solveStop !== null && solveStop <= 85 ? `${solveStop}` : "—"}
@@ -1364,6 +1369,7 @@ function Results({
           <LeverCard
             title={covered ? t("Live on more") : t("Live on less")}
             covered={covered}
+            limitNote={t("Spend any more and the plan no longer works.")}
             now={t("{v}/mo", { v: money(plan.spend) })}
             solved={solveSpend}
             solvedLabel={solveSpend !== null ? t("{v}/mo", { v: money(solveSpend) }) : "—"}
@@ -1378,6 +1384,7 @@ function Results({
           <LeverCard
             title={covered ? t("Lower returns") : t("Higher returns")}
             covered={covered}
+            limitNote={t("With any lower return the plan no longer works.")}
             now={percent(assumptions.ret)}
             solved={solveRet}
             solvedLabel={solveRet !== null ? `≈${percent(solveRet)}` : "—"}
