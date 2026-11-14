@@ -722,16 +722,16 @@ const CS: Record<string, string> = {
   "Balance on your account each year, before inflation.":
     "Zůstatek na účtu v jednotlivých letech, bez přepočtu na dnešní ceny.",
   "{v} in {year} money": "{v} v cenách roku {year}",
-  "Your independence plan uses different numbers ({a} invested, {b} a month at {p}). The Dashboard follows the plan.":
-    "Váš plán finanční nezávislosti počítá s jinými čísly ({a} investováno, {b} měsíčně při {p}). Přehled se řídí plánem.",
-  "Use these numbers in the plan": "Použít tato čísla v plánu",
-  "Open plan": "Otevřít plán",
+  "The Financial independence tab uses different numbers ({a} invested, {b} a month at {p}). The Dashboard uses that tab's numbers.":
+    "Záložka Finanční nezávislost počítá s jinými čísly ({a} investováno, {b} měsíčně při {p}). Přehled bere čísla z ní.",
+  "Copy to Financial independence": "Přenést do Finanční nezávislosti",
+  "Open tab": "Otevřít záložku",
   "Raise deposits with inflation": "Navyšovat vklady o inflaci",
   "Advanced settings": "Pokročilé nastavení",
-  "Your independence plan raises deposits with inflation. The Dashboard follows the plan.":
-    "Váš plán finanční nezávislosti navyšuje vklady o inflaci. Přehled se řídí plánem.",
-  "Your independence plan keeps deposits the same every month. The Dashboard follows the plan.":
-    "Váš plán finanční nezávislosti počítá každý měsíc se stejným vkladem. Přehled se řídí plánem.",
+  "Here your deposits stay the same every month; the Financial independence tab raises them with inflation. The Dashboard uses that tab's numbers.":
+    "Tady máte každý měsíc stejný vklad, záložka Finanční nezávislost ho navyšuje o inflaci. Přehled bere čísla z ní.",
+  "Here your deposits rise with inflation; the Financial independence tab keeps them the same every month. The Dashboard uses that tab's numbers.":
+    "Tady vklady navyšujete o inflaci, záložka Finanční nezávislost počítá každý měsíc se stejným vkladem. Přehled bere čísla z ní.",
   "Your monthly deposits rise with inflation, so each keeps its value.":
     "Měsíční vklady rostou s inflací, takže si každý drží svou hodnotu.",
   "{a} + {n} deposits from {b}, rising with inflation": "{a} + {n} vkladů od {b}, rostoucích s inflací",
