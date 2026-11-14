@@ -67,7 +67,7 @@ function SettingsChip() {
       >
         <Settings2 className="size-4 text-muted-foreground" aria-hidden="true" />
         <span className="tnum">
-          {lang.toUpperCase()} · {symbol}
+          {lang === "cs" ? "CZ" : lang.toUpperCase()} · {symbol}
         </span>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-64 space-y-4 rounded-xl p-4 shadow-card">
