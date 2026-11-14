@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { monthsToTarget, targetPotFor } from "./plan";
 import { monthsToPhasedTarget, phaseSegments, phasedTarget, type PhaseValues } from "./phased";
-import { retirementMilestones } from "./retirement";
+import { mortgageOwedNote, retirementMilestones } from "./retirement";
+import { incomeFor } from "./dashboard";
 
 const a = { ret: 7, cashRet: 3, wd: 4, infl: 2 };
 
@@ -223,5 +224,31 @@ describe("pensionLinkFrom.delayAt", () => {
   it("35 insured years → on time, no delay", () => {
     expect(link.delayAt(61)).toBeNull();
     expect(link.at(61).pensionAge).toBe(67);
+  });
+});
+
+describe("mortgageOwedNote", () => {
+  const keys = (o: Parameters<typeof mortgageOwedNote>[0]) => mortgageOwedNote(o).map((s) => s.key);
+  it("same rounded age → no 'keep going until the same age'; names the payment payoff", () => {
+    const k = keys({ livingAge: 60, debtFreeAge: 60, owed: "1", payoffAge: 62 });
+    expect(k[0]).toContain("Around the same time");
+    expect(k[1]).toBe("Otherwise your regular payments finish it at {age}.");
+  });
+  it("pot clears it later than you stop", () => {
+    const n = mortgageOwedNote({ livingAge: 55, debtFreeAge: 57, owed: "1", payoffAge: 62 });
+    expect(n[0]!.vars["age2"]).toBe(57);
+  });
+  it("payments finish first → no lump-sum suggestion", () => {
+    const k = keys({ livingAge: 58, debtFreeAge: 63, owed: "1", payoffAge: 62 });
+    expect(k).toEqual(["You'd still owe {d} on the mortgage at {age}.", "Your regular payments finish it at {age}."]);
+  });
+});
+
+describe("incomeFor", () => {
+  it("typed income wins, else Mzda net in CZK, else 0", () => {
+    expect(incomeFor(50000, 40000, "CZK")).toBe(50000);
+    expect(incomeFor(0, 40000, "CZK")).toBe(40000);
+    expect(incomeFor(0, 40000, "EUR")).toBe(0);
+    expect(incomeFor(0, null, "CZK")).toBe(0);
   });
 });

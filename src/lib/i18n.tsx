@@ -63,8 +63,14 @@ const CS: Record<string, string> = {
   "{n} — mortgage cleared too": "{n} — splacená i hypotéka",
   "Mortgage left": "Zbývá na hypotéce",
   "Your number + mortgage left": "Cílová částka + zbytek hypotéky",
-  "You'd still owe {d} on the mortgage at {age}. Keep going until {age2} to clear it.":
-    "V {age} letech byste na hypotéce stále dlužili {d}. Vydržte do {age2} a splatíte i ji.",
+  "At {age} you'd still owe {d} on the mortgage. From {age2} your pot covers that too, so you could pay it off in one go.":
+    "V {age} letech byste na hypotéce ještě dlužili {d}. Od {age2} let pokryje vaše portfolio i tuto částku, takže ji můžete splatit najednou.",
+  "At {age} you'd still owe {d} on the mortgage. Around the same time your pot would cover paying it off in one go too.":
+    "V {age} letech byste na hypotéce ještě dlužili {d}. Zhruba ve stejné době by vaše portfolio stačilo i na její jednorázové splacení.",
+  "Otherwise your regular payments finish it at {age}.": "Jinak ji řádné splátky doplatí v {age} letech.",
+  "Your regular payments finish it at {age}.": "Řádné splátky ji doplatí v {age} letech.",
+  "Paid off by payments at {age}": "Splátkami splaceno v {age} letech",
+  "Taken from Mzda. Type over it to change.": "Převzato ze záložky Mzda. Pro změnu ho přepište.",
   "You'd still owe {d} on the mortgage at {age}.": "V {age} letech byste na hypotéce stále dlužili {d}.",
   "Property value (optional)": "Hodnota nemovitosti (nepovinné)",
   "What your home would sell for today. Counts towards your net worth on the Dashboard — never towards your retirement money.":

@@ -45,7 +45,7 @@ import {
   requiredReturnPhased,
   withPensionAge,
 } from "@/lib/phased";
-import { ageAt, mortgageSchedule, realBalanceAt, retirementMilestones } from "@/lib/retirement";
+import { ageAt, mortgageOwedNote, mortgageSchedule, realBalanceAt, retirementMilestones } from "@/lib/retirement";
 import { cn } from "@/lib/utils";
 import { scheduleUrlReplace } from "@/lib/urlSync";
 import { useT } from "@/lib/i18n";
@@ -1149,16 +1149,14 @@ function Results({
           )}
           {owesAtReached && (
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-muted">
-              {debtFreeAge !== null
-                ? t("You'd still owe {d} on the mortgage at {age}. Keep going until {age2} to clear it.", {
-                    d: money(milestones.owedAtLiving),
-                    age: reachedAge ?? plan.age,
-                    age2: debtFreeAge,
-                  })
-                : t("You'd still owe {d} on the mortgage at {age}.", {
-                    d: money(milestones.owedAtLiving),
-                    age: reachedAge ?? plan.age,
-                  })}
+              {mortgageOwedNote({
+                livingAge: reachedAge ?? plan.age,
+                debtFreeAge,
+                owed: money(milestones.owedAtLiving),
+                payoffAge: schedule?.months != null ? Math.round(plan.age + schedule.months / 12) : null,
+              })
+                .map((x) => t(x.key, x.vars))
+                .join(" ")}
             </p>
           )}
         </div>

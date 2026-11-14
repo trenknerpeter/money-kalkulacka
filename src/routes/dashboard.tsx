@@ -21,6 +21,7 @@ import { CROSSHAIR, TOOLTIP_BOX, gradientId } from "@/lib/chartStyle";
 import { useCurrency, useFormatters } from "@/lib/currency";
 import {
   deriveMetrics,
+  incomeFor,
   loadDashboard,
   loadInvest,
   loadMortgage,
@@ -30,6 +31,7 @@ import {
   type PathRow,
 } from "@/lib/dashboard";
 import { useT } from "@/lib/i18n";
+import { mortgageOwedNote } from "@/lib/retirement";
 import { lifeMarkers } from "@/lib/lifeline";
 import { loadPension, resolveGross, resolvePlanPension, retirementSummary } from "@/lib/pension";
 import { pensionLinkFrom } from "@/lib/phased";
@@ -488,6 +490,14 @@ function Headline({ m, spend }: { m: DashboardMetrics; spend: number }) {
   const { money } = useFormatters();
   const { t } = useT();
   const owes = m.livingAge !== null && m.owedAtLiving > 0.5;
+  // When the regular payments finish the loan (the age the Home ownership card shows).
+  const payoffAge =
+    m.age !== null && m.mortgageMonths !== null ? Math.round(m.age + m.mortgageMonths / 12) : null;
+  const owesText = owes
+    ? mortgageOwedNote({ livingAge: m.livingAge!, debtFreeAge: m.debtFreeAge, owed: money(m.owedAtLiving), payoffAge })
+        .map((x) => t(x.key, x.vars))
+        .join(" ")
+    : null;
   const o = m.outlook;
   const outlookCaption = !o
     ? undefined
@@ -520,16 +530,7 @@ function Headline({ m, spend }: { m: DashboardMetrics; spend: number }) {
       </h2>
       {owes && (
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-          {m.debtFreeAge !== null
-            ? t("You'd still owe {d} on the mortgage at {age}. Keep going until {age2} to clear it.", {
-                d: money(m.owedAtLiving),
-                age: m.livingAge!,
-                age2: m.debtFreeAge,
-              })
-            : t("You'd still owe {d} on the mortgage at {age}.", {
-                d: money(m.owedAtLiving),
-                age: m.livingAge!,
-              })}
+          {owesText}
         </p>
       )}
       <div className="mt-6 grid gap-6 border-t border-border pt-5 sm:grid-cols-3 print:mt-3 print:grid-cols-3 print:pt-3">
@@ -803,7 +804,9 @@ function Dashboard() {
 
   const hasAnyData = Boolean(saved.invest || saved.mortgage || saved.plan || salaryNet !== null);
   const { invest, mortgage, plan } = saved;
-  const income = store.income;
+  // Falls back to the Mzda tab's net pay until the user types their own figure.
+  const income = incomeFor(store.income, salaryNet, currency);
+  const incomeFromSalary = store.income <= 0 && income > 0;
 
   const pensionLink = useMemo(() => {
     const p = resolvePlanPension({
@@ -850,7 +853,7 @@ function Dashboard() {
     m.mortgageMonths === null
       ? null
       : m.age !== null
-        ? t("Mortgage-free at {age}", { age: Math.round(m.age + m.mortgageMonths / 12) })
+        ? t("Paid off by payments at {age}", { age: Math.round(m.age + m.mortgageMonths / 12) })
         : t("Mortgage-free in {years}", { years: count(Math.ceil(m.mortgageMonths / 12), "year") });
 
   return (
@@ -975,7 +978,7 @@ function Dashboard() {
                   id="dashboard-income"
                   type="number"
                   min={0}
-                  value={store.income || ""}
+                  value={income || ""}
                   placeholder={money(currency === "CZK" ? 40000 : 3000)}
                   onChange={(e) => update({ income: Math.max(0, parseFloat(e.target.value) || 0) })}
                   className="tnum mt-1.5 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
@@ -985,7 +988,11 @@ function Dashboard() {
                     "What lands in your account each month. Used only for the savings rate — stored in this browser.",
                   )}
                 </p>
-                {salaryNet !== null && salaryNet > 0 && currency === "CZK" ? (
+                {incomeFromSalary ? (
+                  <p className="mt-2 text-sm text-muted-foreground print:hidden">
+                    {t("Taken from Mzda. Type over it to change.")}
+                  </p>
+                ) : salaryNet !== null && salaryNet > 0 && currency === "CZK" ? (
                   store.income !== salaryNet && (
                     <p className="mt-2 text-sm text-muted-foreground print:hidden">
                       {t("From Mzda: {v}", { v: formatCzk(salaryNet) })} ·{" "}
