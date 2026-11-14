@@ -114,9 +114,15 @@ describe("DPS / DIP, tax line, scenario, summary", () => {
   it("drawdown at 0 % real: 1.2M over 20 years → 5,000", () => {
     expect(drawdownMonthly(1_200_000, 20, 0)).toBeCloseTo(5000, 6);
   });
-  it("projectPot at 0 % real equals balance + contributions", () => {
+  it("projectPot with fixed deposits loses real value when return equals inflation", () => {
     const r = projectPot({ balance: 10000, own: 1000, employer: 500, startYear: 2020, ret: 2 }, "dps",
       { birthYear: 1991, currentYear: 2026, contributeUntilMonths: 36 * 12, infl: 2 });
+    expect(r.atOpen).toBeLessThan(10000 + 12000 + 6000 + 2400);
+    expect(r.atOpen).toBeGreaterThan(30000);
+  });
+  it("projectPot at 0 % return and 0 % inflation equals balance + contributions", () => {
+    const r = projectPot({ balance: 10000, own: 1000, employer: 500, startYear: 2020, ret: 0 }, "dps",
+      { birthYear: 1991, currentYear: 2026, contributeUntilMonths: 36 * 12, infl: 0 });
     expect(r.openMonths).toBe(720);
     expect(r.paidIn).toBe(12000);
     expect(r.employer).toBe(6000);

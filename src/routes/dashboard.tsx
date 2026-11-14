@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { TodaysMoney } from "@/components/TodaysMoney";
 import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import {
   Area,
@@ -757,12 +758,13 @@ function WhatYouOwn({ m }: { m: DashboardMetrics }) {
           {t("Add your home's value →")}
         </Link>
       ) : (
-        <p className="mt-3 text-xs text-muted-foreground">
-          {showDebt ? t("Percentages are shares of total assets.") : null}
-          {showDebt && o ? " " : null}
-          {o ? t("Future values in today's money.") : null}
-        </p>
+        showDebt && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            {t("Percentages are shares of total assets.")}
+          </p>
+        )
       )}
+      {o && <TodaysMoney className="mt-3 print:hidden" />}
     </Panel>
   );
 }

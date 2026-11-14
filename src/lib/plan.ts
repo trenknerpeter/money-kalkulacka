@@ -78,6 +78,39 @@ export function savePlan(plan: SavedPlan) {
   }
 }
 
+/** The Invest tab's inputs that the plan also uses. */
+export type InvestInputs = {
+  initial: number;
+  monthly: number;
+  rate: number;
+  inflation: number;
+  savings: boolean;
+  sInitial: number;
+  sMonthly: number;
+  sRate: number;
+};
+
+/** The plan with the Invest tab's amounts and rates copied in (savings only if that's switched on). */
+export function planFromInvest(plan: SavedPlan, inv: InvestInputs): SavedPlan {
+  return {
+    ...plan,
+    invested: num(inv.initial),
+    saveInvest: num(inv.monthly),
+    ret: num(inv.rate),
+    infl: num(inv.inflation),
+    ...(inv.savings
+      ? { cash: num(inv.sInitial), saveCash: num(inv.sMonthly), cashRet: num(inv.sRate) }
+      : {}),
+  };
+}
+
+/** True when the plan (which the Dashboard follows) uses different numbers than the Invest tab. */
+export function planDiffersFromInvest(plan: SavedPlan, inv: InvestInputs): boolean {
+  const next = planFromInvest(plan, inv);
+  const keys = ["invested", "saveInvest", "ret", "infl", "cash", "saveCash", "cashRet"] as const;
+  return keys.some((k) => Math.abs(num(next[k]) - num(plan[k])) > 0.005);
+}
+
 /** Real (today's-money) monthly rate from a nominal annual return and inflation. */
 export function realMonthlyRate(nominalAnnual: number, inflation: number): number {
   const realAnnual = (1 + num(nominalAnnual) / 100) / (1 + num(inflation) / 100) - 1;
@@ -102,22 +135,49 @@ export function potAfterMonths(P0: number, PMT: number, r: number, n: number): n
 
 export type PotSplit = { invest: number; savings: number; total: number };
 
-/** Both pots after n months, each compounding at its own real rate. */
+/**
+ * Today's-money value of a pot after n months when the monthly deposit stays fixed in
+ * koruna (it does not rise with inflation). Compounds monthly at the nominal rate, then
+ * removes inflation. Matches computeInvest's realValue for whole years.
+ */
+export function realPotFixedDeposits(
+  P0: number,
+  PMT: number,
+  nominalAnnual: number,
+  inflation: number,
+  n: number,
+): number {
+  const months = Math.max(0, Math.round(n));
+  const nominal = potAfterMonths(P0, PMT, num(nominalAnnual) / 100 / 12, months);
+  return nominal / Math.pow(1 + num(inflation) / 100, months / 12);
+}
+
+/** Today's-money value of n fixed monthly deposits (each one worth a bit less than the last). */
+export function realDeposits(PMT: number, inflation: number, n: number): number {
+  const months = Math.max(0, Math.round(n));
+  const d = Math.pow(1 + num(inflation) / 100, -1 / 12);
+  if (d === 1) return num(PMT) * months;
+  return (num(PMT) * d * (1 - Math.pow(d, months))) / (1 - d);
+}
+
+/** Both pots after n months in today's money, each at its own return; deposits fixed in koruna. */
 export function potsAfterMonths(
   profile: PlanProfile,
   assumptions: PlanAssumptions,
   n: number,
 ): PotSplit {
-  const invest = potAfterMonths(
+  const invest = realPotFixedDeposits(
     profile.invested,
     profile.saveInvest,
-    realMonthlyRate(assumptions.ret, assumptions.infl),
+    assumptions.ret,
+    assumptions.infl,
     n,
   );
-  const savings = potAfterMonths(
+  const savings = realPotFixedDeposits(
     profile.cash,
     profile.saveCash,
-    realMonthlyRate(assumptions.cashRet, assumptions.infl),
+    assumptions.cashRet,
+    assumptions.infl,
     n,
   );
   return { invest, savings, total: invest + savings };
@@ -225,7 +285,7 @@ export function planRows(
   for (let age = start; age <= end; age++) {
     const months = (age - start) * 12;
     const pots = potsAfterMonths(profile, assumptions, months);
-    const contributed = startPot(profile) + monthlyTotal(profile) * months;
+    const contributed = startPot(profile) + realDeposits(monthlyTotal(profile), assumptions.infl, months);
     rows.push({
       age,
       contributed,
