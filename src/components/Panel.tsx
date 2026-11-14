@@ -11,7 +11,7 @@ type Variant = "card" | "input" | "hero";
  *  - hero:  ink with light text; one per page, for the headline number.
  */
 const VARIANT: Record<Variant, string> = {
-  card: "rounded-xl border border-border bg-card p-6 shadow-card",
+  card: "rounded-xl border border-border bg-card p-6 shadow-card print:p-5",
   input: "rounded-xl bg-muted p-5 sm:p-6",
   hero: "rounded-2xl bg-ink p-6 text-ink-foreground shadow-hero sm:p-8 print:border print:border-border print:shadow-none",
 };
@@ -29,7 +29,7 @@ export function Panel({
 }) {
   return (
     <section className={cn(VARIANT[variant], className)}>
-      {title && <h2 className="mb-5 font-display text-lg font-semibold tracking-tight">{title}</h2>}
+      {title && <h2 className="mb-5 font-display text-lg font-semibold tracking-tight print:mb-3">{title}</h2>}
       {children}
     </section>
   );

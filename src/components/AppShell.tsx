@@ -297,12 +297,12 @@ function NavPills({ pathname, filled }: { pathname: string; filled: Set<string> 
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const filled = useFilledTabs(pathname);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background print:min-h-0 print:bg-transparent">
       <header className="sticky top-0 z-20 border-b pt-[env(safe-area-inset-top)] border-border bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-4 px-5">
           <Link to="/" className="flex shrink-0 items-center gap-2.5">
@@ -330,6 +330,16 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
         </div>
       </header>
+      {/* Print-only letterhead: the sticky header is hidden on paper. */}
+      <div className="mb-6 hidden items-center justify-between border-b-2 border-primary pb-3 print:flex">
+        <span className="flex items-center gap-2.5">
+          <Logomark />
+          <span className="font-display text-lg font-semibold tracking-tight">Money Kalkulačka</span>
+        </span>
+        <span className="text-xs text-muted-foreground" suppressHydrationWarning>
+          {new Date().toLocaleDateString(locale, { year: "numeric", month: "long", day: "numeric" })}
+        </span>
+      </div>
       <main className="mx-auto max-w-[1200px] px-5 py-8 sm:py-10">{children}</main>
       <footer className="mt-4 border-t border-border pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-center gap-x-2 gap-y-1 px-5 py-6 text-center text-xs text-muted-foreground">

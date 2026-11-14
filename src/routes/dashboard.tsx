@@ -88,7 +88,7 @@ function Kpi({
         ? "text-[clamp(1.2rem,2vw,1.7rem)]"
         : "text-[clamp(1.4rem,2.4vw,2rem)]";
   return (
-    <div className="rounded-xl border border-border bg-card p-5 shadow-card print:p-3">
+    <div className="break-inside-avoid rounded-xl border border-border bg-card p-5 shadow-card print:p-4">
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
       <p
         className={cn(
@@ -117,12 +117,17 @@ function RetirementPathChart({ m }: { m: DashboardMetrics }) {
       : undefined;
   const labelStyle = { fill: "var(--muted-foreground)", fontSize: 12 };
   const uid = useId();
-  const potFill = gradientId("pot", uid);
 
-  return (
-    <div className="h-[300px] w-full print:h-[170px]">
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={path} margin={{ top: 24, right: 8, left: 0, bottom: 0 }}>
+  // Recharts' ResponsiveContainer doesn't re-measure for the print layout, so paper gets
+  // its own fixed-size copy sized to the A4 card.
+  const chart = (print: boolean) => {
+    const potFill = gradientId(print ? "pot-print" : "pot", uid);
+    return (
+        <ComposedChart
+          data={path}
+          margin={{ top: 24, right: 8, left: 0, bottom: 0 }}
+          {...(print ? { width: 650, height: 185 } : {})}
+        >
           <defs>
             <linearGradient id={potFill} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.45} />
@@ -305,8 +310,18 @@ function RetirementPathChart({ m }: { m: DashboardMetrics }) {
             />
           )}
         </ComposedChart>
-      </ResponsiveContainer>
-    </div>
+    );
+  };
+
+  return (
+    <>
+      <div className="h-[300px] w-full print:hidden">
+        <ResponsiveContainer width="100%" height="100%">
+          {chart(false)}
+        </ResponsiveContainer>
+      </div>
+      <div className="hidden print:block">{chart(true)}</div>
+    </>
   );
 }
 
@@ -364,7 +379,7 @@ function NetWorthHero({
   });
 
   return (
-    <Panel variant="hero" className="break-inside-avoid print:p-3">
+    <Panel variant="hero" className="break-inside-avoid print:p-6">
       <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <Eyebrow onInk>{t("Net worth")}</Eyebrow>
@@ -515,7 +530,7 @@ function Headline({ m, spend }: { m: DashboardMetrics; spend: number }) {
         : undefined;
 
   return (
-    <section className="break-inside-avoid rounded-xl border border-border bg-card p-6 shadow-card sm:p-8 print:p-3">
+    <section className="break-inside-avoid rounded-xl border border-border bg-card p-6 shadow-card sm:p-8 print:p-6">
       <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
         {t("Where you're headed")}
       </p>
@@ -682,29 +697,29 @@ function WhatYouOwn({ m }: { m: DashboardMetrics }) {
           </tr>
           {rows.map((r) => (
             <tr key={r.key}>
-              <td className="py-1.5">
+              <td className="py-1.5 print:py-1">
                 <span className="flex items-center gap-2 text-muted-foreground">
                   <span className={cn("size-2.5 shrink-0 rounded-sm", r.color)} />
                   {r.label}
                 </span>
               </td>
-              <td className="py-1.5 text-right">
+              <td className="py-1.5 print:py-1 text-right">
                 <AmountShare value={money(r.now)} share={share(r.now, assetsNow)} strong />
               </td>
               {o && (
-                <td className="py-1.5 pl-4 text-right">
+                <td className="py-1.5 print:py-1 pl-4 text-right">
                   <AmountShare value={money(r.later)} share={share(r.later, assetsLater)} />
                 </td>
               )}
             </tr>
           ))}
           <tr className="border-t border-border/60">
-            <td className="py-1.5 font-medium">{t("Total assets")}</td>
-            <td className="py-1.5 text-right">
+            <td className="py-1.5 print:py-1 font-medium">{t("Total assets")}</td>
+            <td className="py-1.5 print:py-1 text-right">
               <AmountShare value={money(assetsNow)} strong />
             </td>
             {o && (
-              <td className="py-1.5 pl-4 text-right">
+              <td className="py-1.5 print:py-1 pl-4 text-right">
                 <AmountShare value={money(assetsLater)} strong />
               </td>
             )}
@@ -717,17 +732,17 @@ function WhatYouOwn({ m }: { m: DashboardMetrics }) {
                 </td>
               </tr>
               <tr>
-                <td className="py-1.5">
+                <td className="py-1.5 print:py-1">
                   <span className="flex items-center gap-2 text-muted-foreground">
                     <span className="size-2.5 shrink-0 rounded-sm bg-info" />
                     {t("Mortgage")}
                   </span>
                 </td>
-                <td className="py-1.5 text-right">
+                <td className="py-1.5 print:py-1 text-right">
                   <AmountShare value={`−${money(debtNow)}`} share={share(debtNow, assetsNow)} strong />
                 </td>
                 {o && (
-                  <td className="py-1.5 pl-4 text-right">
+                  <td className="py-1.5 print:py-1 pl-4 text-right">
                     <AmountShare
                       value={debtLater > 0.5 ? `−${money(debtLater)}` : money(0)}
                       share={share(debtLater, assetsLater)}
@@ -964,12 +979,18 @@ function Dashboard() {
             </div>
           </section>
 
-          <div className="grid gap-6 lg:grid-cols-2 print:grid-cols-2 print:gap-3">
+          <div className="grid gap-6 lg:grid-cols-2 print:break-before-page print:grid-cols-1 print:gap-4">
             <WhatYouOwn m={m} />
 
             {/* Where your money goes */}
             <Panel title={t("Where your money goes")} className="break-inside-avoid">
-              <div className="mb-5">
+              <p className="tnum mb-4 hidden items-baseline justify-between border-b border-border pb-3 print:flex">
+                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  {t("Monthly net income")}
+                </span>
+                <span className="text-lg font-semibold tracking-tight">{money(income)}</span>
+              </p>
+              <div className="mb-5 print:hidden">
                 <label
                   htmlFor="dashboard-income"
                   className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
@@ -1033,7 +1054,7 @@ function Dashboard() {
                     />
                     <div className="flex-1 bg-muted" />
                   </div>
-                  <dl className="tnum mt-4 space-y-2 text-sm">
+                  <dl className="tnum mt-4 space-y-2 text-sm print:grid print:grid-cols-2 print:gap-x-10 print:gap-y-2 print:space-y-0">
                     <div className="flex items-center justify-between gap-4">
                       <dt className="flex items-center gap-2 text-muted-foreground">
                         <span className="size-2.5 rounded-sm bg-info" />
@@ -1100,13 +1121,23 @@ function Dashboard() {
               )}
           </Panel>
 
-          {/* Print-only page 2: the details behind the overview. */}
-          <div className="hidden print:block">
-            <div className="plan-print-summary-card space-y-5 rounded-lg border border-border p-6 text-sm print:grid print:grid-cols-2 print:gap-x-8 print:gap-y-3 print:space-y-0 print:p-4 print:text-xs">
-              <p className="font-semibold tracking-tight print:col-span-2">{t("The details")}</p>
+          {/* Print-only last page: the details behind the overview. */}
+          <section className="hidden print:block print:break-before-page">
+            <h2 className="text-2xl font-semibold tracking-tight">{t("The details")}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("Made with Money Kalkulačka · {date}", {
+                date: new Date().toLocaleDateString(locale, {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                }),
+              })}
+            </p>
+            <div className="mt-5 columns-2 gap-4">
               {[
                 {
                   title: t("Investments"),
+                  dot: "bg-primary",
                   rows: invest
                     ? [
                         [t("Initial amount"), money(invest.initial)],
@@ -1118,6 +1149,7 @@ function Dashboard() {
                 },
                 {
                   title: t("Savings account"),
+                  dot: "bg-primary/40",
                   rows:
                     invest && invest.savings
                       ? [
@@ -1129,6 +1161,7 @@ function Dashboard() {
                 },
                 {
                   title: t("Mortgage"),
+                  dot: "bg-info",
                   rows: mortgage
                     ? [
                         [t("Loan amount"), money(mortgage.principal)],
@@ -1154,6 +1187,7 @@ function Dashboard() {
                 },
                 {
                   title: t("Financial independence"),
+                  dot: "bg-accent",
                   rows: plan
                     ? [
                         [t("Age"), String(m.age ?? plan.age)],
@@ -1166,6 +1200,7 @@ function Dashboard() {
                 },
                 {
                   title: t("Independence — investments"),
+                  dot: "bg-accent",
                   rows: plan
                     ? [
                         [t("Invested today"), money(plan.invested)],
@@ -1176,6 +1211,7 @@ function Dashboard() {
                 },
                 {
                   title: t("Independence — savings"),
+                  dot: "bg-accent",
                   rows: plan
                     ? [
                         [t("In savings today"), money(plan.cash)],
@@ -1186,6 +1222,7 @@ function Dashboard() {
                 },
                 {
                   title: t("Retirement"),
+                  dot: "bg-warning",
                   rows: retirement
                     ? [
                         [t("Birth year"), String(retirement.s.birthYear)],
@@ -1202,39 +1239,37 @@ function Dashboard() {
                 },
                 {
                   title: t("Monthly net income"),
+                  dot: "bg-foreground",
                   rows: income > 0 ? [[t("Monthly net income"), money(income)]] : null,
                 },
               ]
                 .filter((sec) => sec.rows)
                 .map((sec) => (
-                  <div key={sec.title}>
-                    <p className="font-semibold">{sec.title}</p>
-                    <dl className="tnum mt-2 grid grid-cols-2 gap-x-8 gap-y-1.5 print:mt-1 print:grid-cols-1 print:gap-y-0.5">
+                  <div
+                    key={sec.title}
+                    className="mb-4 break-inside-avoid rounded-xl border border-border bg-card p-4"
+                  >
+                    <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                      <span className={cn("size-2.5 rounded-sm", sec.dot)} aria-hidden="true" />
+                      {sec.title}
+                    </p>
+                    <dl className="tnum mt-2 divide-y divide-border text-xs">
                       {sec.rows!.map(([k, v]) => (
-                        <div key={k} className="flex justify-between gap-4">
+                        <div key={k} className="flex justify-between gap-4 py-1.5">
                           <dt className="text-muted-foreground">{k}</dt>
-                          <dd>{v}</dd>
+                          <dd className="whitespace-nowrap font-medium">{v}</dd>
                         </div>
                       ))}
                     </dl>
                   </div>
                 ))}
-              <p className="text-xs text-muted-foreground print:col-span-2">
-                {t("Made with Money Kalkulačka · {date}", {
-                  date: new Date().toLocaleDateString(locale, {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  }),
-                })}
-              </p>
-              <p className="mt-4 text-xs leading-relaxed text-muted-foreground print:col-span-2 print:mt-0">
-                {t(
-                  "Money Kalkulačka does arithmetic, not advice. These are projections based on assumptions you can change — not a prediction, and not a recommendation to buy or sell anything.",
-                )}
-              </p>
             </div>
-          </div>
+            <p className="mt-2 break-inside-avoid rounded-xl bg-accent-soft p-4 text-xs leading-relaxed text-foreground">
+              {t(
+                "Money Kalkulačka does arithmetic, not advice. These are projections based on assumptions you can change — not a prediction, and not a recommendation to buy or sell anything.",
+              )}
+            </p>
+          </section>
 
           {/* Missing-data hints */}
           {(!saved.invest || !saved.mortgage || !saved.plan) && (
