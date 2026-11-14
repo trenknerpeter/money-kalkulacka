@@ -205,7 +205,7 @@ function Invest() {
   const monthlyIncome = yearlyIncome / 12;
   const inflationFactor = Math.pow(1 + s.inflation / 100, Math.max(0, Math.round(s.years)));
 
-  // The Dashboard follows the independence plan, so say when its numbers differ from these.
+  // The Dashboard follows the Financial independence tab (shown once it is filled in), so say when its numbers differ from these.
   const [plan, setPlan] = useState<SavedPlan | null>(null);
   useEffect(() => {
     const read = () => setPlan(loadPlan());
@@ -374,9 +374,9 @@ function Invest() {
             <p className="leading-relaxed text-muted-foreground">
               {onlySwitchDiffers
                 ? plan.indexDeposits
-                  ? t("Your independence plan raises deposits with inflation. The Dashboard follows the plan.")
-                  : t("Your independence plan keeps deposits the same every month. The Dashboard follows the plan.")
-                : t("Your independence plan uses different numbers ({a} invested, {b} a month at {p}). The Dashboard follows the plan.", {
+                  ? t("Here your deposits stay the same every month; the Financial independence tab raises them with inflation. The Dashboard uses that tab's numbers.")
+                  : t("Here your deposits rise with inflation; the Financial independence tab keeps them the same every month. The Dashboard uses that tab's numbers.")
+                : t("The Financial independence tab uses different numbers ({a} invested, {b} a month at {p}). The Dashboard uses that tab's numbers.", {
                     a: money(plan.invested),
                     b: money(plan.saveInvest),
                     p: percent(plan.ret),
@@ -388,13 +388,13 @@ function Invest() {
                 onClick={() => savePlan(planFromInvest(plan, s))}
                 className="h-9 rounded-md bg-primary px-3 font-medium text-primary-foreground hover:bg-primary/90"
               >
-                {t("Use these numbers in the plan")}
+                {t("Copy to Financial independence")}
               </button>
               <Link
                 to="/plan"
                 className="inline-flex h-9 items-center rounded-md border border-border px-3 font-medium hover:bg-muted"
               >
-                {t("Open plan")}
+                {t("Open tab")}
               </Link>
             </div>
           </div>
