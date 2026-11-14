@@ -177,25 +177,37 @@
   font-feature-settings: "tnum";
 }
 
-/* Print / Save-as-PDF: strip app chrome, keep the plan summary clean. */
+/* Print / Save-as-PDF: strip app chrome, keep the site's colours (ink hero, green bars). */
 @media print {
   :root {
     color-scheme: light;
-    /* Browsers drop backgrounds when printing, so the ink surface flips to dark-on-white. */
-    --ink: #ffffff;
-    --ink-foreground: #14201a;
-    --ink-muted: #5c6862;
-    --ink-accent: #176b45;
+  }
+
+  /* Browsers drop backgrounds by default; without this the bars, timeline and hero vanish. */
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-shadow: none !important;
   }
 
   header,
   nav,
-  footer {
+  footer,
+  #lovable-badge,
+  a[href*="lovable.dev"] {
     display: none !important;
   }
 
+  html,
   body {
-    background: #fff;
+    background: #fff !important;
+  }
+
+  main {
+    max-width: none !important;
+    padding: 0 !important;
   }
 
   .plan-print-summary {
@@ -210,6 +222,7 @@
   }
 
   @page {
-    margin: 14mm;
+    size: A4;
+    margin: 12mm 12mm 14mm;
   }
 }
