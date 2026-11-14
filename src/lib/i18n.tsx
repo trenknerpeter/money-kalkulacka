@@ -707,6 +707,25 @@ const CS: Record<string, string> = {
   "Year {n}: growth passes deposits": "{n}. rok: výnos převýší vklady",
   "From year {n}, growth adds more each year than you pay in.": "Od {n}. roku vám výnos ročně přidá víc, než sami vložíte.",
   "Until then, how much you send matters most. After that, compounding does more of the work every year.": "Do té doby rozhoduje hlavně to, kolik posíláte. Potom odvádí víc práce složené úročení.",
+  "Prices rise over time (here by {p} a year), so the same amount buys less later than it does today.":
+    "Ceny časem rostou (tady o {p} ročně), takže za stejnou částku si později koupíte méně než dnes.",
+  "Prices rise over time, so the same amount buys less later than it does today.":
+    "Ceny časem rostou, takže za stejnou částku si později koupíte méně než dnes.",
+  "We convert future amounts to what they would buy now, so you can compare them with today.":
+    "Budoucí částky proto přepočítáváme na to, kolik by koupily dnes, abyste je mohli porovnat se současností.",
+  "Your monthly deposits stay the same amount. They don't rise with inflation.":
+    "Měsíční vklady počítáme pořád stejně vysoké – s inflací nerostou.",
+  "Results are shown in today's money, so you can compare them with the other tabs.":
+    "Výsledky ukazujeme v dnešních cenách, aby šly porovnat s ostatními záložkami.",
+  "Your account will show {nominal} in {year}, but prices will be higher by then. Of that {nominal}, you put in {c} and {g} is growth.":
+    "V roce {year} uvidíte na účtu {nominal}, jenže ceny do té doby vzrostou. Z těch {nominal} vložíte {c} a {g} udělá výnos.",
+  "Balance on your account each year, before inflation.":
+    "Zůstatek na účtu v jednotlivých letech, bez přepočtu na dnešní ceny.",
+  "{v} in {year} money": "{v} v cenách roku {year}",
+  "Your independence plan uses different numbers ({a} invested, {b} a month at {p}). The Dashboard follows the plan.":
+    "Váš plán finanční nezávislosti počítá s jinými čísly ({a} investováno, {b} měsíčně při {p}). Přehled se řídí plánem.",
+  "Use these numbers in the plan": "Použít tato čísla v plánu",
+  "Open plan": "Otevřít plán",
 };
 
 type Vars = Record<string, string | number>;

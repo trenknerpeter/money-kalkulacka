@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { TodaysMoney } from "@/components/TodaysMoney";
 import { ArrowLeft, Check } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -1262,6 +1263,7 @@ function Results({
                     p: percent(levers.ret),
                   })}
             </p>
+            <TodaysMoney inflation={assumptions.infl} onInk className="mt-2" />
           </div>
           <div className="min-w-0">
             <p className="text-xs uppercase tracking-wide text-ink-muted">{t("The gap")}</p>

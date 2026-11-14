@@ -8,7 +8,7 @@
  */
 
 import { num } from "./finance";
-import { potAfterMonths, realMonthlyRate } from "./plan";
+import { potAfterMonths } from "./plan";
 import type { Source } from "./dashboard";
 
 export type PensionRules = {
@@ -214,7 +214,8 @@ export function projectPot(
 ): PotProjection {
   const nowMonths = (ctx.currentYear - ctx.birthYear) * 12;
   const openMonths = potOpenMonths(ctx.birthYear, pot.startYear, kind);
-  const r = realMonthlyRate(pot.ret, ctx.infl);
+  // Deposits stay fixed in koruna: compound at the nominal rate, then remove inflation.
+  const r = num(pot.ret) / 100 / 12;
   const own = num(pot.own);
   const employer = num(pot.employer);
   const state = kind === "dps" ? dpsStateContribution(own) : 0;
@@ -228,7 +229,8 @@ export function projectPot(
     // Contributions run first, then the pot just compounds.
     const c = contribMonths(ageMonths);
     const afterContrib = potAfterMonths(balance, monthly, r, c);
-    return potAfterMonths(afterContrib, 0, r, n - c);
+    const nominal = potAfterMonths(afterContrib, 0, r, n - c);
+    return nominal / Math.pow(1 + num(ctx.infl) / 100, n / 12);
   };
 
   const m = contribMonths(openMonths);

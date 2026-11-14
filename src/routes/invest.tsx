@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import {
   Accordion,
   AccordionContent,
@@ -22,6 +22,9 @@ import { useCountUp } from "@/lib/useCountUp";
 import { canonical, faqLd, webAppLd } from "@/lib/seo";
 import { SEO_CONTENT } from "@/lib/seoContent";
 import { SeoArticle } from "@/components/SeoArticle";
+import { TodaysMoney } from "@/components/TodaysMoney";
+import { loadPlan, planDiffersFromInvest, planFromInvest, savePlan, type SavedPlan } from "@/lib/plan";
+import { DATA_CHANGED_EVENT } from "@/lib/dataEvents";
 
 export const Route = createFileRoute("/invest")({
   head: () => ({
@@ -193,12 +196,27 @@ function Invest() {
     };
   }, [s.savings, investResult, savingsResult]);
 
-  const yearlyIncome = (result.finalValue * Math.max(0, s.withdrawRate)) / 100;
+  const yearlyIncome = (result.realValue * Math.max(0, s.withdrawRate)) / 100;
   const monthlyIncome = yearlyIncome / 12;
   const inflationFactor = Math.pow(1 + s.inflation / 100, Math.max(0, Math.round(s.years)));
 
+  // The Dashboard follows the independence plan, so say when its numbers differ from these.
+  const [plan, setPlan] = useState<SavedPlan | null>(null);
+  useEffect(() => {
+    const read = () => setPlan(loadPlan());
+    read();
+    window.addEventListener(DATA_CHANGED_EVENT, read);
+    window.addEventListener("storage", read);
+    return () => {
+      window.removeEventListener(DATA_CHANGED_EVENT, read);
+      window.removeEventListener("storage", read);
+    };
+  }, []);
+  const planDiffers = plan !== null && planDiffersFromInvest(plan, s);
+
   const emptyState = Math.round(s.years) <= 0;
-  const heroValue = useCountUp(result.finalValue);
+  const heroValue = useCountUp(result.realValue);
+  const endYear = new Date().getFullYear() + Math.max(0, Math.round(s.years));
   const crossover = growthCrossoverYear(result.rows);
 
   return (
@@ -253,25 +271,18 @@ function Invest() {
           />
 
           <div className="border-t border-border pt-6">
-            <div className="flex items-center justify-between gap-4">
-              <label htmlFor="real" className="text-sm text-muted-foreground">
-                {t("Show in today's money")}
-              </label>
-              <Switch id="real" checked={s.real} onCheckedChange={(v) => patch({ real: v })} />
-            </div>
-            {s.real && (
-              <div className="mt-6">
-                <NumberSlider
-                  label={t("Inflation rate")}
-                  value={s.inflation}
-                  onChange={(v) => patch({ inflation: v })}
-                  min={0}
-                  max={10}
-                  step={0.1}
-                  suffix="%"
-                />
-              </div>
-            )}
+            <NumberSlider
+              label={t("Inflation rate")}
+              value={s.inflation}
+              onChange={(v) => patch({ inflation: v })}
+              min={0}
+              max={10}
+              step={0.1}
+              suffix="%"
+            />
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              {t("Results are shown in today's money, so you can compare them with the other tabs.")}
+            </p>
           </div>
         </Panel>
 
@@ -345,6 +356,33 @@ function Invest() {
           <CopyLinkButton />
         </PageHeader>
 
+        {planDiffers && plan && (
+          <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 text-sm sm:flex-row sm:items-center sm:justify-between sm:p-5">
+            <p className="leading-relaxed text-muted-foreground">
+              {t("Your independence plan uses different numbers ({a} invested, {b} a month at {p}). The Dashboard follows the plan.", {
+                a: money(plan.invested),
+                b: money(plan.saveInvest),
+                p: percent(plan.ret),
+              })}
+            </p>
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                onClick={() => savePlan(planFromInvest(plan, s))}
+                className="h-9 rounded-md bg-primary px-3 font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                {t("Use these numbers in the plan")}
+              </button>
+              <Link
+                to="/plan"
+                className="inline-flex h-9 items-center rounded-md border border-border px-3 font-medium hover:bg-muted"
+              >
+                {t("Open plan")}
+              </Link>
+            </div>
+          </div>
+        )}
+
         {emptyState ? (
           <Panel>
             <p className="text-sm text-muted-foreground">
@@ -354,15 +392,19 @@ function Invest() {
         ) : (
           <>
             <Panel variant="hero">
-              <Eyebrow onInk>
-                {t("In {years} you'll have", { years: count(Math.round(s.years), "year") })}
-              </Eyebrow>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <Eyebrow onInk>
+                  {t("In {years} you'll have", { years: count(Math.round(s.years), "year") })}
+                </Eyebrow>
+                <TodaysMoney inflation={s.inflation} onInk />
+              </div>
               <FitNumber value={money(heroValue)} max="4rem" className="mt-3" />
               <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-muted">
                 {t(
-                  "In today's money that's about {real}. You put in {c}; the remaining {g} is growth.",
+                  "Your account will show {nominal} in {year}, but prices will be higher by then. Of that {nominal}, you put in {c} and {g} is growth.",
                   {
-                    real: money(result.realValue),
+                    nominal: money(result.finalValue),
+                    year: endYear,
                     c: money(result.totalContributed),
                     g: money(result.totalGrowth),
                   },
@@ -395,11 +437,11 @@ function Invest() {
                 <div className="tnum mt-6 grid gap-x-12 gap-y-2 border-t border-white/10 pt-4 text-sm sm:grid-cols-2">
                   <p className="flex justify-between gap-4">
                     <span className="text-ink-muted">{t("Investments")}</span>
-                    <span className="font-medium">{money(investResult.finalValue)}</span>
+                    <span className="font-medium">{money(investResult.realValue)}</span>
                   </p>
                   <p className="flex justify-between gap-4">
                     <span className="text-ink-muted">{t("Savings account")}</span>
-                    <span className="font-medium">{money(savingsResult.finalValue)}</span>
+                    <span className="font-medium">{money(savingsResult.realValue)}</span>
                   </p>
                 </div>
               )}
@@ -433,6 +475,9 @@ function Invest() {
             </div>
 
             <Panel title={t("Growth over time")}>
+              <p className="-mt-3 mb-5 text-sm text-muted-foreground">
+                {t("Balance on your account each year, before inflation.")}
+              </p>
               <InvestChart rows={result.rows} />
               <p className="sr-only">
                 {t("Total")} {money(result.finalValue)}. {t("Money you put in")}{" "}
@@ -459,7 +504,8 @@ function Invest() {
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">
                       {t("Invested amount")}
                     </p>
-                    <FitNumber value={money(result.finalValue)} max="1.75rem" className="mt-1.5" />
+                    <FitNumber value={money(result.realValue)} max="1.75rem" className="mt-1.5" />
+                    <TodaysMoney inflation={s.inflation} className="mt-2" />
                   </div>
                   <NumberSlider
                     label={t("Withdrawal rate")}
@@ -502,11 +548,9 @@ function Invest() {
                     <p className="mt-1.5 text-xs text-muted-foreground">
                       {t("{p} a year, split over 12 months", { p: percent(s.withdrawRate) })}
                     </p>
-                    {s.real && (
-                      <p className="tnum mt-3 border-t border-border pt-3 text-xs text-muted-foreground">
-                        {t("{v} in today's money", { v: money(monthlyIncome / inflationFactor) })}
-                      </p>
-                    )}
+                    <p className="tnum mt-3 border-t border-border pt-3 text-xs text-muted-foreground">
+                      {t("{v} in {year} money", { v: money(monthlyIncome * inflationFactor), year: endYear })}
+                    </p>
                   </div>
                   <div className="min-w-0 rounded-lg border border-border p-5">
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -514,13 +558,11 @@ function Invest() {
                     </p>
                     <FitNumber value={money(yearlyIncome)} max="1.75rem" className="mt-1.5" />
                     <p className="mt-1.5 text-xs text-muted-foreground">
-                      {t("{v} stays invested", { v: money(result.finalValue) })}
+                      {t("{v} stays invested", { v: money(result.realValue) })}
                     </p>
-                    {s.real && (
-                      <p className="tnum mt-3 border-t border-border pt-3 text-xs text-muted-foreground">
-                        {t("{v} in today's money", { v: money(yearlyIncome / inflationFactor) })}
-                      </p>
-                    )}
+                    <p className="tnum mt-3 border-t border-border pt-3 text-xs text-muted-foreground">
+                      {t("{v} in {year} money", { v: money(yearlyIncome * inflationFactor), year: endYear })}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -538,6 +580,9 @@ function Invest() {
                     {t("Year by year")}
                   </AccordionTrigger>
                   <AccordionContent>
+                    <p className="mb-3 text-xs text-muted-foreground">
+                      {t("Balance on your account each year, before inflation.")}
+                    </p>
                     <div className="max-h-[420px] overflow-auto">
                       <table className="w-full text-sm">
                         <thead className="sticky top-0 bg-card text-xs uppercase tracking-wide text-muted-foreground">
