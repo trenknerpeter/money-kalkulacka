@@ -727,6 +727,7 @@ const CS: Record<string, string> = {
   "Use these numbers in the plan": "Použít tato čísla v plánu",
   "Open plan": "Otevřít plán",
   "Raise deposits with inflation": "Navyšovat vklady o inflaci",
+  "Advanced settings": "Pokročilé nastavení",
   "Your independence plan raises deposits with inflation. The Dashboard follows the plan.":
     "Váš plán finanční nezávislosti navyšuje vklady o inflaci. Přehled se řídí plánem.",
   "Your independence plan keeps deposits the same every month. The Dashboard follows the plan.":

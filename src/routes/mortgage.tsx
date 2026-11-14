@@ -8,6 +8,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { NumberSlider } from "@/components/NumberSlider";
+import { AdvancedSettings } from "@/components/AdvancedSettings";
 import { Eyebrow, Panel } from "@/components/Panel";
 import { PageHeader } from "@/components/PageHeader";
 import { MortgageVisual } from "@/components/home/Illustrations";
@@ -233,127 +234,131 @@ function Mortgage() {
             />
           )}
 
-          <div className="space-y-4 border-t border-border pt-6">
-            <NumberSlider
-              label={t("Property value (optional)")}
-              value={s.homeValue}
-              onChange={(v) => patch({ homeValue: v })}
-              min={0}
-              max={Math.max(2000000 * scale, s.principal * 2)}
-              step={10000 * scale}
-              suffix={symbol}
-              suffixPosition="left"
-            />
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              {t("What your home would sell for today. Counts towards your net worth on the Dashboard — never towards your retirement money.")}
-            </p>
-            {s.homeValue > 0 && (
-              <div className="rounded-lg border border-border bg-card p-4">
-                <div className="flex min-h-11 items-center justify-between gap-4">
-                  <label htmlFor="home-growth" className="text-sm font-semibold">
-                    {t("Include price growth")}
-                  </label>
-                  <Switch
-                    id="home-growth"
-                    checked={s.homeGrowth}
-                    onCheckedChange={(checked) => patch({ homeGrowth: checked })}
-                    aria-label={t("Include price growth")}
-                  />
-                </div>
-                {s.homeGrowth && (
-                  <div className="mt-4 space-y-3 border-t border-border pt-4">
-                    <NumberSlider
-                      label={t("Growth above inflation")}
-                      value={s.homeRate}
-                      onChange={(v) => patch({ homeRate: Math.min(v, 3) })}
-                      min={0}
-                      max={3}
-                      step={0.1}
-                      suffix="%"
+          <AdvancedSettings
+            active={s.homeValue > 0 || s.compareRate || s.extraPayment}
+          >
+            <div className="space-y-4">
+              <NumberSlider
+                label={t("Property value (optional)")}
+                value={s.homeValue}
+                onChange={(v) => patch({ homeValue: v })}
+                min={0}
+                max={Math.max(2000000 * scale, s.principal * 2)}
+                step={10000 * scale}
+                suffix={symbol}
+                suffixPosition="left"
+              />
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {t("What your home would sell for today. Counts towards your net worth on the Dashboard — never towards your retirement money.")}
+              </p>
+              {s.homeValue > 0 && (
+                <div className="rounded-lg border border-border bg-card p-4">
+                  <div className="flex min-h-11 items-center justify-between gap-4">
+                    <label htmlFor="home-growth" className="text-sm font-semibold">
+                      {t("Include price growth")}
+                    </label>
+                    <Switch
+                      id="home-growth"
+                      checked={s.homeGrowth}
+                      onCheckedChange={(checked) => patch({ homeGrowth: checked })}
+                      aria-label={t("Include price growth")}
                     />
-                    <p className="text-xs leading-relaxed text-muted-foreground">
-                      {t("On top of inflation — everything here is in today's money. 1% means the home gains 1% a year more than prices in general.")}
-                    </p>
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="rounded-lg border border-border bg-card p-4">
-            <div className="flex min-h-11 items-center justify-between gap-4">
-              <label htmlFor="compare-rate" className="text-sm font-semibold">
-                {t("Compare another rate")}
-              </label>
-              <Switch
-                id="compare-rate"
-                checked={s.compareRate}
-                onCheckedChange={(checked) => patch({ compareRate: checked })}
-                aria-label={t("Compare another interest rate")}
-              />
+                  {s.homeGrowth && (
+                    <div className="mt-4 space-y-3 border-t border-border pt-4">
+                      <NumberSlider
+                        label={t("Growth above inflation")}
+                        value={s.homeRate}
+                        onChange={(v) => patch({ homeRate: Math.min(v, 3) })}
+                        min={0}
+                        max={3}
+                        step={0.1}
+                        suffix="%"
+                      />
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        {t("On top of inflation — everything here is in today's money. 1% means the home gains 1% a year more than prices in general.")}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            {s.compareRate && (
-              <div className="mt-4 border-t border-border pt-4">
-                <NumberSlider
-                  label={t("New interest rate")}
-                  value={s.newRate}
-                  onChange={(v) => patch({ newRate: v })}
-                  min={0}
-                  max={15}
-                  step={0.05}
-                  suffix="%"
+
+            <div className="rounded-lg border border-border bg-card p-4">
+              <div className="flex min-h-11 items-center justify-between gap-4">
+                <label htmlFor="compare-rate" className="text-sm font-semibold">
+                  {t("Compare another rate")}
+                </label>
+                <Switch
+                  id="compare-rate"
+                  checked={s.compareRate}
+                  onCheckedChange={(checked) => patch({ compareRate: checked })}
+                  aria-label={t("Compare another interest rate")}
                 />
               </div>
-            )}
-          </div>
-
-          <div className="rounded-lg border border-border bg-card p-4">
-            <div className="flex min-h-11 items-center justify-between gap-4">
-              <label htmlFor="extra-payment" className="text-sm font-semibold">
-                {t("Extra one-time payment")}
-              </label>
-              <Switch
-                id="extra-payment"
-                checked={s.extraPayment}
-                onCheckedChange={(checked) => patch({ extraPayment: checked })}
-                aria-label={t("Extra one-time payment")}
-              />
-            </div>
-            {s.extraPayment && (
-              <div className="mt-4 space-y-6 border-t border-border pt-4">
-                <NumberSlider
-                  label={t("Extra payment amount")}
-                  value={s.extraAmount}
-                  onChange={(v) => patch({ extraAmount: v })}
-                  min={0}
-                  max={200000 * scale}
-                  step={1000 * scale}
-                  suffix={symbol}
-                  suffixPosition="left"
-                />
-                <NumberSlider
-                  label={s.extraYearly ? t("Starting in year") : t("Paid in year")}
-                  value={s.extraYear}
-                  onChange={(v) => patch({ extraYear: v })}
-                  min={1}
-                  max={Math.max(1, Math.ceil(solved.months / 12))}
-                  step={1}
-                  suffix={t("year")}
-                />
-                <div className="flex min-h-11 items-center justify-between gap-4">
-                  <label htmlFor="extra-yearly" className="text-sm text-muted-foreground">
-                    {t("Repeat every year")}
-                  </label>
-                  <Switch
-                    id="extra-yearly"
-                    checked={s.extraYearly}
-                    onCheckedChange={(checked) => patch({ extraYearly: checked })}
-                    aria-label={t("Repeat every year")}
+              {s.compareRate && (
+                <div className="mt-4 border-t border-border pt-4">
+                  <NumberSlider
+                    label={t("New interest rate")}
+                    value={s.newRate}
+                    onChange={(v) => patch({ newRate: v })}
+                    min={0}
+                    max={15}
+                    step={0.05}
+                    suffix="%"
                   />
                 </div>
+              )}
+            </div>
+
+            <div className="rounded-lg border border-border bg-card p-4">
+              <div className="flex min-h-11 items-center justify-between gap-4">
+                <label htmlFor="extra-payment" className="text-sm font-semibold">
+                  {t("Extra one-time payment")}
+                </label>
+                <Switch
+                  id="extra-payment"
+                  checked={s.extraPayment}
+                  onCheckedChange={(checked) => patch({ extraPayment: checked })}
+                  aria-label={t("Extra one-time payment")}
+                />
               </div>
-            )}
-          </div>
+              {s.extraPayment && (
+                <div className="mt-4 space-y-6 border-t border-border pt-4">
+                  <NumberSlider
+                    label={t("Extra payment amount")}
+                    value={s.extraAmount}
+                    onChange={(v) => patch({ extraAmount: v })}
+                    min={0}
+                    max={200000 * scale}
+                    step={1000 * scale}
+                    suffix={symbol}
+                    suffixPosition="left"
+                  />
+                  <NumberSlider
+                    label={s.extraYearly ? t("Starting in year") : t("Paid in year")}
+                    value={s.extraYear}
+                    onChange={(v) => patch({ extraYear: v })}
+                    min={1}
+                    max={Math.max(1, Math.ceil(solved.months / 12))}
+                    step={1}
+                    suffix={t("year")}
+                  />
+                  <div className="flex min-h-11 items-center justify-between gap-4">
+                    <label htmlFor="extra-yearly" className="text-sm text-muted-foreground">
+                      {t("Repeat every year")}
+                    </label>
+                    <Switch
+                      id="extra-yearly"
+                      checked={s.extraYearly}
+                      onCheckedChange={(checked) => patch({ extraYearly: checked })}
+                      aria-label={t("Repeat every year")}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </AdvancedSettings>
         </Panel>
       </div>
 
