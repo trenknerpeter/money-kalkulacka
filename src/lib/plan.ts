@@ -1,3 +1,4 @@
+import { notifyDataChanged } from "./dataEvents";
 import { num } from "./finance";
 
 /** Two pots: investments (`invested` + `saveInvest`) and savings (`cash` + `saveCash`). */
@@ -71,6 +72,7 @@ export function loadPlan(
 export function savePlan(plan: SavedPlan) {
   try {
     window.localStorage.setItem(PLAN_KEY, JSON.stringify(plan));
+    notifyDataChanged();
   } catch {
     /* ignore */
   }

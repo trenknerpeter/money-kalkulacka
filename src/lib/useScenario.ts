@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useCurrency } from "./currency";
 import { track } from "./analytics";
+import { notifyDataChanged } from "./dataEvents";
 import { scheduleUrlReplace } from "./urlSync";
 import { fillUnowned, resolveDefaults, type ScenarioDefaults } from "./scenarioDefaults";
 
@@ -75,6 +76,7 @@ export function useScenario<T extends Record<string, Scalar>>(
     scheduleUrlReplace(router, `${window.location.pathname}?${params.toString()}`);
     try {
       window.localStorage.setItem(storageKey, JSON.stringify(state));
+      notifyDataChanged();
     } catch {
       /* ignore */
     }

@@ -340,6 +340,19 @@ const CS: Record<string, string> = {
   "What the projection is missing": "Kolik projekci chybí",
   "Getting there": "Cesta k cíli",
   "Four ways to close the gap": "Čtyři způsoby, jak mezeru uzavřít",
+  "How much room you have": "Kolik máte rezervy",
+  "Your plan already works. Each card shows how far one thing could change on its own, with the rest as you answered, and you'd still get there.":
+    "Váš plán vychází. Každá karta ukazuje, kam až se může posunout jedna věc sama o sobě (zbytek podle vašich odpovědí), a k cíli se pořád dostanete.",
+  "Each card works out one change on its own, with the rest as you answered. Drag the sliders to try combinations.":
+    "Každá karta spočítá jednu změnu samostatně, zbytek nechá podle vašich odpovědí. Posuvníky můžete kombinovat.",
+  "Save less each month": "Spořit méně",
+  "Stop earlier": "Skončit dříve",
+  "Live on more": "Utrácet více",
+  "Lower returns": "Nižší výnosy",
+  "At the limit": "Na hraně",
+  "No limit in this range.": "V tomto rozsahu bez omezení.",
+  "Any further and the plan stops working.": "O kousek dál a plán přestane vycházet.",
+  "How far this alone could go and still work": "Kam až to samo může jít, aby plán vyšel",
   "Reset levers": "Obnovit páky",
   "Save more each month": "Spořit více",
   "Work a bit longer": "Pracovat déle",
@@ -370,6 +383,10 @@ const CS: Record<string, string> = {
   "{range}: your savings + state pension {p}": "{range}: vaše úspory + státní důchod {p}",
   "{range}: your savings + DPS/DIP + state pension {p}": "{range}: vaše úspory + DPS/DIP + státní důchod {p}",
   "Stopping at {stop} lowers your state pension from {full} to {reduced} (fewer insured years).": "Když přestanete pracovat v {stop} letech, sníží se váš státní důchod z {full} na {reduced} (méně let pojištění).",
+  "At {stop} you'd have {years} of insurance. The state pension at {statutory} needs 35 — with fewer, it starts 5 years later, at {start}.":
+    "V {stop} letech byste měli {years} pojištění. Na státní důchod v {statutory} letech jich potřebujete 35 — s méně lety začíná až o 5 let později, v {start} letech.",
+  "Work until {fix} (or pay voluntary pension insurance for the missing years) to get it at {statutory}.":
+    "Když budete pracovat do {fix} let (nebo si chybějící roky doplatíte dobrovolným důchodovým pojištěním), dostanete ho v {statutory} letech.",
   "Stopping at {stop} means you won't qualify for a state pension (fewer than 20 insured years).": "Když přestanete pracovat v {stop} letech, nebudete mít nárok na státní důchod (méně než 20 let pojištění).",
   "Monthly spending": "Měsíční výdaje",
   "Saved today": "Naspořeno dnes",

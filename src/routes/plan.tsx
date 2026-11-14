@@ -782,6 +782,7 @@ function LeverCard({
   suffix,
   suffixPosition,
   caption,
+  covered = false,
 }: {
   title: string;
   now: string;
@@ -795,6 +796,8 @@ function LeverCard({
   suffix?: string;
   suffixPosition?: "left" | "right";
   caption?: string | undefined;
+  /** The plan already works: the solve is how far this could slip, not what it must reach. */
+  covered?: boolean;
 }) {
   const { t } = useT();
   const atSolve = solved !== null && Math.abs(value - solved) <= step / 2;
@@ -807,7 +810,7 @@ function LeverCard({
         <p className="text-sm font-medium">{title}</p>
         {atSolve && (
           <span className="flex items-center gap-1 text-xs font-medium text-primary">
-            <Check className="size-3.5" /> {t("Closed")}
+            <Check className="size-3.5" /> {covered ? t("At the limit") : t("Closed")}
           </span>
         )}
       </div>
@@ -816,11 +819,17 @@ function LeverCard({
         {solved === null ? "—" : solvedLabel}
       </p>
       <p className="mt-1 text-xs text-muted-foreground">
-        {solved === null
-          ? t("This one can't close the gap on its own.")
-          : atSolve
-            ? t("This alone closes the gap.")
-            : t("What this alone would have to be")}
+        {covered
+          ? solved === null
+            ? t("No limit in this range.")
+            : atSolve
+              ? t("Any further and the plan stops working.")
+              : t("How far this alone could go and still work")
+          : solved === null
+            ? t("This one can't close the gap on its own.")
+            : atSolve
+              ? t("This alone closes the gap.")
+              : t("What this alone would have to be")}
       </p>
       <div className="relative mt-4">
         <NumberSlider
@@ -1029,6 +1038,8 @@ function Results({
         });
       })()
     : [];
+  // With 20–34 insured years the state pension starts 5 years late: say why, and what fixes it.
+  const pensionDelay = link ? link.delayAt(levers.stop) : null;
   const earlyStopCut =
     phaseAt && fullPension && levers.stop * 12 < fullPension.pension.statutoryMonths &&
     phaseAt.pensionMonthly < fullPension.pension.monthly
@@ -1060,7 +1071,9 @@ function Results({
     : monthsToTarget(profile, assumptions, baseTarget);
   const solveStop = baseMonths === null ? null : Math.round(plan.age + baseMonths / 12);
   const solveSpendRaw = link ? affordableSpendPhased(profile, assumptions, link) : affordableSpend(profile, assumptions);
-  const solveSpend = baseMonths === 0 || solveSpendRaw < plan.spend ? solveSpendRaw : null;
+  // The saved plan already reaches its number by the stop age: the levers show the margin instead.
+  const covered = isFinite(baseTarget) && projectPotAtStop(profile, assumptions) >= baseTarget;
+  const solveSpend = covered || baseMonths === 0 || solveSpendRaw < plan.spend ? solveSpendRaw : null;
   // With the pension on, the target moves with the return, so the solve re-computes it.
   const solveRet = link ? requiredReturnPhased(profile, assumptions, link) : requiredReturn(profile, assumptions, baseTarget);
 
@@ -1167,7 +1180,7 @@ function Results({
         </div>
       </div>
 
-      {(phaseParts.length > 0 || earlyStopCut) && (
+      {(phaseParts.length > 0 || earlyStopCut || pensionDelay) && (
         <div className="-mt-3 space-y-1.5">
           {phaseParts.length > 0 && (
             <p className="flex max-w-2xl flex-wrap items-center gap-x-2 gap-y-1 text-sm leading-relaxed text-ink-muted">
@@ -1177,6 +1190,22 @@ function Results({
                   <span>{part}</span>
                 </span>
               ))}
+            </p>
+          )}
+          {pensionDelay && (
+            <p className="max-w-2xl text-sm leading-relaxed text-ink-muted">
+              {t("At {stop} you'd have {years} of insurance. The state pension at {statutory} needs 35 — with fewer, it starts 5 years later, at {start}.", {
+                stop: levers.stop,
+                years: count(pensionDelay.insuredYears, "year"),
+                statutory: Math.round(pensionDelay.statutoryAge),
+                start: Math.round(pensionDelay.startAge),
+              })}
+              {pensionDelay.onTimeStop !== null &&
+                " " +
+                  t("Work until {fix} (or pay voluntary pension insurance for the missing years) to get it at {statutory}.", {
+                    fix: pensionDelay.onTimeStop,
+                    statutory: Math.round(pensionDelay.statutoryAge),
+                  })}
             </p>
           )}
           {earlyStopCut && (
@@ -1283,7 +1312,16 @@ function Results({
 
       <div className="print:hidden">
         <div className="mb-4 flex items-center justify-between gap-4">
-          <h2 className="text-sm font-semibold tracking-tight">{t("Four ways to close the gap")}</h2>
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold tracking-tight">
+              {covered ? t("How much room you have") : t("Four ways to close the gap")}
+            </h2>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+              {covered
+                ? t("Your plan already works. Each card shows how far one thing could change on its own, with the rest as you answered, and you'd still get there.")
+                : t("Each card works out one change on its own, with the rest as you answered. Drag the sliders to try combinations.")}
+            </p>
+          </div>
           {leversDirty && (
             <button
               type="button"
@@ -1298,11 +1336,12 @@ function Results({
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <LeverCard
-            title={t("Save more each month")}
+            title={covered ? t("Save less each month") : t("Save more each month")}
+            covered={covered}
             now={money(planSave)}
             solved={solveSave}
             solvedLabel={solveSave !== null ? money(solveSave) : "—"}
-            caption={plan.saveCash > 0 ? t("Anything extra goes into your investments.") : undefined}
+            caption={plan.saveCash > 0 && !covered ? t("Anything extra goes into your investments.") : undefined}
             value={levers.save}
             onChange={(v) => setLevers((l) => ({ ...l, save: v }))}
             min={0}
@@ -1312,7 +1351,8 @@ function Results({
             suffixPosition="left"
           />
           <LeverCard
-            title={t("Work a bit longer")}
+            title={covered ? t("Stop earlier") : t("Work a bit longer")}
+            covered={covered}
             now={`${plan.stop}`}
             solved={solveStop !== null && solveStop <= 85 ? solveStop : null}
             solvedLabel={solveStop !== null && solveStop <= 85 ? `${solveStop}` : "—"}
@@ -1324,7 +1364,8 @@ function Results({
             suffix={t("years old")}
           />
           <LeverCard
-            title={t("Live on less")}
+            title={covered ? t("Live on more") : t("Live on less")}
+            covered={covered}
             now={t("{v}/mo", { v: money(plan.spend) })}
             solved={solveSpend}
             solvedLabel={solveSpend !== null ? t("{v}/mo", { v: money(solveSpend) }) : "—"}
@@ -1337,7 +1378,8 @@ function Results({
             suffixPosition="left"
           />
           <LeverCard
-            title={t("Higher returns")}
+            title={covered ? t("Lower returns") : t("Higher returns")}
+            covered={covered}
             now={percent(assumptions.ret)}
             solved={solveRet}
             solvedLabel={solveRet !== null ? `≈${percent(solveRet)}` : "—"}

@@ -22,7 +22,27 @@ export type PhaseValues = {
   savingsPot: number;
 };
 
-export type PensionLink = { birthYear: number; at: (stopAge: number) => PhaseValues };
+/**
+ * Why the state pension starts late: with 20–34 insured years it starts 5 years after the
+ * statutory age (35 are needed to get it on time).
+ */
+export type PensionDelay = {
+  /** Whole insured years when work stops. */
+  insuredYears: number;
+  /** Statutory age, fractional years. */
+  statutoryAge: number;
+  /** Age the delayed pension starts. */
+  startAge: number;
+  /** Earliest whole stop age that gets the pension at the statutory age; null if none does. */
+  onTimeStop: number | null;
+};
+
+export type PensionLink = {
+  birthYear: number;
+  at: (stopAge: number) => PhaseValues;
+  /** Non-null when stopping at this age delays the state pension. */
+  delayAt: (stopAge: number) => PensionDelay | null;
+};
 
 /**
  * While the pension is used, the Retirement tab's birth year is the single source of truth
@@ -43,8 +63,24 @@ export function pensionLinkFrom(
   opts: { currentYear: number; salaryGross: number | null },
 ): PensionLink {
   const cache = new Map<number, PhaseValues>();
+  const pensionAt = (stopAge: number) =>
+    retirementSummary({ ...s, earlyMonths: 0 }, { ...opts, stopAge: Math.round(stopAge) }).pension;
   return {
     birthYear: s.birthYear,
+    delayAt(stopAge) {
+      const p = pensionAt(stopAge);
+      if (!p.delayed) return null;
+      const statutoryAge = p.statutoryMonths / 12;
+      let onTimeStop: number | null = null;
+      for (let age = Math.round(stopAge) + 1; age <= Math.ceil(statutoryAge); age++) {
+        const q = pensionAt(age);
+        if (q.eligible && !q.delayed) {
+          onTimeStop = age;
+          break;
+        }
+      }
+      return { insuredYears: p.insuredYears, statutoryAge, startAge: p.startMonths / 12, onTimeStop };
+    },
     at(stopAge) {
       const key = Math.round(stopAge);
       const hit = cache.get(key);
