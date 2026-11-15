@@ -31,7 +31,6 @@ import { useFormatters } from "@/lib/currency";
 import { snapshotMetrics } from "@/lib/dashboard";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { track, trackError } from "@/lib/analytics";
 import {
   MAX_SNAPSHOTS,
   applyData,
@@ -86,7 +85,6 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
     if (code) {
       const snap = decodeSnapshot(code);
       setShared(snap);
-      track("shared_scenario_opened", { valid: snap !== null });
     }
   }, []);
 
@@ -104,7 +102,6 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
       )
     )
       return;
-    track("scenario_switched", { had_unsaved_changes: dirty });
     applyData(s.data);
     setActiveId(s.id);
     reloadDashboard();
@@ -114,10 +111,8 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
     if (!naming) return;
     if (naming.mode === "new" && !full) {
       saveSnapshot(naming.value);
-      track("scenario_saved", { scenario_count: list.length + 1 });
     } else if (active) {
       renameSnapshot(active.id, naming.value);
-      track("scenario_renamed");
     }
     setNaming(null);
     refresh();
@@ -129,7 +124,6 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
       data: captureData(),
     });
     const url = `${window.location.origin}/dashboard?s=${code}`;
-    track("scenario_share_link_copied", { has_saved_scenario: active !== null });
     try {
       await navigator.clipboard.writeText(url);
     } catch {
@@ -140,7 +134,6 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
   };
 
   const download = () => {
-    track("scenario_downloaded");
     const snap = {
       name: active?.name ?? t("Financial snapshot"),
       savedAt: new Date().toISOString(),
@@ -160,17 +153,13 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
       const snap = parseSnapshot(JSON.parse(await file.text()));
       if (!snap) throw new Error("Invalid snapshot file");
       setShared(snap);
-      track("scenario_file_imported", { valid: true });
     } catch (err) {
-      track("scenario_file_imported", { valid: false });
-      trackError(err, { context: "snapshot_import" });
       setError(t("That file isn't from Money Kalkulačka."));
     }
   };
 
   const loadShared = () => {
     if (!shared) return;
-    track("shared_scenario_loaded", { slots_full: full });
     applyData(shared.data);
     // With every slot taken it loads as the unsaved current situation.
     if (full) setActiveId(null);
@@ -253,7 +242,6 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
                 className={item}
                 onSelect={() => {
                   saveSnapshot(active.name, captureData(), active.id);
-                  track("scenario_updated");
                   refresh();
                 }}
               >
@@ -285,7 +273,6 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
                   onSelect={() => {
                     if (window.confirm(t("Delete “{name}”?", { name: active.name }))) {
                       deleteSnapshot(active.id);
-                      track("scenario_deleted", { scenario_count: list.length - 1 });
                       refresh();
                     }
                   }}
@@ -300,7 +287,6 @@ export function SnapshotBar({ canPrint }: { canPrint: boolean }) {
               <DropdownMenuItem
                 className={item}
                 onSelect={() => {
-                  track("dashboard_pdf_saved");
                   window.print();
                 }}
               >

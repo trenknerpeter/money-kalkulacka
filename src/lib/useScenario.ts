@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useCurrency } from "./currency";
-import { track } from "./analytics";
 import { notifyDataChanged } from "./dataEvents";
 import { scheduleUrlReplace } from "./urlSync";
 import { fillUnowned, resolveDefaults, type ScenarioDefaults } from "./scenarioDefaults";
@@ -89,19 +88,10 @@ export function useScenario<T extends Record<string, Scalar>>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, currency]);
 
-  const engaged = useRef(false);
-  const patch = useCallback(
-    (p: Partial<T>) => {
-      // Fire once per visit: the first time someone actually works the calculator.
-      if (!engaged.current) {
-        engaged.current = true;
-        track("calculator_used", { calculator: storageKey, first_field: Object.keys(p)[0] });
-      }
-      for (const k of Object.keys(p)) owned.current.add(k);
-      setState((s) => ({ ...s, ...p }));
-    },
-    [storageKey],
-  );
+  const patch = useCallback((p: Partial<T>) => {
+    for (const k of Object.keys(p)) owned.current.add(k);
+    setState((s) => ({ ...s, ...p }));
+  }, []);
 
   return [state, patch] as const;
 }
