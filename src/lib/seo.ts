@@ -48,6 +48,7 @@ export function webSiteLd(description: string) {
       "@context": "https://schema.org",
       "@type": "WebSite",
       name: SITE_NAME,
+      alternateName: ["Moneykalkulačka", "Money Kalkulacka"],
       url: urlFor("/"),
       description,
       inLanguage: "cs",
