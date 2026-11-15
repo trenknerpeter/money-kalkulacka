@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Check, Link2 } from "lucide-react";
 import { useT } from "@/lib/i18n";
-import { track } from "@/lib/analytics";
 import { flushUrlSync } from "@/lib/urlSync";
 
 export function CopyLinkButton() {
@@ -9,7 +8,6 @@ export function CopyLinkButton() {
   const { t } = useT();
 
   const copy = async () => {
-    track("calculator_link_copied", { calculator: window.location.pathname });
     const url = flushUrlSync();
     try {
       await navigator.clipboard.writeText(url);

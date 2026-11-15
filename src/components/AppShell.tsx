@@ -23,7 +23,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CURRENCIES, isCurrency, useCurrency } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 import { TONE, type Tone } from "@/lib/tone";
-import { track } from "@/lib/analytics";
 import { isLangValue, useLang, useT } from "@/lib/i18n";
 import { useTheme, type Theme } from "@/lib/theme";
 import { PENSION_KEY } from "@/lib/pension";
@@ -79,7 +78,6 @@ function SettingsChip() {
             value={lang}
             onChange={(e) => {
               if (!isLangValue(e.target.value)) return;
-              track("language_changed", { from: lang, to: e.target.value });
               setLang(e.target.value);
             }}
           >
@@ -95,7 +93,6 @@ function SettingsChip() {
             value={currency}
             onChange={(e) => {
               if (!isCurrency(e.target.value)) return;
-              track("currency_changed", { from: currency, to: e.target.value });
               setCurrency(e.target.value);
             }}
           >

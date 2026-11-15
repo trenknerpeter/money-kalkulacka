@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { track } from "./analytics";
 
 /** Light for everyone by default; dark only when someone picks it in the settings menu. */
 export type Theme = "light" | "dark";
@@ -34,10 +33,7 @@ export function useTheme() {
     } catch {
       /* ignore */
     }
-    setThemeState((prev) => {
-      if (prev !== next) track("theme_changed", { from: prev, to: next });
-      return next;
-    });
+    setThemeState(next);
   }, []);
 
   return { theme, setTheme };
