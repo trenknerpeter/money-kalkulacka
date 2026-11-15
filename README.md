@@ -2,7 +2,7 @@
 
 Four quick calculators that add up to one picture of your finances: **net salary**, **invest**, **mortgage** and **when can I stop working**. No sign-up, no backend — everything runs in your browser and is saved locally.
 
-**Live app**: https://moneykalkulacka.lovable.app
+**Live app**: https://moneykalkulacka.com
 
 <p align="center">
   <img src="docs/screenshots/home.png" alt="Money Kalkulačka home page" width="100%">

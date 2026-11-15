@@ -1,5 +1,5 @@
 /** Public origin. Must match the URLs in public/sitemap.xml. */
-export const SITE_URL = "https://moneykalkulacka.lovable.app";
+export const SITE_URL = "https://moneykalkulacka.com";
 export const SITE_NAME = "Money Kalkulačka";
 
 /** Link-preview image (1200×630, public/og-image.png). Must be an absolute URL for crawlers. */
