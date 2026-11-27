@@ -1,0 +1,7 @@
+// Merged by nitro into the generated .output/server/wrangler.json at build time.
+// Everything else (name, main, assets, compatibility) is generated; only add what nitro can't infer.
+{
+  // Cloudflare Workers Builds runs `npx wrangler preview` for non-production branches,
+  // and that command refuses to run without a `previews` block. Empty = inherit everything.
+  "previews": {}
+}
