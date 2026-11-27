@@ -96,7 +96,7 @@
   --warning-deep: #8a5309;
   --warning-soft: #fbeeda;
   --border: #e7e5df;
-  --input: #e7e5df;
+  --input: #7d847f; /* field edges: 3:1+ on cards and muted panels */
   --ring: #1b7f51;
 }
 
@@ -137,7 +137,7 @@
     --warning-deep: #f2c57c;
     --warning-soft: #3a2a12;
     --border: #2b3530;
-    --input: #2b3530;
+    --input: #6b7670; /* field edges: 3:1+ on cards and muted panels */
     --ring: #3dba80;
   }
 }
