@@ -10,6 +10,23 @@ const STORAGE_KEY = "finbuddy.lang";
 const CS: Record<string, string> = {
   // Homepage
   Home: "Domů",
+  "Stop working sooner.": "Přestaňte pracovat dřív.",
+  "See how many years early, and what to change today to get there.":
+    "Zjistěte, o kolik let, a co pro to změnit už dnes.",
+  "An example: {age} years old, {pot} saved, lives on {spend} a month.":
+    "Příklad: {age} let, našetřeno {pot}, na život {spend} měsíčně.",
+  "{years} early": "o {years} dřív",
+  "Not before 67": "Až v 67",
+  "Done with work at {age}, not at {pension}.": "S prací končíte v {age} letech, ne v {pension}.",
+  "At this pace the state pension comes first. Add a little and watch.":
+    "Tímto tempem přijde dřív státní důchod. Přidejte a sledujte.",
+  "Life line from {age} to the state pension at {pension}":
+    "Časová osa od {age} let do státního důchodu v {pension}",
+  "{age} independent": "{age} nezávislost",
+  "Put aside each month": "Odkládám měsíčně",
+  "{ret} yearly return, {infl} inflation, in today's money.":
+    "Výnos {ret} ročně, inflace {infl}, v dnešních cenách.",
+  "Try it with your numbers": "Zkusit s mými čísly",
   "Your money, in one picture": "Vaše peníze v jednom obrazu",
   "See where your money is heading.": "Podívejte se, kam vaše peníze směřují.",
   "Money Kalkulačka is a set of quick, private calculators. Each tab answers one question — together they build your personal dashboard. Everything stays in your browser.":

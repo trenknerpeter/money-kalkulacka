@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, CalendarCheck, Check, Lock } from "lucide-react";
 import type { ComponentType } from "react";
-import { DashboardPreview } from "@/components/home/DashboardPreview";
+import { HeroTimeline } from "@/components/home/HeroTimeline";
 import {
   InvestVisual,
   MortgageVisual,
@@ -51,7 +51,7 @@ export const Route = createFileRoute("/")({
  *  - tall:  Salary, the start. Half the width, two rows high.
  *  - stack: Retirement and Invest, stacked beside it, picture left and text right.
  *  - small: Mortgage, a third of the last row.
- *  - wide:  Financial independence, the finale: two thirds of the last row, in ink.
+ *  - wide:  Financial independence, the finale: two thirds of the last row, with a closing line.
  * The cards read 1 to 5 from top-left to bottom-right, and keyboard order matches.
  */
 type Layout = "tall" | "stack" | "small" | "wide";
@@ -155,31 +155,28 @@ function CalculatorCard({ card }: { card: Card }) {
   const { t } = useT();
   const { step, to, title, subtitle, Visual, tone, layout } = card;
   const L = LAYOUT[layout];
-  const ink = layout === "wide";
+  const finale = layout === "wide";
   return (
     <Link
       to={to}
       className={cn(
         "group flex flex-col overflow-hidden rounded-3xl border shadow-card transition-all hover:-translate-y-0.5 hover:shadow-hero focus-visible:outline-2 focus-visible:outline-primary",
         L.card,
-        ink
-          ? "border-transparent bg-ink text-ink-foreground"
-          : "border-border bg-card text-foreground",
+        "border-border bg-card text-foreground",
       )}
     >
       <div
         className={cn(
           "relative flex shrink-0 items-center justify-center px-8 py-6",
           L.visual,
-          ink
-            ? "bg-ink-foreground/[0.06] [--muted-foreground:var(--ink-muted)] [--primary:var(--accent)]"
-            : TONE[tone].tile,
+          TONE[tone].tile,
         )}
       >
         <span
           className={cn(
             "absolute left-4 top-4 flex h-7 items-center justify-center rounded-full px-2.5 text-xs font-semibold shadow-sm",
-            ink ? "bg-ink-foreground/15 text-ink-foreground" : cn("bg-card", TONE[tone].text),
+            "bg-card",
+            TONE[tone].text,
           )}
         >
           {t("Step {n}", { n: step })}
@@ -199,21 +196,16 @@ function CalculatorCard({ card }: { card: Card }) {
           <ArrowRight
             className={cn(
               "size-5 shrink-0 transition-transform group-hover:translate-x-1",
-              ink ? "text-ink-accent" : "text-muted-foreground group-hover:text-primary",
+              "text-muted-foreground group-hover:text-primary",
             )}
             aria-hidden="true"
           />
         </h2>
-        <p
-          className={cn(
-            "mt-2 text-[15px] leading-relaxed",
-            ink ? "text-ink-muted" : "text-muted-foreground",
-          )}
-        >
+        <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
           {t(subtitle)}
         </p>
-        {ink && (
-          <p className="mt-4 text-sm font-semibold text-ink-accent">
+        {finale && (
+          <p className="mt-4 text-sm font-semibold text-primary-deep">
             {t("Where the other four come together")}
           </p>
         )}
@@ -228,18 +220,12 @@ function Home() {
   return (
     <div className="space-y-16">
       <section className="flex flex-col gap-10 lg:flex-row lg:items-center lg:gap-14">
-        <div className="min-w-0 flex-1">
-          <p className="inline-flex h-8 items-center gap-2 rounded-full bg-accent-soft px-3 text-sm font-semibold text-primary-deep">
-            <span className="size-2 rounded-full bg-accent" />
-            {t("Your money, in one picture")}
-          </p>
-          <h1 className="mt-4 text-[2.75rem] font-semibold leading-[1.02] tracking-tight text-foreground sm:text-6xl">
-            {t("See where your money is heading.")}
+        <div className="min-w-0 flex-1 lg:max-w-[30rem]">
+          <h1 className="min-w-0 text-[2.75rem] font-semibold leading-[1.02] tracking-tight text-foreground sm:text-6xl">
+            {t("Stop working sooner.")}
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            {t(
-              "Money Kalkulačka is a set of quick, private calculators. Each tab answers one question — together they build your personal dashboard. Everything stays in your browser.",
-            )}
+            {t("See how many years early, and what to change today to get there.")}
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-3">
             <Link
@@ -269,8 +255,8 @@ function Home() {
             ))}
           </ul>
         </div>
-        <div className="flex flex-1 justify-center lg:justify-end">
-          <DashboardPreview />
+        <div className="flex min-w-0 flex-[1.25] justify-center lg:justify-end">
+          <HeroTimeline />
         </div>
       </section>
 
