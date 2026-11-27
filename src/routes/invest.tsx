@@ -229,7 +229,7 @@ function Invest() {
 
   return (
     <div className="grid gap-10 lg:grid-cols-[380px_1fr]">
-      <div className="space-y-6 lg:sticky lg:top-24 lg:-mx-1 lg:max-h-[calc(100dvh-7.5rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:px-1 lg:pb-1">
+      <div className="space-y-6 lg:sticky lg:top-36 xl:top-24 lg:-mx-1 lg:max-h-[calc(100dvh-10.5rem)] xl:max-h-[calc(100dvh-7.5rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:px-1 lg:pb-1">
         <Panel variant="input" title={t("Investments")} className="space-y-6">
           <NumberSlider
             label={t("Initial amount")}
@@ -464,7 +464,7 @@ function Invest() {
               )}
             </Panel>
 
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
               <StatTile
                 label={t("Total contributed")}
                 value={money(result.totalContributed)}
@@ -515,7 +515,7 @@ function Invest() {
                   { years: count(Math.round(s.years), "year") },
                 )}
               </p>
-              <div className="grid gap-8 lg:grid-cols-[300px_1fr]">
+              <div className="grid gap-8 xl:grid-cols-[300px_1fr]">
                 <div className="space-y-6">
                   <div>
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">

@@ -286,7 +286,7 @@ function Duchod() {
 
   return (
     <div className="grid gap-10 lg:grid-cols-[380px_1fr]">
-      <div className="lg:sticky lg:top-24 lg:-mx-1 lg:max-h-[calc(100dvh-7.5rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:px-1 lg:pb-1">
+      <div className="lg:sticky lg:top-36 xl:top-24 lg:-mx-1 lg:max-h-[calc(100dvh-10.5rem)] xl:max-h-[calc(100dvh-7.5rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:px-1 lg:pb-1">
         <Panel variant="input" className="space-y-6">
           <YearField
             label={t("Year of birth")}

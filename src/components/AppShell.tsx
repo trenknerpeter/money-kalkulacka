@@ -64,7 +64,10 @@ function SettingsChip() {
         className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         aria-label={t("Language, currency and appearance")}
       >
-        <Settings2 className="size-4 text-muted-foreground" aria-hidden="true" />
+        <Settings2
+          className="size-4 text-muted-foreground max-[359px]:hidden"
+          aria-hidden="true"
+        />
         <span className="tnum">
           {lang === "cs" ? "CZ" : lang.toUpperCase()} · {symbol}
         </span>
@@ -310,7 +313,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
           <nav
             aria-label="Primary"
-            className="hidden flex-1 items-center justify-center gap-1 lg:flex"
+            className="hidden flex-1 items-center justify-center gap-1 xl:flex"
           >
             <NavPills pathname={pathname} filled={filled} />
           </nav>
@@ -318,7 +321,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <SettingsChip />
           </div>
         </div>
-        <div className="mx-auto max-w-[1200px] px-5 pb-2 lg:hidden">
+        <div className="mx-auto max-w-[1200px] px-5 pb-2 xl:hidden">
           <nav
             aria-label="Primary"
             className="-mx-5 flex items-center gap-1 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"

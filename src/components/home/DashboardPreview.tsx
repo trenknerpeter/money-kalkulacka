@@ -95,7 +95,7 @@ export function DashboardPreview() {
 
       <Link
         to="/dashboard"
-        className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-ink-accent hover:underline"
+        className="mt-3 inline-flex items-center gap-1.5 rounded-sm text-sm font-semibold text-ink-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
       >
         {hasOwn ? t("Open your own dashboard") : t("Fill in the tabs to see yours")}
         <ArrowRight className="size-4" aria-hidden="true" />
