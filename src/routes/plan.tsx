@@ -723,8 +723,7 @@ function Intro({ onStart }: { onStart: () => void }) {
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-2xl flex-col justify-center py-10">
-      <Eyebrow className="text-primary-deep">{t("Path to financial independence")}</Eyebrow>
-      <h1 className="mt-3 text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl">
+      <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl">
         {t("When can you stop working?")}
       </h1>
 

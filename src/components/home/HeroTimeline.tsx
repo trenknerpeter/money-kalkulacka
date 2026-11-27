@@ -44,10 +44,15 @@ export function HeroTimeline() {
   const scale = useCurrencyScale();
   const [monthly, setMonthly] = useState(MONTHLY.start);
   const stopDemo = useRef<() => void>(() => {});
+  // The result is announced only once the load demo is over, so it isn't read out frame by frame.
+  const [demoDone, setDemoDone] = useState(false);
 
   // Dip and return, so the first paint (and the page without scripts) already shows the answer.
   useEffect(() => {
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      setDemoDone(true);
+      return;
+    }
     const frames = [
       { until: 700, from: MONTHLY.start, to: MONTHLY.start },
       { until: 1500, from: MONTHLY.start, to: MONTHLY.dip },
@@ -60,6 +65,7 @@ export function HeroTimeline() {
       const i = frames.findIndex((f) => elapsed < f.until);
       if (i === -1) {
         setMonthly(MONTHLY.start);
+        setDemoDone(true);
         return;
       }
       const f = frames[i]!;
@@ -69,7 +75,10 @@ export function HeroTimeline() {
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    stopDemo.current = () => cancelAnimationFrame(raf);
+    stopDemo.current = () => {
+      cancelAnimationFrame(raf);
+      setDemoDone(true);
+    };
     return () => cancelAnimationFrame(raf);
   }, []);
 
@@ -77,6 +86,7 @@ export function HeroTimeline() {
   const early = reached === null ? 0 : Math.max(0, Math.floor(EXAMPLE.pensionAge - reached));
   const isEarly = reached !== null && early > 0;
   const markerAge = isEarly ? reached : EXAMPLE.pensionAge;
+  const monthlyText = money(monthly * scale).replace(/[.,]00(?=\D*$)/, "");
   const wonShare = (EXAMPLE.pensionAge - markerAge) / (EXAMPLE.pensionAge - EXAMPLE.age);
 
   return (
@@ -93,17 +103,21 @@ export function HeroTimeline() {
         })}
       </p>
 
-      <p className="tnum mt-4 min-w-0 font-display text-[clamp(2.5rem,6vw,4.25rem)] font-semibold leading-none tracking-tight [overflow-wrap:break-word]">
-        {isEarly ? t("{years} early", { years: count(early, "year") }) : t("Not before 67")}
-      </p>
-      <p className="mt-3 text-[15px] text-ink-muted">
-        {isEarly
-          ? t("Done with work at {age}, not at {pension}.", {
-              age: Math.ceil(reached),
-              pension: EXAMPLE.pensionAge,
-            })
-          : t("At this pace the state pension comes first. Add a little and watch.")}
-      </p>
+      <div aria-live={demoDone ? "polite" : "off"} aria-atomic="true">
+        <p className="tnum mt-4 min-w-0 font-display text-[clamp(2.5rem,6vw,4.25rem)] font-semibold leading-none tracking-tight [overflow-wrap:break-word]">
+          {isEarly
+            ? t("{years} early", { years: count(early, "year") })
+            : t("Not before {pension}", { pension: EXAMPLE.pensionAge })}
+        </p>
+        <p className="mt-3 text-[15px] text-ink-muted">
+          {isEarly
+            ? t("Done with work at {age}, not at {pension}.", {
+                age: Math.ceil(reached),
+                pension: EXAMPLE.pensionAge,
+              })
+            : t("At this pace the state pension comes first. Add a little and watch.")}
+        </p>
+      </div>
 
       {/* The life line. Everything that moves does so with transform only. */}
       <div
@@ -145,7 +159,7 @@ export function HeroTimeline() {
           >
             <span className="absolute left-0 top-1/2 size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-ink bg-ink-accent shadow-[0_0_0_5px_color-mix(in_srgb,var(--ink-accent)_28%,transparent)]" />
             <span className="tnum absolute bottom-full left-0 mb-4 -translate-x-1/2 whitespace-nowrap rounded-full bg-ink-accent px-3 py-1 text-sm font-semibold text-ink">
-              {t("{age} independent", { age: Math.ceil(markerAge) })}
+              {t("Independent at {age}", { age: Math.ceil(markerAge) })}
             </span>
           </div>
         </div>
@@ -171,12 +185,11 @@ export function HeroTimeline() {
       <div className="mt-5 rounded-2xl bg-ink-foreground/[0.07] p-4 sm:p-5">
         <div className="flex items-baseline justify-between gap-3">
           <p className="text-sm font-medium text-ink-foreground">{t("Put aside each month")}</p>
-          <p className="tnum text-xl font-semibold">
-            {money(monthly * scale).replace(/[.,]00(?=\D*$)/, "")}
-          </p>
+          <p className="tnum text-xl font-semibold">{monthlyText}</p>
         </div>
         <Slider
           className="mt-3"
+          thumbClassName="focus-visible:ring-ink-accent/70"
           value={[monthly]}
           min={MONTHLY.min}
           max={MONTHLY.max}
@@ -186,6 +199,7 @@ export function HeroTimeline() {
             setMonthly(v[0] ?? 0);
           }}
           aria-label={t("Put aside each month")}
+          aria-valuetext={monthlyText}
         />
       </div>
 

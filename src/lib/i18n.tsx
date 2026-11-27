@@ -16,13 +16,13 @@ const CS: Record<string, string> = {
   "An example: {age} years old, {pot} saved, lives on {spend} a month.":
     "Příklad: {age} let, našetřeno {pot}, na život {spend} měsíčně.",
   "{years} early": "o {years} dřív",
-  "Not before 67": "Až v 67",
+  "Not before {pension}": "Až v {pension}",
   "Done with work at {age}, not at {pension}.": "S prací končíte v {age} letech, ne v {pension}.",
   "At this pace the state pension comes first. Add a little and watch.":
     "Tímto tempem přijde dřív státní důchod. Přidejte a sledujte.",
   "Life line from {age} to the state pension at {pension}":
     "Časová osa od {age} let do státního důchodu v {pension}",
-  "{age} independent": "{age} nezávislost",
+  "Independent at {age}": "Nezávislost v {age}",
   "Put aside each month": "Odkládám měsíčně",
   "{ret} yearly return, {infl} inflation, in today's money.":
     "Výnos {ret} ročně, inflace {infl}, v dnešních cenách.",

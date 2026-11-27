@@ -154,6 +154,12 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  p,
+  dd,
+  li {
+    text-wrap: pretty;
+  }
+
   h1,
   h2,
   h3 {
@@ -167,7 +173,9 @@
     *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+      /* Drop movement, keep colour/opacity feedback so state changes still read. */
+      transition-property: color, background-color, border-color, fill, stroke, opacity !important;
     }
   }
 }

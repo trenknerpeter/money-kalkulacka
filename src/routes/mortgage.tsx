@@ -167,7 +167,7 @@ function Mortgage() {
         <Panel variant="input" className="space-y-6">
           <div>
             <p className="mb-2 text-sm font-medium">{t("Solve for")}</p>
-            <div className="flex rounded-lg border border-border bg-card p-0.5">
+            <div className="flex rounded-lg bg-background p-0.5">
               {[
                 { label: "Monthly payment", value: false },
                 { label: "Remaining term", value: true },
@@ -546,7 +546,7 @@ function Mortgage() {
                   </AccordionTrigger>
                   <AccordionContent>
                     {s.compareRate && (
-                      <div className="mb-4 flex rounded-lg border border-border bg-card p-0.5">
+                      <div className="mb-4 flex rounded-lg bg-background p-0.5">
                         {(["current", "whatIf"] as const).map((v) => (
                           <button
                             type="button"

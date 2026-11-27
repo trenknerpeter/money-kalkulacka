@@ -542,7 +542,7 @@ function Invest() {
                         className={
                           "h-9 flex-1 rounded-md border text-sm transition-colors " +
                           (Math.abs(s.withdrawRate - r) < 0.01
-                            ? "border-primary bg-accent-soft font-medium text-primary"
+                            ? "border-primary bg-accent-soft font-medium text-foreground"
                             : "border-border text-muted-foreground hover:text-foreground")
                         }
                       >
@@ -553,7 +553,7 @@ function Invest() {
                 </div>
 
                 <div className="grid content-start gap-5 [grid-template-columns:repeat(auto-fit,minmax(15rem,1fr))]">
-                  <div className="min-w-0 rounded-lg border border-border p-5">
+                  <div className="min-w-0 border-t border-border pt-4">
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">
                       {t("Per month")}
                     </p>
@@ -569,7 +569,7 @@ function Invest() {
                       {t("{v} in {year} money", { v: money(monthlyIncome * inflationFactor), year: endYear })}
                     </p>
                   </div>
-                  <div className="min-w-0 rounded-lg border border-border p-5">
+                  <div className="min-w-0 border-t border-border pt-4">
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">
                       {t("Per year")}
                     </p>

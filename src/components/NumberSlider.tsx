@@ -50,6 +50,9 @@ export function NumberSlider({
   };
 
   const sliderValue = Math.min(Math.max(value, min), max);
+  // Spoken value: unit after the number ("100 000 Kč") even when the field shows it first.
+  const shown = sliderValue.toLocaleString(locale);
+  const valueText = suffix ? `${shown}\u00a0${suffix}` : shown;
   const chipLabel = (p: Preset) =>
     p.label ??
     `${p.value.toLocaleString(locale)}${suffix && suffixPosition === "right" ? `\u00a0${suffix}` : ""}`;
@@ -93,7 +96,8 @@ export function NumberSlider({
         step={step}
         disabled={disabled}
         onValueChange={(v) => onChange(v[0] ?? 0)}
-        aria-label={`${label} slider`}
+        aria-label={label}
+        aria-valuetext={valueText}
       />
       {presets && presets.length > 0 && (
         <div

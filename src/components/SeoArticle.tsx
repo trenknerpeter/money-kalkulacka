@@ -1,4 +1,5 @@
 import { useLang } from "@/lib/i18n";
+import { bindNumbers } from "@/lib/nbsp";
 import { SEO_CONTENT, type SeoPage } from "@/lib/seoContent";
 
 /**
@@ -14,7 +15,7 @@ export function SeoArticle({ page }: { page: SeoPage }) {
         <h2 className="text-lg font-semibold tracking-tight text-foreground">{c.heading}</h2>
         {c.paragraphs.map((p) => (
           <p key={p} className="mt-3">
-            {p}
+            {bindNumbers(p)}
           </p>
         ))}
       </section>
@@ -23,8 +24,8 @@ export function SeoArticle({ page }: { page: SeoPage }) {
         <dl className="mt-3 space-y-4">
           {c.faq.map(({ q, a }) => (
             <div key={q}>
-              <dt className="font-medium text-foreground">{q}</dt>
-              <dd className="mt-1">{a}</dd>
+              <dt className="font-medium text-foreground">{bindNumbers(q)}</dt>
+              <dd className="mt-1">{bindNumbers(a)}</dd>
             </div>
           ))}
         </dl>
